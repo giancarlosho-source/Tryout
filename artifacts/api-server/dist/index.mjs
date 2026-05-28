@@ -57629,12 +57629,7 @@ router7.post("/sync/sheets", async (req, res) => {
     const rawPosition = row["position"] || row["position1"] || row["pos"] || null;
     const mappedPosition = rawPosition ? POSITION_MAP[rawPosition.trim().toLowerCase()] ?? rawPosition.split("/").map((part) => POSITION_MAP[part.trim().toLowerCase()] ?? part.trim()).join("/") : null;
     const isCheckedIn = ["true", "yes", "\u2713", "x", "1"].includes((row["checkedinstatus"] || row["checkedin"] || row["bc"] || "").toLowerCase());
-    if (!name) {
-      if (Object.values(row).some((v) => v)) {
-        errors.push(`Row ${i + 1}: Missing player name \u2014 skipped`);
-      }
-      continue;
-    }
+    if (!name) continue;
     if (checkedInOnly && !isCheckedIn) continue;
     const playerData = {
       jerseyNumber: jersey,

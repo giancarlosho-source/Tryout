@@ -236,13 +236,8 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
 
     const isCheckedIn = ["true", "yes", "✓", "x", "1"].includes((row["checkedinstatus"] || row["checkedin"] || row["bc"] || "").toLowerCase());
 
-    // Skip entirely blank rows
-    if (!name) {
-      if (Object.values(row).some((v) => v)) {
-        errors.push(`Row ${i + 1}: Missing player name — skipped`);
-      }
-      continue;
-    }
+    // Skip rows with no player name (blank or partial rows)
+    if (!name) continue;
 
     // On tryout day: skip players who haven't checked in
     if (checkedInOnly && !isCheckedIn) continue;
