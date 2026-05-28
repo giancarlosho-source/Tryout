@@ -209,7 +209,27 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
     return;
   }
 
-  const headers = values[0].map((h) =>
+  // Auto-detect the real header row — skip title/banner rows that lack recognizable column names.
+  // We score each of the first 5 rows by how many known column keywords it contains.
+  const KNOWN_HEADERS = new Set([
+    "#", "number", "jersey", "jerseynumber",
+    "name", "playername", "firstname", "first", "lastname", "last", "fname", "lname",
+    "position", "pos", "postition",
+    "checkedin", "checkedinstatus", "bc",
+    "height", "standingreachinches", "standingreach", "reach",
+    "verticaljump", "vertical", "approach", "approachjump",
+  ]);
+  let headerRowIndex = 0;
+  let bestScore = 0;
+  const searchDepth = Math.min(5, values.length);
+  for (let ri = 0; ri < searchDepth; ri++) {
+    const score = values[ri].filter((cell) =>
+      KNOWN_HEADERS.has(cell.trim().toLowerCase().replace(/\s+/g, "").replace(/^﻿/, ""))
+    ).length;
+    if (score > bestScore) { bestScore = score; headerRowIndex = ri; }
+  }
+
+  const headers = values[headerRowIndex].map((h) =>
     h.trim().toLowerCase().replace(/\s+/g, "").replace(/^﻿/, "")
   );
 
@@ -217,7 +237,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
   let imported = 0;
   let updated = 0;
 
-  for (let i = 1; i < values.length; i++) {
+  for (let i = headerRowIndex + 1; i < values.length; i++) {
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => { row[h] = (values[i][idx] ?? "").trim(); });
 
@@ -228,7 +248,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
       row["playername"] ||
       row["name"] ||
       (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
-    const rawPosition = row["position"] || row["position1"] || row["pos"] || null;
+    const rawPosition = row["position"] || row["position1"] || row["pos"] || row["postition"] || null;
     const mappedPosition = rawPosition
       ? (POSITION_MAP[rawPosition.trim().toLowerCase()] ??
          rawPosition.split("/").map((part) => POSITION_MAP[part.trim().toLowerCase()] ?? part.trim()).join("/"))
@@ -248,8 +268,8 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
       position: mappedPosition,
       checkedIn: isCheckedIn,
       heightInches: row["height"] ? parseFloat(row["height"]) || null : null,
-      standingReachInches: row["standingreachinches"] || row["reach"] ? parseFloat(row["standingreachinches"] || row["reach"]) || null : null,
-      verticalJumpInches: row["verticaljump"] || row["vertical"] ? parseFloat(row["verticaljump"] || row["vertical"]) || null : null,
+      standingReachInches: row["standingreachinches"] || row["standingreach"] || row["reach"] ? parseFloat(row["standingreachinches"] || row["standingreach"] || row["reach"]) || null : null,
+      verticalJumpInches: row["verticaljump"] || row["vertical"] || row["approach"] || row["approachjump"] ? parseFloat(row["verticaljump"] || row["vertical"] || row["approach"] || row["approachjump"]) || null : null,
     };
 
     try {

@@ -57633,13 +57633,53 @@ router7.post("/sync/sheets", async (req, res) => {
     res.json({ imported: 0, updated: 0, errors: ["Sheet must have a header row and at least one data row"] });
     return;
   }
-  const headers = values[0].map(
+  const KNOWN_HEADERS = /* @__PURE__ */ new Set([
+    "#",
+    "number",
+    "jersey",
+    "jerseynumber",
+    "name",
+    "playername",
+    "firstname",
+    "first",
+    "lastname",
+    "last",
+    "fname",
+    "lname",
+    "position",
+    "pos",
+    "postition",
+    "checkedin",
+    "checkedinstatus",
+    "bc",
+    "height",
+    "standingreachinches",
+    "standingreach",
+    "reach",
+    "verticaljump",
+    "vertical",
+    "approach",
+    "approachjump"
+  ]);
+  let headerRowIndex = 0;
+  let bestScore = 0;
+  const searchDepth = Math.min(5, values.length);
+  for (let ri = 0; ri < searchDepth; ri++) {
+    const score = values[ri].filter(
+      (cell) => KNOWN_HEADERS.has(cell.trim().toLowerCase().replace(/\s+/g, "").replace(/^﻿/, ""))
+    ).length;
+    if (score > bestScore) {
+      bestScore = score;
+      headerRowIndex = ri;
+    }
+  }
+  const headers = values[headerRowIndex].map(
     (h) => h.trim().toLowerCase().replace(/\s+/g, "").replace(/^﻿/, "")
   );
   const errors = [];
   let imported = 0;
   let updated = 0;
-  for (let i = 1; i < values.length; i++) {
+  for (let i = headerRowIndex + 1; i < values.length; i++) {
     const row = {};
     headers.forEach((h, idx) => {
       row[h] = (values[i][idx] ?? "").trim();
@@ -57648,7 +57688,7 @@ router7.post("/sync/sheets", async (req, res) => {
     const firstName = row["firstname"] || row["first"] || row["fname"] || "";
     const lastName = row["lastname"] || row["last"] || row["lname"] || "";
     const name = row["playername"] || row["name"] || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
-    const rawPosition = row["position"] || row["position1"] || row["pos"] || null;
+    const rawPosition = row["position"] || row["position1"] || row["pos"] || row["postition"] || null;
     const mappedPosition = rawPosition ? POSITION_MAP[rawPosition.trim().toLowerCase()] ?? rawPosition.split("/").map((part) => POSITION_MAP[part.trim().toLowerCase()] ?? part.trim()).join("/") : null;
     const isCheckedIn = ["true", "yes", "\u2713", "x", "1"].includes((row["checkedinstatus"] || row["checkedin"] || row["bc"] || "").toLowerCase());
     if (!name) continue;
@@ -57659,8 +57699,8 @@ router7.post("/sync/sheets", async (req, res) => {
       position: mappedPosition,
       checkedIn: isCheckedIn,
       heightInches: row["height"] ? parseFloat(row["height"]) || null : null,
-      standingReachInches: row["standingreachinches"] || row["reach"] ? parseFloat(row["standingreachinches"] || row["reach"]) || null : null,
-      verticalJumpInches: row["verticaljump"] || row["vertical"] ? parseFloat(row["verticaljump"] || row["vertical"]) || null : null
+      standingReachInches: row["standingreachinches"] || row["standingreach"] || row["reach"] ? parseFloat(row["standingreachinches"] || row["standingreach"] || row["reach"]) || null : null,
+      verticalJumpInches: row["verticaljump"] || row["vertical"] || row["approach"] || row["approachjump"] ? parseFloat(row["verticaljump"] || row["vertical"] || row["approach"] || row["approachjump"]) || null : null
     };
     try {
       const existing = jersey ? await db.select().from(playersTable).where(eq(playersTable.jerseyNumber, jersey)) : await db.select().from(playersTable).where(eq(playersTable.name, name));
