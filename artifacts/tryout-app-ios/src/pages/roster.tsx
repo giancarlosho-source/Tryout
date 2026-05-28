@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, AlertCircle, User, Lock } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle, User, Lock, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoster } from "@/contexts/roster-context";
 
@@ -37,7 +37,7 @@ export default function Roster() {
   const { toast } = useToast();
   const { setRoster } = useRoster();
 
-  const { data: suggestion, isLoading: suggestLoading, refetch: refetchSuggestion } = useSuggestRoster();
+  const { data: suggestion, isLoading: suggestLoading, isFetching: suggestFetching, refetch: refetchSuggestion } = useSuggestRoster({ query: { enabled: false } });
   const createRoster = useCreateRoster();
   const addPlayer = useAddPlayerToRoster();
 
@@ -79,24 +79,37 @@ export default function Roster() {
             <p className="text-muted-foreground text-sm mt-1">AI-suggested 12-player roster based on scores</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => refetchSuggestion()} disabled={suggestLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${suggestLoading ? "animate-spin" : ""}`} />
-              Regenerate
-            </Button>
-            <Button
-              onClick={handleSaveRoster}
-              disabled={!suggestion || createRoster.isPending || addPlayer.isPending}
-              className="font-semibold"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {createRoster.isPending || addPlayer.isPending ? "Saving..." : "Save Roster"}
-            </Button>
+            {suggestion && (
+              <Button variant="outline" onClick={() => refetchSuggestion()} disabled={suggestFetching}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${suggestFetching ? "animate-spin" : ""}`} />
+                Regenerate
+              </Button>
+            )}
+            {suggestion ? (
+              <Button
+                onClick={handleSaveRoster}
+                disabled={createRoster.isPending || addPlayer.isPending}
+                className="font-semibold"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {createRoster.isPending || addPlayer.isPending ? "Saving..." : "Save Roster"}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => refetchSuggestion()}
+                disabled={suggestFetching}
+                className="font-semibold"
+              >
+                <Sparkles className={`h-4 w-4 mr-2 ${suggestFetching ? "animate-spin" : ""}`} />
+                {suggestFetching ? "Generating..." : "Generate Suggestion"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6 space-y-6">
-        {suggestLoading ? (
+        {suggestFetching ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="animate-pulse">
@@ -108,6 +121,22 @@ export default function Roster() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : !suggestion ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-5 py-24">
+            <div className="rounded-full bg-muted p-5">
+              <ClipboardList className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">No roster generated yet</h2>
+              <p className="text-muted-foreground text-sm mt-1 max-w-xs">
+                Click <strong>Generate Suggestion</strong> to build a 12-player roster from your current rankings.
+              </p>
+            </div>
+            <Button size="lg" className="font-semibold" onClick={() => refetchSuggestion()}>
+              <Sparkles className="h-5 w-5 mr-2" />
+              Generate Suggestion
+            </Button>
           </div>
         ) : (
           <>
