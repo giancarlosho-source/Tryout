@@ -15,4 +15,5 @@ export const PlayerPosition = {
   MiddleBlocker: 'MiddleBlocker',
   Opposite: 'Opposite',
   Libero: 'Libero',
+  Undecided: 'Undecided',
 } as const;

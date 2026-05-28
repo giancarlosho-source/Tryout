@@ -13,6 +13,7 @@ const POSITIONS = [
   { key: "MiddleBlocker", label: "Middle Blockers" },
   { key: "Opposite", label: "Opposites" },
   { key: "Libero", label: "Libero / DS" },
+  { key: "Undecided", label: "Undecided" },
 ];
 
 function ScorePill({ score }: { score: number | null | undefined }) {

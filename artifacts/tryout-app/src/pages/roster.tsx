@@ -15,14 +15,16 @@ const POSITION_COLORS: Record<string, string> = {
   MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
   Opposite: "bg-orange-100 text-orange-700 border-orange-200",
   Libero: "bg-pink-100 text-pink-700 border-pink-200",
+  Undecided: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter", OutsideHitter: "Outside Hitter",
   MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
+  Undecided: "Undecided",
 };
 
-const POSITION_ORDER = ["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"];
+const POSITION_ORDER = ["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
 
 function ScorePill({ score }: { score: number | null | undefined }) {
   if (score == null) return null;

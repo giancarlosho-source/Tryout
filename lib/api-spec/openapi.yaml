@@ -881,7 +881,7 @@ components:
           type: string
         position:
           type: string
-          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
         heightInches:
@@ -944,7 +944,7 @@ components:
           type: string
         position:
           type: string
-          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
         heightInches:
@@ -963,7 +963,7 @@ components:
           type: string
         position:
           type: string
-          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
         heightInches:

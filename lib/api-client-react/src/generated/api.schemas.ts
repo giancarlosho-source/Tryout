@@ -18,6 +18,7 @@ export const PlayerPosition = {
   MiddleBlocker: 'MiddleBlocker',
   Opposite: 'Opposite',
   Libero: 'Libero',
+  Undecided: 'Undecided',
 } as const;
 
 export interface Player {
@@ -108,6 +109,7 @@ export const PlayerInputPosition = {
   MiddleBlocker: 'MiddleBlocker',
   Opposite: 'Opposite',
   Libero: 'Libero',
+  Undecided: 'Undecided',
 } as const;
 
 export interface PlayerInput {
@@ -132,6 +134,7 @@ export const PlayerUpdatePosition = {
   MiddleBlocker: 'MiddleBlocker',
   Opposite: 'Opposite',
   Libero: 'Libero',
+  Undecided: 'Undecided',
 } as const;
 
 export interface PlayerUpdate {

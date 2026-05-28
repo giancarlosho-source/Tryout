@@ -24,7 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const POSITION_LABELS: Record<string, string> = {
-  Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L",
+  Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
 };
 const POSITION_COLORS: Record<string, string> = {
   Setter: "bg-purple-100 text-purple-700 border-purple-200",
@@ -32,6 +32,7 @@ const POSITION_COLORS: Record<string, string> = {
   MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
   Opposite: "bg-orange-100 text-orange-700 border-orange-200",
   Libero: "bg-teal-100 text-teal-700 border-teal-200",
+  Undecided: "bg-gray-100 text-gray-600 border-gray-200",
 };
 const TEAM_COLORS = [
   "bg-rose-100 text-rose-700 border-rose-200",
@@ -236,9 +237,9 @@ export default function Draft() {
 
   const myWishSet = new Set(myWishlist);
 
-  const POSITIONS = ["All", "Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"];
+  const POSITIONS = ["All", "Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
   const POSITION_TAB_LABELS: Record<string, string> = {
-    All: "All", Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L",
+    All: "All", Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
   };
 
   // Available = not claimed by ANY coach

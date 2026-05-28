@@ -37464,7 +37464,7 @@ var ListPlayersResponseItem = objectType({
   "id": numberType(),
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37485,7 +37485,7 @@ var ListPlayersResponse = arrayType(ListPlayersResponseItem);
 var CreatePlayerBody = objectType({
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType().optional(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37517,7 +37517,7 @@ var GetPlayerResponse = objectType({
   "id": numberType(),
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37558,7 +37558,7 @@ var UpdatePlayerParams = objectType({
 var UpdatePlayerBody = objectType({
   "jerseyNumber": stringType().optional(),
   "name": stringType().optional(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]).optional(),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]).optional(),
   "checkedIn": booleanType().optional(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37569,7 +37569,7 @@ var UpdatePlayerResponse = objectType({
   "id": numberType(),
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37651,7 +37651,7 @@ var ListRankingsResponseItem = objectType({
   "id": numberType(),
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37683,7 +37683,7 @@ var OverrideRankingResponse = objectType({
   "id": numberType(),
   "jerseyNumber": stringType(),
   "name": stringType(),
-  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+  "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
   "checkedIn": booleanType(),
   "heightInches": numberType().nullish(),
   "standingReachInches": numberType().nullish(),
@@ -37732,7 +37732,7 @@ var SuggestRosterResponse = objectType({
       "id": numberType(),
       "jerseyNumber": stringType(),
       "name": stringType(),
-      "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+      "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
       "checkedIn": booleanType(),
       "heightInches": numberType().nullish(),
       "standingReachInches": numberType().nullish(),
@@ -37755,7 +37755,7 @@ var SuggestRosterResponse = objectType({
     "id": numberType(),
     "jerseyNumber": stringType(),
     "name": stringType(),
-    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
     "checkedIn": booleanType(),
     "heightInches": numberType().nullish(),
     "standingReachInches": numberType().nullish(),
@@ -37796,7 +37796,7 @@ var GetRosterResponse = objectType({
       "id": numberType(),
       "jerseyNumber": stringType(),
       "name": stringType(),
-      "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+      "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
       "checkedIn": booleanType(),
       "heightInches": numberType().nullish(),
       "standingReachInches": numberType().nullish(),
@@ -37818,7 +37818,7 @@ var GetRosterResponse = objectType({
     "id": numberType(),
     "jerseyNumber": stringType(),
     "name": stringType(),
-    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
     "checkedIn": booleanType(),
     "heightInches": numberType().nullish(),
     "standingReachInches": numberType().nullish(),
@@ -37938,7 +37938,7 @@ var GetCoachDraftResponse = objectType({
     "id": numberType(),
     "jerseyNumber": stringType(),
     "name": stringType(),
-    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"]),
+    "position": enumType(["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]),
     "checkedIn": booleanType(),
     "heightInches": numberType().nullish(),
     "standingReachInches": numberType().nullish(),
@@ -56901,7 +56901,10 @@ router2.post("/players/import-csv", async (req, res) => {
       libero: "Libero",
       l: "Libero",
       ds: "Libero",
-      "libero/ds": "Libero"
+      "libero/ds": "Libero",
+      undecided: "Undecided",
+      tbd: "Undecided",
+      unknown: "Undecided"
     };
     const mappedPosition = positionMap[position.toLowerCase()] || position;
     const playerData = {
@@ -57452,7 +57455,10 @@ var POSITION_MAP = {
   pin: "OutsideHitter",
   "pin/ds": "OutsideHitter/Libero",
   "pin/mb": "OutsideHitter/MiddleBlocker",
-  "pin/setter": "Opposite"
+  "pin/setter": "Opposite",
+  undecided: "Undecided",
+  tbd: "Undecided",
+  unknown: "Undecided"
 };
 var router7 = (0, import_express7.Router)();
 router7.get("/sync/status", async (_req, res) => {
@@ -57680,7 +57686,8 @@ var POSITION_LABELS2 = {
   OutsideHitter: "Outside Hitter",
   MiddleBlocker: "Middle Blocker",
   Opposite: "Opposite",
-  Libero: "Libero/DS"
+  Libero: "Libero/DS",
+  Undecided: "Undecided"
 };
 router8.post("/ai/player-summary/:playerId", async (req, res) => {
   const params = GeneratePlayerSummaryParams.safeParse(req.params);

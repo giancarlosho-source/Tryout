@@ -14,6 +14,7 @@ const POSITION_LABELS: Record<string, string> = {
   MiddleBlocker: "Middle Blocker",
   Opposite: "Opposite",
   Libero: "Libero/DS",
+  Undecided: "Undecided",
 };
 
 router.post("/ai/player-summary/:playerId", async (req, res): Promise<void> => {

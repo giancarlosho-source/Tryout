@@ -138,6 +138,9 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
       l: "Libero",
       ds: "Libero",
       "libero/ds": "Libero",
+      undecided: "Undecided",
+      tbd: "Undecided",
+      unknown: "Undecided",
     };
 
     const mappedPosition = positionMap[position.toLowerCase()] || position;

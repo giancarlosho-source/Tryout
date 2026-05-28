@@ -104,6 +104,7 @@ export default function Players() {
               <TabsTrigger value="Opposite" className="px-6 py-2 text-sm font-semibold rounded-md">Opposite</TabsTrigger>
               <TabsTrigger value="Setter" className="px-6 py-2 text-sm font-semibold rounded-md">Setter</TabsTrigger>
               <TabsTrigger value="Libero" className="px-6 py-2 text-sm font-semibold rounded-md">Libero</TabsTrigger>
+              <TabsTrigger value="Undecided" className="px-6 py-2 text-sm font-semibold rounded-md">Undecided</TabsTrigger>
             </TabsList>
           </Tabs>
           <Button

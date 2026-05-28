@@ -25,6 +25,7 @@ const POSITION_MAP: Record<string, string> = {
   opposite: "Opposite", opp: "Opposite", rs: "Opposite",
   libero: "Libero", l: "Libero", ds: "Libero", "libero/ds": "Libero", "ds/l": "Libero",
   pin: "OutsideHitter", "pin/ds": "OutsideHitter/Libero", "pin/mb": "OutsideHitter/MiddleBlocker", "pin/setter": "Opposite",
+  undecided: "Undecided", tbd: "Undecided", unknown: "Undecided",
 };
 
 const router: IRouter = Router();
