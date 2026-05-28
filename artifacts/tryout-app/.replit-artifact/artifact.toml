@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/"
+title = "Volleyball Tryout Manager"
+version = "1.0.0"
+id = "artifacts/tryout-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19107
+
+[services.development]
+run = "pnpm --filter @workspace/tryout-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tryout-app", "run", "build" ]
+publicDir = "artifacts/tryout-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19107"
+BASE_PATH = "/"
+

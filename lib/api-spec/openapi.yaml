@@ -1,0 +1,1436 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Volleyball Tryout Manager API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: players
+    description: Player management
+  - name: evaluations
+    description: Player evaluations
+  - name: rankings
+    description: Player rankings
+  - name: rosters
+    description: Roster management
+  - name: coaches
+    description: Coach and team management
+  - name: notes
+    description: Coach notes
+  - name: sync
+    description: Data sync operations
+  - name: ai
+    description: AI-assisted features
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # Players
+  /players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: List all players
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: string
+        - name: missingMeasurements
+          in: query
+          schema:
+            type: boolean
+        - name: checkedIn
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: createPlayer
+      tags: [players]
+      summary: Create a player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /players/import-csv:
+    post:
+      operationId: importPlayersCsv
+      tags: [players]
+      summary: Import players from CSV data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvImport"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+
+  /players/stats:
+    get:
+      operationId: getPlayerStats
+      tags: [players]
+      summary: Get tryout dashboard stats
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TryoutStats"
+
+  /players/{id}:
+    get:
+      operationId: getPlayer
+      tags: [players]
+      summary: Get a player by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePlayer
+      tags: [players]
+      summary: Update a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerUpdate"
+      responses:
+        "200":
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      summary: Delete a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  # Evaluations
+  /evaluations:
+    get:
+      operationId: listEvaluations
+      tags: [evaluations]
+      summary: List evaluations
+      parameters:
+        - name: playerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of evaluations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Evaluation"
+    post:
+      operationId: upsertEvaluation
+      tags: [evaluations]
+      summary: Create or update an evaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluationInput"
+      responses:
+        "200":
+          description: Upserted evaluation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evaluation"
+
+  /evaluations/{id}:
+    patch:
+      operationId: updateEvaluation
+      tags: [evaluations]
+      summary: Update an evaluation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluationUpdate"
+      responses:
+        "200":
+          description: Updated evaluation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evaluation"
+        "404":
+          description: Not found
+
+  # Rankings
+  /rankings:
+    get:
+      operationId: listRankings
+      tags: [rankings]
+      summary: Get all player rankings
+      parameters:
+        - name: position
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [overall, position, potential, physical, height, vertical, jerseyNumber]
+        - name: sortDir
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+      responses:
+        "200":
+          description: Ranked players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankedPlayer"
+
+  /rankings/{playerId}/override:
+    patch:
+      operationId: overrideRanking
+      tags: [rankings]
+      summary: Override a player's ranking position
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RankingOverride"
+      responses:
+        "200":
+          description: Updated ranking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RankedPlayer"
+        "404":
+          description: Not found
+
+  # Rosters
+  /rosters:
+    get:
+      operationId: listRosters
+      tags: [rosters]
+      summary: List all rosters
+      responses:
+        "200":
+          description: List of rosters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Roster"
+    post:
+      operationId: createRoster
+      tags: [rosters]
+      summary: Create a roster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RosterInput"
+      responses:
+        "201":
+          description: Created roster
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Roster"
+
+  /rosters/suggest:
+    get:
+      operationId: suggestRoster
+      tags: [rosters]
+      summary: Get suggested 12-player roster
+      responses:
+        "200":
+          description: Suggested roster with explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterSuggestion"
+
+  /rosters/{id}:
+    get:
+      operationId: getRoster
+      tags: [rosters]
+      summary: Get a roster by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Roster detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateRoster
+      tags: [rosters]
+      summary: Update roster metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RosterUpdate"
+      responses:
+        "200":
+          description: Updated roster
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Roster"
+        "404":
+          description: Not found
+
+  /rosters/{id}/players:
+    post:
+      operationId: addPlayerToRoster
+      tags: [rosters]
+      summary: Add a player to a roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RosterPlayerInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterDetail"
+        "404":
+          description: Not found
+
+  /rosters/{id}/players/{playerId}:
+    delete:
+      operationId: removePlayerFromRoster
+      tags: [rosters]
+      summary: Remove a player from a roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Not found
+
+  # Coach Notes
+  /notes:
+    get:
+      operationId: listNotes
+      tags: [notes]
+      summary: List coach notes
+      parameters:
+        - name: playerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CoachNote"
+    post:
+      operationId: createNote
+      tags: [notes]
+      summary: Create a coach note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteInput"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachNote"
+
+  # Coaches
+  /coaches:
+    get:
+      operationId: listCoaches
+      tags: [coaches]
+      summary: List all coaches
+      responses:
+        "200":
+          description: List of coaches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Coach"
+    post:
+      operationId: createCoach
+      tags: [coaches]
+      summary: Create a coach
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewCoachBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coach"
+
+  /coaches/import:
+    post:
+      operationId: importCoachesCsv
+      tags: [coaches]
+      summary: Import coaches from CSV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvImport"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+
+  /coaches/draft/all:
+    get:
+      operationId: getAllDraftPicks
+      tags: [coaches]
+      summary: Get all draft picks across all coaches
+      responses:
+        "200":
+          description: All draft picks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DraftPick"
+
+  /coaches/{id}:
+    delete:
+      operationId: deleteCoach
+      tags: [coaches]
+      summary: Delete a coach
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /coaches/{id}/draft:
+    get:
+      operationId: getCoachDraft
+      tags: [coaches]
+      summary: Get or create a coach's draft roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Coach draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachDraft"
+
+  /coaches/{id}/draft/players:
+    post:
+      operationId: addPlayerToDraft
+      tags: [coaches]
+      summary: Add a player to a coach's draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftPlayerBody"
+      responses:
+        "201":
+          description: Added
+
+  /coaches/{id}/draft/players/{playerId}:
+    delete:
+      operationId: removePlayerFromDraft
+      tags: [coaches]
+      summary: Remove a player from a coach's draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+    patch:
+      operationId: togglePlayerLock
+      tags: [coaches]
+      summary: Toggle lock status of a player on a coach's draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerLockInput"
+      responses:
+        "200":
+          description: Updated
+
+  /coaches/wishlist/all:
+    get:
+      operationId: getAllWishlistPicks
+      tags: [coaches]
+      summary: Get all wishlist picks across all coaches
+      responses:
+        "200":
+          description: All wishlist picks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WishlistPick"
+
+  /coaches/{id}/wishlist:
+    get:
+      operationId: getCoachWishlist
+      tags: [coaches]
+      summary: Get a coach's wishlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Wishlist player IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+    post:
+      operationId: addToWishlist
+      tags: [coaches]
+      summary: Add a player to a coach's wishlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistInput"
+      responses:
+        "201":
+          description: Added
+
+  /coaches/{id}/wishlist/{playerId}:
+    delete:
+      operationId: removeFromWishlist
+      tags: [coaches]
+      summary: Remove a player from a coach's wishlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
+  /notes/{id}:
+    patch:
+      operationId: updateNote
+      tags: [notes]
+      summary: Update a coach note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoteUpdate"
+      responses:
+        "200":
+          description: Updated note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachNote"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteNote
+      tags: [notes]
+      summary: Delete a coach note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  # Sync
+  /sync/status:
+    get:
+      operationId: getSyncStatus
+      tags: [sync]
+      summary: Get last sync status
+      responses:
+        "200":
+          description: Sync status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncStatus"
+
+  /sync/trigger:
+    post:
+      operationId: triggerSync
+      tags: [sync]
+      summary: Trigger manual data sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncTrigger"
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncStatus"
+
+  /sync/sheets:
+    post:
+      operationId: syncFromGoogleSheets
+      tags: [sync]
+      summary: Sync players from a Google Sheet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SheetsSyncRequest"
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+
+  # AI
+  /ai/player-summary/{playerId}:
+    post:
+      operationId: generatePlayerSummary
+      tags: [ai]
+      summary: Generate AI summary for a player
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI-generated player summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiPlayerSummary"
+        "404":
+          description: Not found
+
+  /ai/roster-explain/{rosterId}:
+    post:
+      operationId: generateRosterExplanation
+      tags: [ai]
+      summary: Generate AI explanation for roster decisions
+      parameters:
+        - name: rosterId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: AI-generated roster explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiRosterExplanation"
+        "404":
+          description: Not found
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    Player:
+      type: object
+      required: [id, jerseyNumber, name, position, checkedIn, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        jerseyNumber:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+        checkedIn:
+          type: boolean
+        heightInches:
+          type: ["number", "null"]
+        standingReachInches:
+          type: ["number", "null"]
+        verticalJumpInches:
+          type: ["number", "null"]
+        overallScore:
+          type: ["number", "null"]
+        positionScore:
+          type: ["number", "null"]
+        potentialScore:
+          type: ["number", "null"]
+        physicalScore:
+          type: ["number", "null"]
+          description: "Percentile-based score (0–10) from height, reach, and vertical"
+        confidenceScore:
+          type: ["number", "null"]
+          description: "Data completeness score (0–10): how much eval data is available"
+        flags:
+          type: ["array", "null"]
+          items:
+            type: string
+          description: "Auto-generated player flags (e.g. High Potential, Raw Athlete)"
+        rankOverall:
+          type: ["integer", "null"]
+        rankPosition:
+          type: ["integer", "null"]
+        rankLocked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlayerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Player"
+        - type: object
+          properties:
+            evaluations:
+              type: array
+              items:
+                $ref: "#/components/schemas/Evaluation"
+            notes:
+              type: array
+              items:
+                $ref: "#/components/schemas/CoachNote"
+
+    PlayerInput:
+      type: object
+      required: [jerseyNumber, name, position]
+      properties:
+        jerseyNumber:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+        checkedIn:
+          type: boolean
+        heightInches:
+          type: ["number", "null"]
+        standingReachInches:
+          type: ["number", "null"]
+        verticalJumpInches:
+          type: ["number", "null"]
+
+    PlayerUpdate:
+      type: object
+      properties:
+        jerseyNumber:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+          enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero]
+        checkedIn:
+          type: boolean
+        heightInches:
+          type: ["number", "null"]
+        standingReachInches:
+          type: ["number", "null"]
+        verticalJumpInches:
+          type: ["number", "null"]
+        rankLocked:
+          type: boolean
+
+    CsvImport:
+      type: object
+      required: [csvData]
+      properties:
+        csvData:
+          type: string
+
+    ImportResult:
+      type: object
+      required: [imported, updated, errors]
+      properties:
+        imported:
+          type: integer
+        updated:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+
+    TryoutStats:
+      type: object
+      required: [totalPlayers, checkedIn, evaluated, missingMeasurements, byPosition]
+      properties:
+        totalPlayers:
+          type: integer
+        checkedIn:
+          type: integer
+        evaluated:
+          type: integer
+        missingMeasurements:
+          type: integer
+        byPosition:
+          type: array
+          items:
+            $ref: "#/components/schemas/PositionCount"
+
+    PositionCount:
+      type: object
+      required: [position, count]
+      properties:
+        position:
+          type: string
+        count:
+          type: integer
+
+    Evaluation:
+      type: object
+      required: [id, playerId, category, skill, score, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        playerId:
+          type: integer
+        category:
+          type: string
+          enum: [universal, position]
+        skill:
+          type: string
+        score:
+          type: number
+          minimum: 1
+          maximum: 10
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    EvaluationInput:
+      type: object
+      required: [playerId, category, skill, score]
+      properties:
+        playerId:
+          type: integer
+        category:
+          type: string
+          enum: [universal, position]
+        skill:
+          type: string
+        score:
+          type: number
+          minimum: 1
+          maximum: 10
+        notes:
+          type: string
+
+    EvaluationUpdate:
+      type: object
+      properties:
+        score:
+          type: number
+          minimum: 1
+          maximum: 10
+        notes:
+          type: string
+
+    RankedPlayer:
+      allOf:
+        - $ref: "#/components/schemas/Player"
+        - type: object
+          properties:
+            rankOverridePosition:
+              type: ["integer", "null"]
+            evaluationCount:
+              type: integer
+
+    RankingOverride:
+      type: object
+      required: [rankOverridePosition]
+      properties:
+        rankOverridePosition:
+          type: ["integer", "null"]
+        rankLocked:
+          type: boolean
+
+    Roster:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        setterSlots:
+          type: integer
+        outsideHitterSlots:
+          type: integer
+        middleBlockerSlots:
+          type: integer
+        oppositeSlots:
+          type: integer
+        liberoSlots:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RosterDetail:
+      allOf:
+        - $ref: "#/components/schemas/Roster"
+        - type: object
+          required: [players]
+          properties:
+            players:
+              type: array
+              items:
+                $ref: "#/components/schemas/RosterSlot"
+            bubblePlayers:
+              type: array
+              items:
+                $ref: "#/components/schemas/Player"
+            missingPositions:
+              type: array
+              items:
+                type: string
+
+    RosterSlot:
+      type: object
+      required: [playerId, position, locked]
+      properties:
+        playerId:
+          type: integer
+        position:
+          type: string
+        locked:
+          type: boolean
+        player:
+          $ref: "#/components/schemas/Player"
+
+    RosterInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        setterSlots:
+          type: integer
+        outsideHitterSlots:
+          type: integer
+        middleBlockerSlots:
+          type: integer
+        oppositeSlots:
+          type: integer
+        liberoSlots:
+          type: integer
+
+    RosterUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        setterSlots:
+          type: integer
+        outsideHitterSlots:
+          type: integer
+        middleBlockerSlots:
+          type: integer
+        oppositeSlots:
+          type: integer
+        liberoSlots:
+          type: integer
+
+    RosterPlayerInput:
+      type: object
+      required: [playerId, position]
+      properties:
+        playerId:
+          type: integer
+        position:
+          type: string
+        locked:
+          type: boolean
+
+    RosterSuggestion:
+      type: object
+      required: [players, explanation]
+      properties:
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/RosterSlot"
+        explanation:
+          type: string
+        bubblePlayers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        missingPositions:
+          type: array
+          items:
+            type: string
+
+    Coach:
+      type: object
+      required: [id, name, teamName, draftPriority, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        teamName:
+          type: string
+        draftPriority:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    NewCoachBody:
+      type: object
+      required: [name, teamName]
+      properties:
+        name:
+          type: string
+        teamName:
+          type: string
+        draftPriority:
+          type: array
+          items:
+            type: string
+
+    DraftPick:
+      type: object
+      required: [playerId, coachId, coachName, teamName, position]
+      properties:
+        playerId:
+          type: integer
+        coachId:
+          type: integer
+        coachName:
+          type: string
+        teamName:
+          type: string
+        position:
+          type: string
+
+    WishlistPick:
+      type: object
+      required: [playerId, coachId, coachName, teamName]
+      properties:
+        playerId:
+          type: integer
+        coachId:
+          type: integer
+        coachName:
+          type: string
+        teamName:
+          type: string
+
+    PlayerLockInput:
+      type: object
+      required: [locked]
+      properties:
+        locked:
+          type: boolean
+
+    WishlistInput:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: integer
+
+    DraftPlayerBody:
+      type: object
+      required: [playerId, position]
+      properties:
+        playerId:
+          type: integer
+        position:
+          type: string
+
+    CoachDraft:
+      type: object
+      required: [roster, coach, players]
+      properties:
+        roster:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            coachId:
+              type: ["integer", "null"]
+        coach:
+          $ref: "#/components/schemas/Coach"
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+
+    CoachNote:
+      type: object
+      required: [id, playerId, content, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        playerId:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NoteInput:
+      type: object
+      required: [playerId, content]
+      properties:
+        playerId:
+          type: integer
+        content:
+          type: string
+
+    NoteUpdate:
+      type: object
+      properties:
+        content:
+          type: string
+
+    SyncStatus:
+      type: object
+      required: [lastSyncAt, status, playersUpdated]
+      properties:
+        lastSyncAt:
+          type: ["string", "null"]
+          format: date-time
+        status:
+          type: string
+          enum: [idle, syncing, success, error]
+        playersUpdated:
+          type: integer
+        message:
+          type: ["string", "null"]
+
+    SyncTrigger:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [manual, auto]
+
+    SheetsSyncRequest:
+      type: object
+      required: [sheetUrl]
+      properties:
+        sheetUrl:
+          type: string
+          description: Google Sheet URL or spreadsheet ID
+        sheetName:
+          type: string
+          description: Sheet tab name (defaults to first sheet)
+
+    AiPlayerSummary:
+      type: object
+      required: [playerId, summary, strengths, weaknesses, risks, positionFit, potentialNote]
+      properties:
+        playerId:
+          type: integer
+        summary:
+          type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        weaknesses:
+          type: array
+          items:
+            type: string
+        risks:
+          type: array
+          items:
+            type: string
+        positionFit:
+          type: string
+        potentialNote:
+          type: string
+        suggestedPositionChange:
+          type: ["string", "null"]
+
+    AiRosterExplanation:
+      type: object
+      required: [rosterId, explanation, playerDecisions]
+      properties:
+        rosterId:
+          type: integer
+        explanation:
+          type: string
+        playerDecisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerDecision"
+
+    PlayerDecision:
+      type: object
+      required: [playerId, playerName, decision, reason]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        decision:
+          type: string
+          enum: [selected, bubble, excluded]
+        reason:
+          type: string

@@ -1,0 +1,54 @@
+modules = ["nodejs-20", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 19107
+externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "pnpm install && pnpm --filter db push && pnpm --filter api-server build && node artifacts/api-server/dist/index.mjs"]
+
+[env]
+BASE_PATH = "/"
+PORT = "19107"
+
+[workflows]
+runButton = "Start App"
+
+[[workflows.workflow]]
+name = "Start App"
+mode = "sequential"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm install --frozen-lockfile"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter db push"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter api-server build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8080 node --enable-source-maps artifacts/api-server/dist/index.mjs &"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "BASE_PATH=/ PORT=19107 pnpm --filter tryout-app dev"
+
+[agent]
+expertMode = true

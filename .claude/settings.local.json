@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pg_isready)",
+      "Bash(DATABASE_URL=postgresql://localhost/tribe_tryouts pnpm --filter @workspace/db run push)",
+      "Bash(pnpm approve-builds *)",
+      "Bash(pnpm install *)",
+      "Bash(npm_config_user_agent=\"pnpm/11.4.0 node/v24.0.0 darwin arm64\" pnpm install)",
+      "Bash(createdb tribe_tryouts)",
+      "Read(//Users/gian/.nvm/versions/**)",
+      "Read(//opt/homebrew/opt/**)",
+      "Read(//usr/local/**)",
+      "Bash(find /Users/gian -name \"node\" -type f 2>/dev/null | head -5)",
+      "Read(//Users/gian/**)",
+      "Bash(/Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --version)",
+      "Bash(curl -s http://localhost:8080/api/players)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/players/all -X DELETE)"
+    ]
+  }
+}
