@@ -71,6 +71,23 @@ export declare const playersTable: import("drizzle-orm/pg-core").PgTableWithColu
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        age: import("drizzle-orm/pg-core").PgColumn<{
+            name: "age";
+            tableName: "players";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         checkedIn: import("drizzle-orm/pg-core").PgColumn<{
             name: "checked_in";
             tableName: "players";
@@ -352,6 +369,7 @@ export declare const insertPlayerSchema: z.ZodObject<{
     jerseyNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     name: z.ZodString;
     position: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    age: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     checkedIn: z.ZodOptional<z.ZodBoolean>;
     heightInches: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     standingReachInches: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;

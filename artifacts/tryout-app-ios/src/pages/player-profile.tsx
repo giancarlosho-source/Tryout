@@ -138,6 +138,11 @@ export default function PlayerProfile() {
                 <Badge variant="outline" className="font-semibold">
                   {POSITION_LABELS[player.position] || player.position}
                 </Badge>
+                {player.age && (
+                  <Badge variant="outline" className="text-muted-foreground font-medium">
+                    {player.age}
+                  </Badge>
+                )}
                 {player.checkedIn ? (
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                     <CheckCircle2 className="h-3 w-3 mr-1" /> Checked In

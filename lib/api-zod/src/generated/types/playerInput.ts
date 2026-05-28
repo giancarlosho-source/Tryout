@@ -12,6 +12,11 @@ export interface PlayerInput {
   name: string;
   position: PlayerInputPosition;
   checkedIn?: boolean;
+  /**
+     * Age group (e.g. 10U, 11U, 12U)
+     * @nullable
+     */
+  age?: string | null;
   /** @nullable */
   heightInches?: number | null;
   /** @nullable */

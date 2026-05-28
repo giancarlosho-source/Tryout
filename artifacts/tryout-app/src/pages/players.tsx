@@ -146,6 +146,7 @@ export default function Players() {
               <TableHead className="w-20 font-bold uppercase tracking-wider text-xs">#</TableHead>
               <TableHead className="font-bold uppercase tracking-wider text-xs">Name</TableHead>
               <TableHead className="w-36 font-bold uppercase tracking-wider text-xs">Position</TableHead>
+              <TableHead className="w-20 font-bold uppercase tracking-wider text-xs text-center">Age</TableHead>
               <TableHead className="w-32 font-bold uppercase tracking-wider text-xs text-center">Status</TableHead>
               <TableHead className="w-48 font-bold uppercase tracking-wider text-xs text-center">Measurements</TableHead>
               <TableHead className="w-40 font-bold uppercase tracking-wider text-xs text-center">Roster</TableHead>
@@ -155,7 +156,7 @@ export default function Players() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   <div className="animate-pulse flex flex-col items-center justify-center">
                     <div className="h-8 w-8 rounded-full bg-muted mb-4" />
                     Loading players...
@@ -164,7 +165,7 @@ export default function Players() {
               </TableRow>
             ) : filteredPlayers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   No players found matching your criteria.
                 </TableCell>
               </TableRow>
@@ -216,6 +217,9 @@ export default function Players() {
                       >
                         {player.position}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center text-sm font-medium tabular-nums text-muted-foreground">
+                      {player.age ?? <span className="text-muted-foreground/30">—</span>}
                     </TableCell>
                     <TableCell className="text-center">
                       {player.checkedIn ? (

@@ -38,6 +38,7 @@ export declare const ListPlayersResponseItem: zod.ZodObject<{
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -60,6 +61,7 @@ export declare const ListPlayersResponseItem: zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -80,6 +82,7 @@ export declare const ListPlayersResponseItem: zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -99,6 +102,7 @@ export declare const ListPlayersResponse: zod.ZodArray<zod.ZodObject<{
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -121,6 +125,7 @@ export declare const ListPlayersResponse: zod.ZodArray<zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -141,6 +146,7 @@ export declare const ListPlayersResponse: zod.ZodArray<zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -162,6 +168,7 @@ export declare const CreatePlayerBody: zod.ZodObject<{
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodOptional<zod.ZodBoolean>;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -170,6 +177,7 @@ export declare const CreatePlayerBody: zod.ZodObject<{
     jerseyNumber: string;
     name: string;
     checkedIn?: boolean | undefined;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -178,6 +186,7 @@ export declare const CreatePlayerBody: zod.ZodObject<{
     jerseyNumber: string;
     name: string;
     checkedIn?: boolean | undefined;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -259,6 +268,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -281,6 +291,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -301,6 +312,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -418,6 +430,7 @@ export declare const UpdatePlayerBody: zod.ZodObject<{
     name: zod.ZodOptional<zod.ZodString>;
     position: zod.ZodOptional<zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>>;
     checkedIn: zod.ZodOptional<zod.ZodBoolean>;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -427,6 +440,7 @@ export declare const UpdatePlayerBody: zod.ZodObject<{
     checkedIn?: boolean | undefined;
     jerseyNumber?: string | undefined;
     name?: string | undefined;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -436,6 +450,7 @@ export declare const UpdatePlayerBody: zod.ZodObject<{
     checkedIn?: boolean | undefined;
     jerseyNumber?: string | undefined;
     name?: string | undefined;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -447,6 +462,7 @@ export declare const UpdatePlayerResponse: zod.ZodObject<{
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -469,6 +485,7 @@ export declare const UpdatePlayerResponse: zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -489,6 +506,7 @@ export declare const UpdatePlayerResponse: zod.ZodObject<{
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -718,6 +736,7 @@ export declare const ListRankingsResponseItem: zod.ZodIntersection<zod.ZodObject
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -740,6 +759,7 @@ export declare const ListRankingsResponseItem: zod.ZodIntersection<zod.ZodObject
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -760,6 +780,7 @@ export declare const ListRankingsResponseItem: zod.ZodIntersection<zod.ZodObject
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -788,6 +809,7 @@ export declare const ListRankingsResponse: zod.ZodArray<zod.ZodIntersection<zod.
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -810,6 +832,7 @@ export declare const ListRankingsResponse: zod.ZodArray<zod.ZodIntersection<zod.
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -830,6 +853,7 @@ export declare const ListRankingsResponse: zod.ZodArray<zod.ZodIntersection<zod.
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -878,6 +902,7 @@ export declare const OverrideRankingResponse: zod.ZodIntersection<zod.ZodObject<
     name: zod.ZodString;
     position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
     checkedIn: zod.ZodBoolean;
+    age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -900,6 +925,7 @@ export declare const OverrideRankingResponse: zod.ZodIntersection<zod.ZodObject<
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -920,6 +946,7 @@ export declare const OverrideRankingResponse: zod.ZodIntersection<zod.ZodObject<
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
@@ -1046,6 +1073,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: zod.ZodString;
             position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
             checkedIn: zod.ZodBoolean;
+            age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
             heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
             standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
             verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -1068,6 +1096,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1088,6 +1117,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1113,6 +1143,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1138,6 +1169,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1159,6 +1191,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
         name: zod.ZodString;
         position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
         checkedIn: zod.ZodBoolean;
+        age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -1181,6 +1214,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1201,6 +1235,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1228,6 +1263,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1251,6 +1287,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1278,6 +1315,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1301,6 +1339,7 @@ export declare const SuggestRosterResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1367,6 +1406,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: zod.ZodString;
             position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
             checkedIn: zod.ZodBoolean;
+            age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
             heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
             standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
             verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -1389,6 +1429,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1409,6 +1450,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1434,6 +1476,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1459,6 +1502,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1479,6 +1523,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
         name: zod.ZodString;
         position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
         checkedIn: zod.ZodBoolean;
+        age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -1501,6 +1546,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1521,6 +1567,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1548,6 +1595,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1570,6 +1618,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1597,6 +1646,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
             name: string;
             createdAt: Date;
             updatedAt: Date;
+            age?: string | null | undefined;
             heightInches?: number | null | undefined;
             standingReachInches?: number | null | undefined;
             verticalJumpInches?: number | null | undefined;
@@ -1619,6 +1669,7 @@ export declare const GetRosterResponse: zod.ZodIntersection<zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -1974,6 +2025,7 @@ export declare const GetCoachDraftResponse: zod.ZodObject<{
         name: zod.ZodString;
         position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
         checkedIn: zod.ZodBoolean;
+        age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
         verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
@@ -1996,6 +2048,7 @@ export declare const GetCoachDraftResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -2016,6 +2069,7 @@ export declare const GetCoachDraftResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -2038,6 +2092,7 @@ export declare const GetCoachDraftResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;
@@ -2072,6 +2127,7 @@ export declare const GetCoachDraftResponse: zod.ZodObject<{
         name: string;
         createdAt: Date;
         updatedAt: Date;
+        age?: string | null | undefined;
         heightInches?: number | null | undefined;
         standingReachInches?: number | null | undefined;
         verticalJumpInches?: number | null | undefined;

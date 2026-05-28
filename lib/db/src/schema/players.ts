@@ -7,6 +7,7 @@ export const playersTable = pgTable("players", {
   jerseyNumber: text("jersey_number"),
   name: text("name").notNull(),
   position: text("position"),
+  age: text("age"),
   checkedIn: boolean("checked_in").notNull().default(false),
   heightInches: real("height_inches"),
   standingReachInches: real("standing_reach_inches"),

@@ -23,6 +23,11 @@ export interface Player {
     name: string;
     position: PlayerPosition;
     checkedIn: boolean;
+    /**
+       * Age group (e.g. 10U, 11U, 12U)
+       * @nullable
+       */
+    age?: string | null;
     /** @nullable */
     heightInches?: number | null;
     /** @nullable */
@@ -105,6 +110,11 @@ export interface PlayerInput {
     name: string;
     position: PlayerInputPosition;
     checkedIn?: boolean;
+    /**
+       * Age group (e.g. 10U, 11U, 12U)
+       * @nullable
+       */
+    age?: string | null;
     /** @nullable */
     heightInches?: number | null;
     /** @nullable */
@@ -126,6 +136,11 @@ export interface PlayerUpdate {
     name?: string;
     position?: PlayerUpdatePosition;
     checkedIn?: boolean;
+    /**
+       * Age group (e.g. 10U, 11U, 12U)
+       * @nullable
+       */
+    age?: string | null;
     /** @nullable */
     heightInches?: number | null;
     /** @nullable */

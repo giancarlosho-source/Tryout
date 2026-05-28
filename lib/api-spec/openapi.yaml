@@ -884,6 +884,9 @@ components:
           enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
+        age:
+          type: ["string", "null"]
+          description: "Age group (e.g. 10U, 11U, 12U)"
         heightInches:
           type: ["number", "null"]
         standingReachInches:
@@ -947,6 +950,9 @@ components:
           enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
+        age:
+          type: ["string", "null"]
+          description: "Age group (e.g. 10U, 11U, 12U)"
         heightInches:
           type: ["number", "null"]
         standingReachInches:
@@ -966,6 +972,9 @@ components:
           enum: [Setter, OutsideHitter, MiddleBlocker, Opposite, Libero, Undecided]
         checkedIn:
           type: boolean
+        age:
+          type: ["string", "null"]
+          description: "Age group (e.g. 10U, 11U, 12U)"
         heightInches:
           type: ["number", "null"]
         standingReachInches:
