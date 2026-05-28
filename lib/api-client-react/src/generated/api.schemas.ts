@@ -83,6 +83,8 @@ export interface Evaluation {
   score: number;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  coachName?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -192,6 +194,7 @@ export interface EvaluationInput {
      */
   score: number;
   notes?: string;
+  coachName?: string;
 }
 
 export interface EvaluationUpdate {

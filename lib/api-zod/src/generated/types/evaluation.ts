@@ -19,6 +19,8 @@ export interface Evaluation {
   score: number;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  coachName?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

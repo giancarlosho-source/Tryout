@@ -9,6 +9,7 @@ import syncRouter from "./sync";
 import aiRouter from "./ai";
 import coachesRouter from "./coaches";
 import settingsRouter from "./settings";
+import exportRouter from "./export";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(syncRouter);
 router.use(aiRouter);
 router.use(coachesRouter);
 router.use(settingsRouter);
+router.use(exportRouter);
 
 export default router;

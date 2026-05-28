@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, CheckCircle2, Save, X, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Save, X, Zap, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const UNIVERSAL_SKILLS = [
@@ -111,6 +111,7 @@ function SkillRow({
 interface EvalQueue {
   ids: number[];
   label: string;
+  coachName?: string;
 }
 
 function readQueue(): EvalQueue | null {
@@ -139,16 +140,21 @@ export default function Evaluate() {
   const [scores, setScores] = useState<Record<string, number>>({});
   const [savedSkills, setSavedSkills] = useState<Set<string>>(new Set());
 
+  const queue = readQueue();
+  const coachName = queue?.coachName ?? null;
+
   useEffect(() => {
     if (playerDetail?.evaluations) {
       const map: Record<string, number> = {};
-      playerDetail.evaluations.forEach((e) => {
-        map[`${e.category}:${e.skill}`] = e.score;
-      });
+      playerDetail.evaluations
+        .filter((e) => (coachName ? e.coachName === coachName : !e.coachName))
+        .forEach((e) => {
+          map[`${e.category}:${e.skill}`] = e.score;
+        });
       setScores(map);
       setSavedSkills(new Set(Object.keys(map)));
     }
-  }, [playerDetail?.evaluations]);
+  }, [playerDetail?.evaluations, coachName]);
 
   // Reset scores when player changes
   useEffect(() => {
@@ -161,7 +167,7 @@ export default function Evaluate() {
     setScores((prev) => ({ ...prev, [key]: score }));
 
     upsert.mutate(
-      { data: { playerId: playerId!, category, skill, score } },
+      { data: { playerId: playerId!, category, skill, score, ...(coachName ? { coachName } : {}) } },
       {
         onSuccess: () => {
           setSavedSkills((prev) => new Set([...prev, key]));
@@ -175,8 +181,6 @@ export default function Evaluate() {
     );
   };
 
-  // Queue state
-  const queue = readQueue();
   const queueIndex = queue ? queue.ids.indexOf(playerId ?? -1) : -1;
   const inQueue = queueIndex !== -1;
   const prevId = inQueue && queueIndex > 0 ? queue!.ids[queueIndex - 1] : null;
@@ -220,6 +224,11 @@ export default function Evaluate() {
           <span className="text-xs font-bold text-amber-800 truncate flex-1">
             Eval Session: {queue!.label}
           </span>
+          {coachName && (
+            <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-300 rounded-full px-2 py-0.5 shrink-0">
+              <User className="h-3 w-3" />{coachName}
+            </span>
+          )}
           {/* Progress numbers */}
           <span className="text-xs font-black text-amber-700 tabular-nums shrink-0">
             {queueIndex + 1} / {queue!.ids.length}

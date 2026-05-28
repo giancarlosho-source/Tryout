@@ -243,10 +243,24 @@ export async function recomputeAllScores(): Promise<void> {
   const allPlayers = await db.select().from(playersTable);
   const allEvals = await db.select().from(evaluationsTable);
 
-  const evalsByPlayer: Record<number, { skill: string; score: number }[]> = {};
+  // Group raw evals by player, then average each skill across all coaches
+  const rawByPlayer: Record<number, { skill: string; score: number }[]> = {};
   for (const e of allEvals) {
-    if (!evalsByPlayer[e.playerId]) evalsByPlayer[e.playerId] = [];
-    evalsByPlayer[e.playerId].push({ skill: e.skill, score: e.score });
+    if (!rawByPlayer[e.playerId]) rawByPlayer[e.playerId] = [];
+    rawByPlayer[e.playerId].push({ skill: e.skill, score: e.score });
+  }
+
+  const evalsByPlayer: Record<number, { skill: string; score: number }[]> = {};
+  for (const [playerIdStr, rawEvals] of Object.entries(rawByPlayer)) {
+    const skillBuckets: Record<string, number[]> = {};
+    for (const e of rawEvals) {
+      if (!skillBuckets[e.skill]) skillBuckets[e.skill] = [];
+      skillBuckets[e.skill].push(e.score);
+    }
+    evalsByPlayer[parseInt(playerIdStr)] = Object.entries(skillBuckets).map(([skill, scores]) => ({
+      skill,
+      score: scores.reduce((s, v) => s + v, 0) / scores.length,
+    }));
   }
 
   for (const player of allPlayers) {

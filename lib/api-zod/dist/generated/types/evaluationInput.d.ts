@@ -6,16 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EvaluationInputCategory } from './evaluationInputCategory';
-
 export interface EvaluationInput {
-  playerId: number;
-  category: EvaluationInputCategory;
-  skill: string;
-  /**
-     * @minimum 1
-     * @maximum 10
-     */
-  score: number;
-  notes?: string;
-  coachName?: string;
+    playerId: number;
+    category: EvaluationInputCategory;
+    skill: string;
+    /**
+       * @minimum 1
+       * @maximum 10
+       */
+    score: number;
+    notes?: string;
+    coachName?: string;
 }
+//# sourceMappingURL=evaluationInput.d.ts.map

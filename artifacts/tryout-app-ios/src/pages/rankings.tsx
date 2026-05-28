@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock, Unlock, ChevronUp, ChevronDown, User, CheckCircle2, TrendingUp, Zap, Star, Shield } from "lucide-react";
+import { Lock, Unlock, ChevronUp, ChevronDown, User, CheckCircle2, TrendingUp, Zap, Star, Shield, Download } from "lucide-react";
 import { useRoster } from "@/contexts/roster-context";
 
 const FLAG_ICONS: Record<string, typeof Zap> = {
@@ -128,6 +128,14 @@ export default function Rankings() {
               className="w-24"
             >
               {sortDir === "desc" ? <><ChevronDown className="h-4 w-4 mr-1" /> Desc</> : <><ChevronUp className="h-4 w-4 mr-1" /> Asc</>}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold"
+              onClick={() => window.open("/api/export/players", "_blank")}
+            >
+              <Download className="h-4 w-4" /> Export CSV
             </Button>
           </div>
         </div>

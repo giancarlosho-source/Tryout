@@ -131,6 +131,7 @@ export const GetPlayerResponse = zod.object({
   "skill": zod.string(),
   "score": zod.number().min(1).max(getPlayerResponseTwoEvaluationsItemScoreMax),
   "notes": zod.string().nullish(),
+  "coachName": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })).optional(),
@@ -211,6 +212,7 @@ export const ListEvaluationsResponseItem = zod.object({
   "skill": zod.string(),
   "score": zod.number().min(1).max(listEvaluationsResponseScoreMax),
   "notes": zod.string().nullish(),
+  "coachName": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -229,7 +231,8 @@ export const UpsertEvaluationBody = zod.object({
   "category": zod.enum(['universal', 'position']),
   "skill": zod.string(),
   "score": zod.number().min(1).max(upsertEvaluationBodyScoreMax),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "coachName": zod.string().optional()
 })
 
 export const upsertEvaluationResponseScoreMax = 10;
@@ -243,6 +246,7 @@ export const UpsertEvaluationResponse = zod.object({
   "skill": zod.string(),
   "score": zod.number().min(1).max(upsertEvaluationResponseScoreMax),
   "notes": zod.string().nullish(),
+  "coachName": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -275,6 +279,7 @@ export const UpdateEvaluationResponse = zod.object({
   "skill": zod.string(),
   "score": zod.number().min(1).max(updateEvaluationResponseScoreMax),
   "notes": zod.string().nullish(),
+  "coachName": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })

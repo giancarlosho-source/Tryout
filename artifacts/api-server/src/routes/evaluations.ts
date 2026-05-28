@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { db, evaluationsTable } from "@workspace/db";
 import {
   ListEvaluationsQueryParams,
@@ -32,6 +32,11 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     return;
   }
 
+  const coachName = parsed.data.coachName ?? null;
+  const coachFilter = coachName
+    ? eq(evaluationsTable.coachName, coachName)
+    : isNull(evaluationsTable.coachName);
+
   const existing = await db
     .select()
     .from(evaluationsTable)
@@ -39,7 +44,8 @@ router.post("/evaluations", async (req, res): Promise<void> => {
       and(
         eq(evaluationsTable.playerId, parsed.data.playerId),
         eq(evaluationsTable.category, parsed.data.category),
-        eq(evaluationsTable.skill, parsed.data.skill)
+        eq(evaluationsTable.skill, parsed.data.skill),
+        coachFilter
       )
     );
 
@@ -60,6 +66,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
         skill: parsed.data.skill,
         score: parsed.data.score,
         notes: parsed.data.notes ?? null,
+        coachName,
       })
       .returning();
     evalResult = created;

@@ -10,6 +10,7 @@ export const evaluationsTable = pgTable("evaluations", {
   skill: text("skill").notNull(),
   score: real("score").notNull(),
   notes: text("notes"),
+  coachName: text("coach_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

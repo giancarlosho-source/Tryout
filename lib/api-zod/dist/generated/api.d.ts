@@ -321,6 +321,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
         skill: zod.ZodString;
         score: zod.ZodNumber;
         notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+        coachName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
         createdAt: zod.ZodDate;
         updatedAt: zod.ZodDate;
     }, "strip", zod.ZodTypeAny, {
@@ -332,6 +333,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
         skill: string;
         score: number;
         notes?: string | null | undefined;
+        coachName?: string | null | undefined;
     }, {
         id: number;
         createdAt: Date;
@@ -341,6 +343,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
         skill: string;
         score: number;
         notes?: string | null | undefined;
+        coachName?: string | null | undefined;
     }>, "many">>;
     notes: zod.ZodOptional<zod.ZodArray<zod.ZodObject<{
         id: zod.ZodNumber;
@@ -378,6 +381,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
         skill: string;
         score: number;
         notes?: string | null | undefined;
+        coachName?: string | null | undefined;
     }[] | undefined;
 }, {
     notes?: {
@@ -396,6 +400,7 @@ export declare const GetPlayerResponse: zod.ZodIntersection<zod.ZodObject<{
         skill: string;
         score: number;
         notes?: string | null | undefined;
+        coachName?: string | null | undefined;
     }[] | undefined;
 }>>;
 /**
@@ -525,6 +530,7 @@ export declare const ListEvaluationsResponseItem: zod.ZodObject<{
     skill: zod.ZodString;
     score: zod.ZodNumber;
     notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    coachName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodDate;
     updatedAt: zod.ZodDate;
 }, "strip", zod.ZodTypeAny, {
@@ -536,6 +542,7 @@ export declare const ListEvaluationsResponseItem: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }, {
     id: number;
     createdAt: Date;
@@ -545,6 +552,7 @@ export declare const ListEvaluationsResponseItem: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }>;
 export declare const ListEvaluationsResponse: zod.ZodArray<zod.ZodObject<{
     id: zod.ZodNumber;
@@ -553,6 +561,7 @@ export declare const ListEvaluationsResponse: zod.ZodArray<zod.ZodObject<{
     skill: zod.ZodString;
     score: zod.ZodNumber;
     notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    coachName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodDate;
     updatedAt: zod.ZodDate;
 }, "strip", zod.ZodTypeAny, {
@@ -564,6 +573,7 @@ export declare const ListEvaluationsResponse: zod.ZodArray<zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }, {
     id: number;
     createdAt: Date;
@@ -573,6 +583,7 @@ export declare const ListEvaluationsResponse: zod.ZodArray<zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }>, "many">;
 /**
  * @summary Create or update an evaluation
@@ -584,18 +595,21 @@ export declare const UpsertEvaluationBody: zod.ZodObject<{
     skill: zod.ZodString;
     score: zod.ZodNumber;
     notes: zod.ZodOptional<zod.ZodString>;
+    coachName: zod.ZodOptional<zod.ZodString>;
 }, "strip", zod.ZodTypeAny, {
     playerId: number;
     category: "position" | "universal";
     skill: string;
     score: number;
     notes?: string | undefined;
+    coachName?: string | undefined;
 }, {
     playerId: number;
     category: "position" | "universal";
     skill: string;
     score: number;
     notes?: string | undefined;
+    coachName?: string | undefined;
 }>;
 export declare const upsertEvaluationResponseScoreMax = 10;
 export declare const UpsertEvaluationResponse: zod.ZodObject<{
@@ -605,6 +619,7 @@ export declare const UpsertEvaluationResponse: zod.ZodObject<{
     skill: zod.ZodString;
     score: zod.ZodNumber;
     notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    coachName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodDate;
     updatedAt: zod.ZodDate;
 }, "strip", zod.ZodTypeAny, {
@@ -616,6 +631,7 @@ export declare const UpsertEvaluationResponse: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }, {
     id: number;
     createdAt: Date;
@@ -625,6 +641,7 @@ export declare const UpsertEvaluationResponse: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }>;
 /**
  * @summary Update an evaluation
@@ -655,6 +672,7 @@ export declare const UpdateEvaluationResponse: zod.ZodObject<{
     skill: zod.ZodString;
     score: zod.ZodNumber;
     notes: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
+    coachName: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     createdAt: zod.ZodDate;
     updatedAt: zod.ZodDate;
 }, "strip", zod.ZodTypeAny, {
@@ -666,6 +684,7 @@ export declare const UpdateEvaluationResponse: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }, {
     id: number;
     createdAt: Date;
@@ -675,6 +694,7 @@ export declare const UpdateEvaluationResponse: zod.ZodObject<{
     skill: string;
     score: number;
     notes?: string | null | undefined;
+    coachName?: string | null | undefined;
 }>;
 /**
  * @summary Get all player rankings
@@ -1866,15 +1886,15 @@ export declare const GetAllDraftPicksResponseItem: zod.ZodObject<{
 }, "strip", zod.ZodTypeAny, {
     position: string;
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }, {
     position: string;
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }>;
 export declare const GetAllDraftPicksResponse: zod.ZodArray<zod.ZodObject<{
     playerId: zod.ZodNumber;
@@ -1885,15 +1905,15 @@ export declare const GetAllDraftPicksResponse: zod.ZodArray<zod.ZodObject<{
 }, "strip", zod.ZodTypeAny, {
     position: string;
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }, {
     position: string;
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }>, "many">;
 /**
  * @summary Delete a coach
@@ -2141,14 +2161,14 @@ export declare const GetAllWishlistPicksResponseItem: zod.ZodObject<{
     teamName: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }, {
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }>;
 export declare const GetAllWishlistPicksResponse: zod.ZodArray<zod.ZodObject<{
     playerId: zod.ZodNumber;
@@ -2157,14 +2177,14 @@ export declare const GetAllWishlistPicksResponse: zod.ZodArray<zod.ZodObject<{
     teamName: zod.ZodString;
 }, "strip", zod.ZodTypeAny, {
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }, {
     playerId: number;
+    coachName: string;
     teamName: string;
     coachId: number;
-    coachName: string;
 }>, "many">;
 /**
  * @summary Get a coach's wishlist

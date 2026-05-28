@@ -1040,6 +1040,8 @@ components:
           maximum: 10
         notes:
           type: ["string", "null"]
+        coachName:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -1063,6 +1065,8 @@ components:
           minimum: 1
           maximum: 10
         notes:
+          type: string
+        coachName:
           type: string
 
     EvaluationUpdate:
