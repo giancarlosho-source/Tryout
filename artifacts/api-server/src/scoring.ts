@@ -64,23 +64,6 @@ export const POSITION_SKILL_LIST: Record<string, string[]> = {
   Libero: ["Passing", "Defense", "Reading hitters", "Serve receive", "Communication"],
 };
 
-// Maps new compound position labels to the scoring/slot key
-const POSITION_TO_SLOT: Record<string, string> = {
-  "Setter": "Setter", "Setter/PIN": "Setter", "Setter/DS": "Setter",
-  "PIN/Setter": "OutsideHitter", "PIN/MB": "OutsideHitter", "PIN/DS": "OutsideHitter", "PIN": "OutsideHitter",
-  "MB/PIN": "MiddleBlocker",
-  "DS/Setter": "Libero", "DS/PIN": "Libero", "DS/L": "Libero",
-  "Undecided": "OutsideHitter",
-  // legacy
-  "OutsideHitter": "OutsideHitter", "MiddleBlocker": "MiddleBlocker",
-  "Opposite": "Opposite", "Libero": "Libero",
-};
-
-export function getScoringPosition(position: string | null | undefined): string {
-  if (!position) return "OutsideHitter";
-  return POSITION_TO_SLOT[position] ?? "OutsideHitter";
-}
-
 export const OVERALL_WEIGHTS = { universal: 0.40, position: 0.40, physical: 0.20 };
 export const POTENTIAL_WEIGHTS = { physical: 0.45, coachability: 0.20, competitiveness: 0.15, volleyballIQ: 0.10, bonus: 0.10 };
 
@@ -139,7 +122,7 @@ export function computeUniversalScore(evals: { skill: string; score: number }[])
 }
 
 export function computePositionScore(evals: { skill: string; score: number }[], position: string): number | null {
-  const weights = POSITION_WEIGHTS[getScoringPosition(position)];
+  const weights = POSITION_WEIGHTS[position];
   if (!weights) return null;
 
   const map: Record<string, number> = {};
@@ -193,7 +176,7 @@ export function computeConfidenceScore(
   evals: { skill: string; score: number }[],
   position: string
 ): number {
-  const totalSkills = Object.keys(UNIVERSAL_WEIGHTS).length + (POSITION_SKILL_LIST[getScoringPosition(position)]?.length ?? 0);
+  const totalSkills = Object.keys(UNIVERSAL_WEIGHTS).length + (POSITION_SKILL_LIST[position]?.length ?? 0);
   const presentSkills = new Set(evals.map((e) => e.skill)).size;
   const skillCoverage = Math.min(1, presentSkills / totalSkills);
 
@@ -245,7 +228,7 @@ export function computeFlags(
     flags.push("Roster Lock Candidate");
   }
 
-  if (getScoringPosition(player.position) !== "Libero" && player.heightInches != null && player.heightInches < 64) {
+  if (player.position !== "Libero" && player.heightInches != null && player.heightInches < 64) {
     flags.push("Position Change Candidate");
   }
 

@@ -12,9 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, Activity, Sparkles, Trash2, AlertCircle, CheckCircle2, Zap, Star, TrendingUp, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Just display the position label as-is (new labels are already human-readable)
 const POSITION_LABELS: Record<string, string> = {
-  OutsideHitter: "PIN", MiddleBlocker: "MB", Opposite: "PIN", Libero: "DS/L",
+  Setter: "Setter", OutsideHitter: "Outside Hitter",
+  MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
 };
 
 const FLAG_STYLES: Record<string, { color: string; icon: typeof Zap }> = {
@@ -251,7 +251,7 @@ export default function PlayerProfile() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold">
-                  {player.position || "Position"} Skills
+                  {POSITION_LABELS[player.position] || "Position"} Skills
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">Position-specific weighted score</p>
               </CardHeader>

@@ -17,15 +17,13 @@ const POSITION_SKILLS: Record<string, string[]> = {
   Setter: ["Hands", "Location", "Decision-making", "Tempo", "Leadership"],
   OutsideHitter: ["Serve receive", "Attacking", "Defense", "Transition", "All-around value"],
   MiddleBlocker: ["Blocking", "Lateral movement", "Quick attack", "Footwork", "Court awareness"],
+  Opposite: ["Attacking", "Blocking", "Serving", "Back-row value", "Physical upside"],
   Libero: ["Passing", "Defense", "Reading hitters", "Serve receive", "Communication"],
 };
 
-const SCORING_POSITION: Record<string, string> = {
-  "Setter": "Setter", "Setter/PIN": "Setter", "Setter/DS": "Setter",
-  "PIN/Setter": "OutsideHitter", "PIN/MB": "OutsideHitter", "PIN/DS": "OutsideHitter", "PIN": "OutsideHitter",
-  "MB/PIN": "MiddleBlocker",
-  "DS/Setter": "Libero", "DS/PIN": "Libero", "DS/L": "Libero",
-  "OutsideHitter": "OutsideHitter", "MiddleBlocker": "MiddleBlocker", "Opposite": "OutsideHitter", "Libero": "Libero",
+const POSITION_LABELS: Record<string, string> = {
+  Setter: "Setter", OutsideHitter: "Outside Hitter",
+  MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
 };
 
 function ScoreButton({ value, selected, onClick }: { value: number; selected: boolean; onClick: () => void }) {
@@ -209,8 +207,8 @@ export default function Evaluate() {
 
   if (!playerDetail) return <div className="p-6 text-muted-foreground">Player not found.</div>;
 
-  const primaryPosition = SCORING_POSITION[playerDetail.position ?? ""] ?? playerDetail.position?.split("/")[0] ?? "";
-  const positionSkills = POSITION_SKILLS[primaryPosition] ?? [];
+  const primaryPosition = playerDetail.position?.split("/")[0] ?? "";
+  const positionSkills = POSITION_SKILLS[primaryPosition] ?? POSITION_SKILLS[playerDetail.position] ?? [];
   const universalDone = UNIVERSAL_SKILLS.filter((s) => scores[`universal:${s}`] != null).length;
   const positionDone = positionSkills.filter((s) => scores[`position:${s}`] != null).length;
   const totalSkills = UNIVERSAL_SKILLS.length + positionSkills.length;
@@ -292,7 +290,7 @@ export default function Evaluate() {
               <span className="text-3xl font-black text-primary tabular-nums">#{playerDetail.jerseyNumber}</span>
               <h1 className="text-2xl font-bold">{playerDetail.name}</h1>
               <Badge variant="outline" className="text-sm font-semibold">
-                {playerDetail.position}
+                {playerDetail.position?.split("/").map((p) => POSITION_LABELS[p] ?? p).join(" / ")}
               </Badge>
               {playerDetail.checkedIn && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
@@ -337,7 +335,7 @@ export default function Evaluate() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="position" className="px-6 py-2 font-semibold">
-                {playerDetail.position || "Position"} Skills
+                {POSITION_LABELS[primaryPosition] || primaryPosition || "Position"} Skills
                 {positionDone === positionSkills.length && positionSkills.length > 0 && (
                   <CheckCircle2 className="h-3.5 w-3.5 ml-2 text-green-500" />
                 )}

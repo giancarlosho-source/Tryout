@@ -14,22 +14,9 @@ import {
 const router: IRouter = Router();
 
 const POSITION_LABELS: Record<string, string> = {
-  Setter: "Setter", OutsideHitter: "PIN", MiddleBlocker: "MB", Opposite: "PIN", Libero: "DS/L",
+  Setter: "Setter", OutsideHitter: "Outside Hitter",
+  MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
 };
-
-// Maps any position label to its roster slot key
-function toSlotKey(position: string): string {
-  const map: Record<string, string> = {
-    "Setter": "Setter", "Setter/PIN": "Setter", "Setter/DS": "Setter",
-    "PIN/Setter": "OutsideHitter", "PIN/MB": "OutsideHitter", "PIN/DS": "OutsideHitter", "PIN": "OutsideHitter",
-    "MB/PIN": "MiddleBlocker",
-    "DS/Setter": "Libero", "DS/PIN": "Libero", "DS/L": "Libero",
-    "Undecided": "OutsideHitter",
-    "OutsideHitter": "OutsideHitter", "MiddleBlocker": "MiddleBlocker",
-    "Opposite": "OutsideHitter", "Libero": "Libero",
-  };
-  return map[position] ?? "OutsideHitter";
-}
 
 async function getRosterDetail(rosterId: number) {
   const [roster] = await db.select().from(rostersTable).where(eq(rostersTable.id, rosterId));
@@ -114,7 +101,7 @@ router.get("/rosters/suggest", async (_req, res): Promise<void> => {
 
   for (const [position, count] of Object.entries(ROSTER_CONFIG)) {
     const eligible = players
-      .filter((p) => toSlotKey(p.position ?? "") === position && !usedIds.has(p.id))
+      .filter((p) => p.position === position && !usedIds.has(p.id))
       .sort((a, b) => (b.positionScore ?? b.overallScore ?? 0) - (a.positionScore ?? a.overallScore ?? 0));
 
     for (let i = 0; i < count; i++) {
@@ -148,7 +135,7 @@ router.get("/rosters/suggest", async (_req, res): Promise<void> => {
   const bubblePlayers = players
     .filter((p) => !usedIds.has(p.id) && p.overallScore != null)
     .filter((p) => {
-      const threshold = (weakestByPosition[toSlotKey(p.position ?? "")] ?? 0) * 0.95;
+      const threshold = (weakestByPosition[p.position] ?? 0) * 0.95;
       const score = p.positionScore ?? p.overallScore ?? 0;
       return score >= threshold;
     })

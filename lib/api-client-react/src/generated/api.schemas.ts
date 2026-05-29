@@ -14,22 +14,11 @@ export type PlayerPosition = typeof PlayerPosition[keyof typeof PlayerPosition];
 
 export const PlayerPosition = {
   Setter: 'Setter',
-  SetterPIN: 'Setter/PIN',
-  SetterDS: 'Setter/DS',
-  PINSetter: 'PIN/Setter',
-  PINMB: 'PIN/MB',
-  PINDS: 'PIN/DS',
-  PIN: 'PIN',
-  MBPIN: 'MB/PIN',
-  DSSetter: 'DS/Setter',
-  DSPIN: 'DS/PIN',
-  DSL: 'DS/L',
-  Undecided: 'Undecided',
-  // legacy compat
   OutsideHitter: 'OutsideHitter',
   MiddleBlocker: 'MiddleBlocker',
   Opposite: 'Opposite',
   Libero: 'Libero',
+  Undecided: 'Undecided',
 } as const;
 
 export interface Player {
@@ -122,12 +111,12 @@ export type PlayerInputPosition = typeof PlayerInputPosition[keyof typeof Player
 
 
 export const PlayerInputPosition = {
-  Setter: 'Setter', SetterPIN: 'Setter/PIN', SetterDS: 'Setter/DS',
-  PINSetter: 'PIN/Setter', PINMB: 'PIN/MB', PINDS: 'PIN/DS', PIN: 'PIN',
-  MBPIN: 'MB/PIN',
-  DSSetter: 'DS/Setter', DSPIN: 'DS/PIN', DSL: 'DS/L',
+  Setter: 'Setter',
+  OutsideHitter: 'OutsideHitter',
+  MiddleBlocker: 'MiddleBlocker',
+  Opposite: 'Opposite',
+  Libero: 'Libero',
   Undecided: 'Undecided',
-  OutsideHitter: 'OutsideHitter', MiddleBlocker: 'MiddleBlocker', Opposite: 'Opposite', Libero: 'Libero',
 } as const;
 
 export interface PlayerInput {
@@ -152,12 +141,12 @@ export type PlayerUpdatePosition = typeof PlayerUpdatePosition[keyof typeof Play
 
 
 export const PlayerUpdatePosition = {
-  Setter: 'Setter', SetterPIN: 'Setter/PIN', SetterDS: 'Setter/DS',
-  PINSetter: 'PIN/Setter', PINMB: 'PIN/MB', PINDS: 'PIN/DS', PIN: 'PIN',
-  MBPIN: 'MB/PIN',
-  DSSetter: 'DS/Setter', DSPIN: 'DS/PIN', DSL: 'DS/L',
+  Setter: 'Setter',
+  OutsideHitter: 'OutsideHitter',
+  MiddleBlocker: 'MiddleBlocker',
+  Opposite: 'Opposite',
+  Libero: 'Libero',
   Undecided: 'Undecided',
-  OutsideHitter: 'OutsideHitter', MiddleBlocker: 'MiddleBlocker', Opposite: 'Opposite', Libero: 'Libero',
 } as const;
 
 export interface PlayerUpdate {
