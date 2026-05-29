@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Activity, Users, TrendingUp, UsersRound, Upload, Swords, ArrowLeftRight, MonitorDot } from "lucide-react";
+import { Activity, Users, TrendingUp, UsersRound, Upload, Swords, ArrowLeftRight } from "lucide-react";
 import { RosterProvider } from "@/contexts/roster-context";
 
 import Dashboard from "./pages/dashboard";
@@ -31,7 +31,6 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/roster", label: "Roster", icon: UsersRound },
     { href: "/draft", label: "Live Draft", icon: Swords },
     { href: "/compare", label: "Compare", icon: ArrowLeftRight },
-    { href: "/server", label: "Command Center", icon: MonitorDot },
     { href: "/import", label: "Import CSV", icon: Upload },
   ];
 
@@ -85,22 +84,26 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
 function Router() {
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/players" component={Players} />
-        <Route path="/players/:id" component={PlayerProfile} />
-        <Route path="/evaluate/:playerId" component={Evaluate} />
-        <Route path="/rankings" component={Rankings} />
-        <Route path="/rankings/position" component={PositionRankings} />
-        <Route path="/roster" component={Roster} />
-        <Route path="/draft" component={Draft} />
-        <Route path="/compare" component={Compare} />
-        <Route path="/server" component={ServerView} />
-        <Route path="/import" component={Import} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <Switch>
+      <Route path="/server" component={ServerView} />
+      <Route>
+        <AppLayout>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/players" component={Players} />
+            <Route path="/players/:id" component={PlayerProfile} />
+            <Route path="/evaluate/:playerId" component={Evaluate} />
+            <Route path="/rankings" component={Rankings} />
+            <Route path="/rankings/position" component={PositionRankings} />
+            <Route path="/roster" component={Roster} />
+            <Route path="/draft" component={Draft} />
+            <Route path="/compare" component={Compare} />
+            <Route path="/import" component={Import} />
+            <Route component={NotFound} />
+          </Switch>
+        </AppLayout>
+      </Route>
+    </Switch>
   );
 }
 

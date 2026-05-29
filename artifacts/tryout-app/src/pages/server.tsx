@@ -19,7 +19,9 @@ import {
   User,
   LayoutGrid,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
+import { Link } from "wouter";
 import type {
   Player,
   Coach,
@@ -447,9 +449,12 @@ export default function ServerView() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b bg-white shrink-0">
-        <div>
-          <h1 className="text-xl font-black tracking-tight">Command Center</h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Live view of all players, rosters, and evaluations</p>
+        <div className="flex items-center gap-4">
+          <img src="/tribe-logo.png" alt="Tribe VB" className="h-9 w-9 object-contain" />
+          <div>
+            <h1 className="text-xl font-black tracking-tight">Command Center</h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Live view · all players, rosters, and evaluations</p>
+          </div>
         </div>
         <div className="flex items-center gap-5 text-sm">
           <div className="text-center">
@@ -476,6 +481,12 @@ export default function ServerView() {
             <RefreshCw className="h-3.5 w-3.5 animate-pulse text-green-500" />
             <span className="text-[11px]">Live</span>
           </div>
+          <Link href="/">
+            <a className="ml-4 flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground border rounded px-2 py-1">
+              <ExternalLink className="h-3 w-3" />
+              Coach View
+            </a>
+          </Link>
         </div>
       </div>
 
