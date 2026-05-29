@@ -9,14 +9,7 @@ import { Search, CheckCircle2, AlertCircle, ChevronRight, Activity, Zap, User } 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useRoster } from "@/contexts/roster-context";
-
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-pink-100 text-pink-700 border-pink-200",
-};
+import { POSITION_COLORS, POSITION_FILTER_GROUPS, getPrimaryPosition } from "@/lib/positions";
 
 function startQueue(ids: number[], label: string, coachName: string, navigateTo: (path: string) => void) {
   if (!ids.length) return;
@@ -35,15 +28,17 @@ export default function Players() {
   const [pendingQueue, setPendingQueue] = useState<{ ids: number[]; label: string } | null>(null);
   const coachInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: players, isLoading } = useListPlayers({
-    position: positionFilter !== "All" ? positionFilter : undefined,
-  });
+  const { data: players, isLoading } = useListPlayers({});
 
-  const filteredPlayers = players?.filter(
-    (p) =>
+  const filterGroup = POSITION_FILTER_GROUPS.find((g) => g.label === positionFilter);
+  const filteredPlayers = players?.filter((p) => {
+    const matchesPosition = positionFilter === "All"
+      || (filterGroup ? filterGroup.values.includes(p.position as never) : p.position === positionFilter);
+    const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.jerseyNumber ?? "").toLowerCase().includes(search.toLowerCase())
-  ) ?? [];
+      (p.jerseyNumber ?? "").toLowerCase().includes(search.toLowerCase());
+    return matchesPosition && matchesSearch;
+  }) ?? [];
 
   const checkedInIds = filteredPlayers.filter((p) => p.checkedIn).map((p) => p.id);
   const allIds = filteredPlayers.map((p) => p.id);
@@ -117,12 +112,11 @@ export default function Players() {
         <div className="flex items-center gap-3 overflow-x-auto">
           <Tabs value={positionFilter} onValueChange={setPositionFilter} className="flex-1">
             <TabsList className="bg-muted/50 p-1">
-              <TabsTrigger value="All" className="px-6 py-2 text-sm font-semibold rounded-md">All Positions</TabsTrigger>
-              <TabsTrigger value="OutsideHitter" className="px-6 py-2 text-sm font-semibold rounded-md">Outside Hitter</TabsTrigger>
-              <TabsTrigger value="MiddleBlocker" className="px-6 py-2 text-sm font-semibold rounded-md">Middle Blocker</TabsTrigger>
-              <TabsTrigger value="Opposite" className="px-6 py-2 text-sm font-semibold rounded-md">Opposite</TabsTrigger>
+              <TabsTrigger value="All" className="px-6 py-2 text-sm font-semibold rounded-md">All</TabsTrigger>
               <TabsTrigger value="Setter" className="px-6 py-2 text-sm font-semibold rounded-md">Setter</TabsTrigger>
-              <TabsTrigger value="Libero" className="px-6 py-2 text-sm font-semibold rounded-md">Libero</TabsTrigger>
+              <TabsTrigger value="PIN" className="px-6 py-2 text-sm font-semibold rounded-md">PIN</TabsTrigger>
+              <TabsTrigger value="MB" className="px-6 py-2 text-sm font-semibold rounded-md">MB</TabsTrigger>
+              <TabsTrigger value="DS" className="px-6 py-2 text-sm font-semibold rounded-md">DS</TabsTrigger>
               <TabsTrigger value="Undecided" className="px-6 py-2 text-sm font-semibold rounded-md">Undecided</TabsTrigger>
             </TabsList>
           </Tabs>

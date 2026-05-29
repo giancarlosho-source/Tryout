@@ -25,17 +25,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const POSITION_LABELS: Record<string, string> = {
-  Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
-};
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-teal-100 text-teal-700 border-teal-200",
-  Undecided: "bg-gray-100 text-gray-600 border-gray-200",
-};
+import { POSITION_COLORS, POSITION_ABBR, POSITION_FILTER_GROUPS, getPrimaryPosition } from "@/lib/positions";
+const POSITION_LABELS = POSITION_ABBR;
 const TEAM_COLORS = [
   "bg-rose-100 text-rose-700 border-rose-200",
   "bg-indigo-100 text-indigo-700 border-indigo-200",
@@ -286,9 +277,9 @@ export default function Draft() {
     mustHaveClaimMap.set(m.playerId, [...existing, { coachName: m.coachName, teamName: m.teamName }]);
   }
 
-  const POSITIONS = ["All", "Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
+  const POSITIONS = ["All", "Setter", "PIN", "MB", "DS", "Undecided"];
   const POSITION_TAB_LABELS: Record<string, string> = {
-    All: "All", Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
+    All: "All", Setter: "S", PIN: "PIN", MB: "MB", DS: "DS", Undecided: "?",
   };
 
   // Available = not claimed by ANY coach
@@ -298,7 +289,11 @@ export default function Draft() {
   const filteredPlayers = useMemo(() => {
     const q = poolSearch.trim().toLowerCase();
     return availablePlayers
-      .filter((p) => poolPosition === "All" || p.position === poolPosition)
+      .filter((p) => {
+        if (poolPosition === "All") return true;
+        const group = POSITION_FILTER_GROUPS.find((g) => g.label === poolPosition);
+        return group ? group.values.includes(p.position as never) : p.position === poolPosition;
+      })
       .filter((p) =>
         !q ||
         p.name.toLowerCase().includes(q) ||
@@ -311,7 +306,9 @@ export default function Draft() {
   const positionCounts = useMemo(() => {
     const counts: Record<string, number> = { All: availablePlayers.length };
     for (const p of availablePlayers) {
-      counts[p.position] = (counts[p.position] ?? 0) + 1;
+      const primary = getPrimaryPosition(p.position);
+      counts[primary] = (counts[primary] ?? 0) + 1;
+      if (p.position === "Undecided") counts["Undecided"] = (counts["Undecided"] ?? 0) + 1;
     }
     return counts;
   }, [availablePlayers]);
@@ -337,19 +334,19 @@ export default function Draft() {
   const teamHealthData = useMemo(() => {
     return coaches.map((coach) => {
       const picks = allPicks.filter((p) => p.coachId === coach.id);
-      const setterCount = picks.filter((p) => p.position === "Setter").length;
-      const ohCount = picks.filter((p) => p.position === "OutsideHitter").length;
+      const setterCount = picks.filter((p) => getPrimaryPosition(p.position) === "Setter").length;
+      const ohCount = picks.filter((p) => getPrimaryPosition(p.position) === "PIN").length;
       const totalPicked = picks.length;
       const setterGap = Math.max(0, MIN_SETTERS - setterCount);
 
       // Best available setter not yet claimed
       const bestAvailableSetter = [...allPlayers]
-        .filter((p) => p.position === "Setter" && !claimedMap.has(p.id))
+        .filter((p) => getPrimaryPosition(p.position) === "Setter" && !claimedMap.has(p.id))
         .sort((a, b) => (b.positionScore ?? 0) - (a.positionScore ?? 0))[0] ?? null;
 
       // Best available player by overall score for any missing need
       const bestAvailableOH = [...allPlayers]
-        .filter((p) => p.position === "OutsideHitter" && !claimedMap.has(p.id))
+        .filter((p) => getPrimaryPosition(p.position) === "PIN" && !claimedMap.has(p.id))
         .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0))[0] ?? null;
 
       // "Position value picks": players whose position score is higher than their rank would suggest
@@ -453,7 +450,7 @@ export default function Draft() {
                     <label className="text-sm font-semibold">Draft Priority <span className="text-muted-foreground font-normal">(optional)</span></label>
                     <p className="text-xs text-muted-foreground mt-0.5 mb-2">Tap positions to add them in priority order. Use arrows to reorder.</p>
                     <div className="flex gap-1.5 flex-wrap mb-3">
-                      {["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"].map((pos) => {
+                      {["Setter", "PIN", "MB", "DS"].map((pos) => {
                         const idx = newPriority.indexOf(pos);
                         const selected = idx !== -1;
                         return (
@@ -477,7 +474,7 @@ export default function Draft() {
                           <div key={pos} className="flex items-center gap-2">
                             <span className="text-xs font-black text-muted-foreground w-4 text-right">{idx + 1}.</span>
                             <Badge variant="outline" className={`text-xs font-bold flex-1 ${POSITION_COLORS[pos] ?? ""}`}>
-                              {POSITION_LABELS[pos]} — {pos.replace(/([A-Z])/g, " $1").trim()}
+                              {pos}
                             </Badge>
                             <div className="flex gap-0.5">
                               <button type="button" onClick={() => movePriority(idx, -1)} disabled={idx === 0}
@@ -917,8 +914,8 @@ export default function Draft() {
                       </CardHeader>
                       <CardContent className="px-4 pb-3">
                         <div className="flex flex-wrap gap-2">
-                          {["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"].map((pos) => {
-                            const count = draftPlayers.filter((p) => p.position === pos).length;
+                          {["Setter", "PIN", "MB", "DS"].map((pos) => {
+                            const count = draftPlayers.filter((p) => getPrimaryPosition(p.position) === pos).length;
                             return (
                               <div key={pos} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${count > 0 ? POSITION_COLORS[pos] : "bg-muted text-muted-foreground border-border"}`}>
                                 <span>{POSITION_LABELS[pos]}</span>
@@ -1059,7 +1056,7 @@ export default function Draft() {
 
                             {/* Position breakdown */}
                             <div className="flex flex-wrap gap-1.5">
-                              {["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"].map((pos) => {
+                              {["Setter", "PIN", "MB", "DS"].map((pos) => {
                                 const cnt = picks.filter((p) => p.position === pos).length;
                                 const isGap = pos === "Setter" && cnt < MIN_SETTERS;
                                 return (

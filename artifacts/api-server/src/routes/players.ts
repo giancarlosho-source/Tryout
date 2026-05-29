@@ -123,24 +123,18 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
     }
 
     const positionMap: Record<string, string> = {
-      setter: "Setter",
-      s: "Setter",
-      "outside hitter": "OutsideHitter",
-      oh: "OutsideHitter",
-      outside: "OutsideHitter",
-      "middle blocker": "MiddleBlocker",
-      mb: "MiddleBlocker",
-      middle: "MiddleBlocker",
-      opposite: "Opposite",
-      opp: "Opposite",
-      rs: "Opposite",
-      libero: "Libero",
-      l: "Libero",
-      ds: "Libero",
-      "libero/ds": "Libero",
-      undecided: "Undecided",
-      tbd: "Undecided",
-      unknown: "Undecided",
+      // New labels (pass through as-is if exact match)
+      "setter/pin": "Setter/PIN", "setter/ds": "Setter/DS",
+      "pin/setter": "PIN/Setter", "pin/mb": "PIN/MB", "pin/ds": "PIN/DS", "pin": "PIN",
+      "mb/pin": "MB/PIN",
+      "ds/setter": "DS/Setter", "ds/pin": "DS/PIN", "ds/l": "DS/L",
+      // Legacy aliases
+      setter: "Setter", s: "Setter",
+      "outside hitter": "PIN", oh: "PIN", outside: "PIN",
+      "middle blocker": "MB/PIN", mb: "MB/PIN", middle: "MB/PIN",
+      opposite: "PIN", opp: "PIN", rs: "PIN",
+      libero: "DS/L", l: "DS/L", ds: "DS/L", "libero/ds": "DS/L",
+      undecided: "Undecided", tbd: "Undecided", unknown: "Undecided",
     };
 
     const mappedPosition = positionMap[position.toLowerCase()] || position;

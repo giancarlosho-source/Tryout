@@ -9,13 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { CheckCircle2, AlertCircle, TrendingUp, Zap, Star, Shield, ArrowLeftRight, RefreshCw, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRoster } from "@/contexts/roster-context";
 
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-pink-100 text-pink-700 border-pink-200",
-};
+import { POSITION_COLORS, getPrimaryPosition } from "@/lib/positions";
 
 const FLAG_STYLES: Record<string, { color: string; icon: typeof Zap }> = {
   "High Potential":            { color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: TrendingUp },
@@ -330,20 +324,19 @@ function PlayerColumn({
   );
 }
 
-const POSITIONS = ["OutsideHitter", "MiddleBlocker", "Opposite", "Setter", "Libero"];
+const POSITIONS = ["Setter", "PIN", "MB", "DS"];
 
 const POSITION_COLORS2: Record<string, string> = {
   Setter: "border-purple-200 bg-purple-50 text-purple-700",
-  OutsideHitter: "border-blue-200 bg-blue-50 text-blue-700",
-  MiddleBlocker: "border-green-200 bg-green-50 text-green-700",
-  Opposite: "border-orange-200 bg-orange-50 text-orange-700",
-  Libero: "border-pink-200 bg-pink-50 text-pink-700",
+  PIN:    "border-blue-200 bg-blue-50 text-blue-700",
+  MB:     "border-green-200 bg-green-50 text-green-700",
+  DS:     "border-pink-200 bg-pink-50 text-pink-700",
 };
 
 export default function Compare() {
   const [leftId, setLeftId] = useState<string>("");
   const [rightId, setRightId] = useState<string>("");
-  const [suggestionPosition, setSuggestionPosition] = useState<string>("OutsideHitter");
+  const [suggestionPosition, setSuggestionPosition] = useState<string>("PIN");
 
   const { data: players } = useListPlayers({});
 
@@ -357,7 +350,7 @@ export default function Compare() {
   const sortedPlayers = [...(players ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 
   const suggestions = [...(players ?? [])]
-    .filter((p) => p.position === suggestionPosition && p.overallScore != null)
+    .filter((p) => getPrimaryPosition(p.position) === suggestionPosition && p.overallScore != null)
     .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0))
     .slice(0, 5);
 
@@ -397,7 +390,7 @@ export default function Compare() {
                     : "border-border bg-background text-muted-foreground hover:bg-muted"
                 }`}
               >
-                {pos.replace(/([A-Z])/g, " $1").trim()}
+                {pos}
               </button>
             ))}
           </div>
