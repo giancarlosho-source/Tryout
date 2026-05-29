@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   useImportPlayersCsv,
   useSyncFromGoogleSheets,
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, CheckCircle2, AlertCircle, FileText, X, Sheet, RefreshCw, Info, Trash2, Loader2 } from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle, FileText, X, Sheet, RefreshCw, Info, Trash2, Loader2, Clock } from "lucide-react";
 
 const SAMPLE_CSV = `jerseyNumber,name,position,checkedIn,height,standingReachInches,verticalJump
 1,Emma Rodriguez,Setter,true,68,84,24
@@ -71,8 +71,10 @@ export default function Import() {
   const [csvResult, setCsvResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1JlWA2uZ3YFOgvCUZAqO27bSAyAbjjsUAJlVy6-61MvE/edit?gid=432850694#gid=432850694";
+
   // Google Sheets state
-  const [sheetUrl, setSheetUrl] = useState("");
+  const [sheetUrl, setSheetUrl] = useState(DEFAULT_SHEET_URL);
   const [sheetName, setSheetName] = useState("");
   const [tabs, setTabs] = useState<string[] | null>(null);
   const [tabsLoading, setTabsLoading] = useState(false);
@@ -80,6 +82,9 @@ export default function Import() {
   const [checkedInOnly, setCheckedInOnly] = useState(false);
   const [sheetsResult, setSheetsResult] = useState<ImportResult | null>(null);
   const [sheetsError, setSheetsError] = useState<string | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Extract sheet ID from URL to detect valid URLs
   function extractSheetId(input: string): string | null {
@@ -151,17 +156,42 @@ export default function Import() {
     );
   };
 
+  // Load saved settings on mount
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}api/settings`)
+      .then((r) => r.json())
+      .then((data: Record<string, string>) => {
+        if (data.sheetUrl) setSheetUrl(data.sheetUrl); else setSheetUrl(DEFAULT_SHEET_URL);
+        if (data.sheetName) setSheetName(data.sheetName);
+        if (data.checkedInOnly) setCheckedInOnly(data.checkedInOnly === "true");
+      })
+      .catch(() => {})
+      .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // Save settings whenever URL/name/mode changes (debounced)
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    const t = setTimeout(() => {
+      fetch(`${import.meta.env.BASE_URL}api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheetUrl, sheetName, checkedInOnly: String(checkedInOnly) }),
+      }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [sheetUrl, sheetName, checkedInOnly, settingsLoaded]);
+
   const hasMultipleTabs = tabs && tabs.length > 1;
   const canSync = sheetUrl.trim() && !tabsLoading && (!hasMultipleTabs || sheetName.trim());
 
-  const handleSheetsSync = () => {
-    if (!canSync) return;
+  const handleSheetsSync = useCallback(() => {
+    if (!sheetUrl.trim()) return;
     setSheetsError(null);
-    setSheetsResult(null);
     syncSheets.mutate(
       { data: { sheetUrl: sheetUrl.trim(), ...(sheetName.trim() ? { sheetName: sheetName.trim() } : {}), ...(sheetGid ? { gid: sheetGid } : {}), ...(checkedInOnly ? { checkedInOnly: true } : {}) } },
       {
-        onSuccess: (data) => { setSheetsResult(data); invalidateAll(); },
+        onSuccess: (data) => { setSheetsResult(data); setLastSyncAt(new Date()); invalidateAll(); },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
             ?? "Sync failed. Check that the sheet is shared with your connected Google account.";
@@ -169,7 +199,18 @@ export default function Import() {
         },
       }
     );
-  };
+  }, [sheetUrl, sheetName, sheetGid, checkedInOnly, syncSheets]);
+
+  // Auto-sync every 60s when tryout day mode is on
+  useEffect(() => {
+    if (autoSyncRef.current) clearInterval(autoSyncRef.current);
+    if (checkedInOnly && sheetUrl.trim()) {
+      autoSyncRef.current = setInterval(() => {
+        handleSheetsSync();
+      }, 60_000);
+    }
+    return () => { if (autoSyncRef.current) clearInterval(autoSyncRef.current); };
+  }, [checkedInOnly, sheetUrl, handleSheetsSync]);
 
   const lineCount = csvText.trim().split("\n").filter(Boolean).length;
   const dataRows = Math.max(0, lineCount - 1);
@@ -306,6 +347,19 @@ export default function Import() {
                 Tryout day mode — import checked-in players only
               </span>
             </label>
+
+            {checkedInOnly && sheetUrl.trim() && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-100 border border-green-200 text-xs text-green-800">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                <span className="font-semibold">Auto-syncing every 60 seconds</span>
+                {lastSyncAt && (
+                  <span className="ml-auto flex items-center gap-1 text-green-700">
+                    <Clock className="h-3 w-3" />
+                    Last: {lastSyncAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                )}
+              </div>
+            )}
 
             <Button
               className="w-full h-11 font-bold bg-green-700 hover:bg-green-800 text-white"

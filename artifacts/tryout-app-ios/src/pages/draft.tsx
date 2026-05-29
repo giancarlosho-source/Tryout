@@ -5,8 +5,10 @@ import {
   useGetAllDraftPicks, useListPlayers,
   useTogglePlayerLock, useGetAllWishlistPicks, useGetCoachWishlist,
   useAddToWishlist, useRemoveFromWishlist,
+  useGetAllMustHavePicks, useGetCoachMustHave, useAddToMustHave, useRemoveFromMustHave, useCommitDraftPlayer,
   getListCoachesQueryKey, getGetCoachDraftQueryKey, getGetAllDraftPicksQueryKey,
   getGetAllWishlistPicksQueryKey, getGetCoachWishlistQueryKey,
+  getGetAllMustHavePicksQueryKey, getGetCoachMustHaveQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Trash2, CheckCircle2, X, Upload, FileText, UserPlus,
   Search, AlertCircle, Ruler, TrendingUp, ArrowUp, ArrowDown, Star,
-  Lock, Unlock, Heart, HeartOff, Download, Mail,
+  Lock, Unlock, Heart, HeartOff, Download, Mail, Lightbulb, TriangleAlert,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -89,12 +91,16 @@ export default function Draft() {
   const { data: coaches = [], isLoading: coachesLoading } = useListCoaches({ query: { queryKey: getListCoachesQueryKey() } });
   const { data: allPicks = [] } = useGetAllDraftPicks({ query: { queryKey: getGetAllDraftPicksQueryKey(), refetchInterval: 5000 } });
   const { data: allWishlists = [] } = useGetAllWishlistPicks({ query: { queryKey: getGetAllWishlistPicksQueryKey(), refetchInterval: 5000 } });
+  const { data: allMustHaves = [] } = useGetAllMustHavePicks({ query: { queryKey: getGetAllMustHavePicksQueryKey(), refetchInterval: 5000 } });
   const { data: allPlayers = [] } = useListPlayers();
   const { data: draft, isLoading: draftLoading } = useGetCoachDraft(selectedCoachId!, {
     query: { enabled: !!selectedCoachId, queryKey: getGetCoachDraftQueryKey(selectedCoachId!), refetchInterval: 5000 },
   });
   const { data: myWishlist = [] } = useGetCoachWishlist(selectedCoachId!, {
     query: { enabled: !!selectedCoachId, queryKey: getGetCoachWishlistQueryKey(selectedCoachId!) },
+  });
+  const { data: myMustHave = [] } = useGetCoachMustHave(selectedCoachId!, {
+    query: { enabled: !!selectedCoachId, queryKey: getGetCoachMustHaveQueryKey(selectedCoachId!) },
   });
 
   const createCoach = useCreateCoach();
@@ -105,14 +111,19 @@ export default function Draft() {
   const toggleLock = useTogglePlayerLock();
   const addWish = useAddToWishlist();
   const removeWish = useRemoveFromWishlist();
+  const addMustHave = useAddToMustHave();
+  const removeMustHave = useRemoveFromMustHave();
+  const commitPlayer = useCommitDraftPlayer();
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getListCoachesQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetAllDraftPicksQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetAllWishlistPicksQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAllMustHavePicksQueryKey() });
     if (selectedCoachId) {
       queryClient.invalidateQueries({ queryKey: getGetCoachDraftQueryKey(selectedCoachId) });
       queryClient.invalidateQueries({ queryKey: getGetCoachWishlistQueryKey(selectedCoachId) });
+      queryClient.invalidateQueries({ queryKey: getGetCoachMustHaveQueryKey(selectedCoachId) });
     }
   };
 
@@ -219,6 +230,36 @@ export default function Draft() {
     }
   };
 
+  const handleToggleMustHave = (playerId: number) => {
+    if (!selectedCoachId) return;
+    const isMustHave = myMustHaveSet.has(playerId);
+    if (isMustHave) {
+      removeMustHave.mutate(
+        { id: selectedCoachId, playerId },
+        { onSuccess: () => invalidateAll(), onError: () => toast({ title: "Failed to update", variant: "destructive" }) }
+      );
+    } else {
+      addMustHave.mutate(
+        { id: selectedCoachId, data: { playerId } },
+        { onSuccess: () => invalidateAll(), onError: () => toast({ title: "Failed to update", variant: "destructive" }) }
+      );
+    }
+  };
+
+  const handleCommit = (playerId: number) => {
+    if (!selectedCoachId) return;
+    commitPlayer.mutate(
+      { id: selectedCoachId, playerId },
+      {
+        onSuccess: () => {
+          invalidateAll();
+          toast({ title: "Player committed — removed from all wishlists and must-have lists" });
+        },
+        onError: () => toast({ title: "Failed to commit player", variant: "destructive" }),
+      }
+    );
+  };
+
   // Build claimed map: playerId -> { teamName, coachName, coachId }
   const claimedMap = new Map<number, { teamName: string; coachName: string; coachId: number }>();
   for (const pick of allPicks) {
@@ -236,6 +277,14 @@ export default function Draft() {
   coaches.forEach((c, i) => coachColorMap.set(c.id, TEAM_COLORS[i % TEAM_COLORS.length]));
 
   const myWishSet = new Set(myWishlist);
+  const myMustHaveSet = new Set(myMustHave);
+
+  // Build must-have conflict map: playerId -> { coachName, teamName }[]
+  const mustHaveClaimMap = new Map<number, { coachName: string; teamName: string }[]>();
+  for (const m of allMustHaves) {
+    const existing = mustHaveClaimMap.get(m.playerId) ?? [];
+    mustHaveClaimMap.set(m.playerId, [...existing, { coachName: m.coachName, teamName: m.teamName }]);
+  }
 
   const POSITIONS = ["All", "Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
   const POSITION_TAB_LABELS: Record<string, string> = {
@@ -280,10 +329,69 @@ export default function Draft() {
     return null;
   }, [coaches, selectedCoachId, availablePlayers]);
 
+  // ── Smart Assist logic ────────────────────────────────────────────────────
+  // Minimum setter requirement per team
+  const MIN_SETTERS = 2;
+
+  // For each team, compute position counts and gap warnings
+  const teamHealthData = useMemo(() => {
+    return coaches.map((coach) => {
+      const picks = allPicks.filter((p) => p.coachId === coach.id);
+      const setterCount = picks.filter((p) => p.position === "Setter").length;
+      const ohCount = picks.filter((p) => p.position === "OutsideHitter").length;
+      const totalPicked = picks.length;
+      const setterGap = Math.max(0, MIN_SETTERS - setterCount);
+
+      // Best available setter not yet claimed
+      const bestAvailableSetter = [...allPlayers]
+        .filter((p) => p.position === "Setter" && !claimedMap.has(p.id))
+        .sort((a, b) => (b.positionScore ?? 0) - (a.positionScore ?? 0))[0] ?? null;
+
+      // Best available player by overall score for any missing need
+      const bestAvailableOH = [...allPlayers]
+        .filter((p) => p.position === "OutsideHitter" && !claimedMap.has(p.id))
+        .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0))[0] ?? null;
+
+      // "Position value picks": players whose position score is higher than their rank would suggest
+      // i.e. positionScore >= 7 but overallScore < 7 — hidden gems
+      const positionValuePicks = [...allPlayers]
+        .filter((p) => !claimedMap.has(p.id) && (p.positionScore ?? 0) >= 7 && (p.overallScore ?? 0) < 7)
+        .sort((a, b) => ((b.positionScore ?? 0) - (b.overallScore ?? 0)) - ((a.positionScore ?? 0) - (a.overallScore ?? 0)))
+        .slice(0, 3);
+
+      return { coach, picks, setterCount, ohCount, totalPicked, setterGap, bestAvailableSetter, bestAvailableOH, positionValuePicks };
+    });
+  }, [coaches, allPicks, allPlayers, claimedMap]);
+
+  // Unevaluated warning: only show after 70% of checked-in players have been evaluated
+  const unevaluatedWarnings = useMemo(() => {
+    const checkedIn = allPlayers.filter((p) => p.checkedIn);
+    if (!checkedIn.length) return { show: false, players: [] };
+    const evaluated = checkedIn.filter((p) => p.overallScore != null);
+    const pct = evaluated.length / checkedIn.length;
+    if (pct < 0.7) return { show: false, players: [] };
+    const missing = checkedIn.filter((p) => p.overallScore == null);
+    return { show: missing.length > 0, players: missing, pct: Math.round(pct * 100) };
+  }, [allPlayers]);
+
+  // Bubble alert: available players within 0.5 of the lowest-scored drafted player
+  const bubblePlayers = useMemo(() => {
+    const allDraftedScores = allPicks
+      .map((p) => allPlayers.find((pl) => pl.id === p.playerId)?.overallScore ?? null)
+      .filter((s): s is number => s != null);
+    if (!allDraftedScores.length) return [];
+    const lowestDrafted = Math.min(...allDraftedScores);
+    return [...allPlayers]
+      .filter((p) => !claimedMap.has(p.id) && p.overallScore != null && p.overallScore >= lowestDrafted - 0.5)
+      .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0))
+      .slice(0, 8);
+  }, [allPlayers, allPicks, claimedMap]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const selectedCoach = coaches.find((c) => c.id === selectedCoachId);
   const draftPlayers = (draft?.players ?? []) as {
     id: number; jerseyNumber: string; name: string; position: string;
-    overallScore?: number | null; locked?: boolean;
+    overallScore?: number | null; locked?: boolean; committed?: boolean;
   }[];
 
   return (
@@ -484,6 +592,9 @@ export default function Draft() {
                   <TabsTrigger value="myteam">
                     My Team ({draftPlayers.length})
                   </TabsTrigger>
+                  <TabsTrigger value="assist" className="gap-1.5">
+                    <Lightbulb className="h-3.5 w-3.5" /> Smart Assist
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -541,8 +652,11 @@ export default function Draft() {
                         const scoreColor = (s: number) =>
                           s >= 8 ? "text-green-600" : s >= 6 ? "text-yellow-600" : "text-red-500";
                         const isWished = myWishSet.has(player.id);
+                        const isMustHave = myMustHaveSet.has(player.id);
                         const conflictCount = wishConflictMap.get(player.id) ?? 0;
                         const otherTeamsWant = conflictCount - (isWished ? 1 : 0);
+                        const mustHaveClaims = mustHaveClaimMap.get(player.id) ?? [];
+                        const otherMustHave = mustHaveClaims.filter((m) => m.coachName !== coaches.find((c) => c.id === selectedCoachId)?.name);
 
                         return (
                           <div
@@ -572,6 +686,16 @@ export default function Draft() {
                                       {otherTeamsWant} {otherTeamsWant === 1 ? "team" : "teams"} want
                                     </span>
                                   )}
+                                  {isMustHave && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-300 px-1.5 py-0.5 rounded-full">
+                                      ★ Coach's Pick
+                                    </span>
+                                  )}
+                                  {otherMustHave.length > 0 && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
+                                      ★ {otherMustHave.map((m) => m.teamName).join(", ")} must-have
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                   <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${POSITION_COLORS[player.position] ?? ""}`}>
@@ -588,8 +712,20 @@ export default function Draft() {
                                   )}
                                 </div>
                               </div>
-                              {/* Actions: wish + claim */}
+                              {/* Actions: must-have + wish + claim */}
                               <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  title={isMustHave ? "Remove Coach's Pick" : "Mark as Coach's Pick — want this player no matter the score"}
+                                  onClick={(e) => { e.stopPropagation(); handleToggleMustHave(player.id); }}
+                                  className={`p-1.5 rounded-md border transition-colors font-black text-sm ${
+                                    isMustHave
+                                      ? "text-violet-600 border-violet-300 bg-violet-50 hover:bg-violet-100"
+                                      : "text-muted-foreground border-border hover:border-violet-300 hover:text-violet-500"
+                                  }`}
+                                >
+                                  ★
+                                </button>
                                 <button
                                   type="button"
                                   title={isWished ? "Remove from wishlist" : "Add to wishlist"}
@@ -707,15 +843,25 @@ export default function Draft() {
                         .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0))
                         .map((player) => {
                           const isLocked = player.locked ?? false;
+                          const isCommitted = player.committed ?? false;
                           return (
-                            <Card key={player.id} className={`transition-colors ${isLocked ? "border-primary/40 bg-primary/5" : "border-primary/20"}`}>
+                            <Card key={player.id} className={`transition-colors ${
+                              isCommitted ? "border-green-400 bg-green-50" :
+                              isLocked ? "border-primary/40 bg-primary/5" : "border-primary/20"
+                            }`}>
                               <CardContent className="p-3 flex items-start gap-3">
                                 <span className="text-xl font-black text-primary tabular-nums w-10 shrink-0">#{player.jerseyNumber}</span>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-semibold text-sm leading-tight truncate flex items-center gap-1.5">
                                     {player.name}
-                                    {isLocked && <Lock className="h-3 w-3 text-primary shrink-0" />}
+                                    {isCommitted && <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />}
+                                    {isLocked && !isCommitted && <Lock className="h-3 w-3 text-primary shrink-0" />}
                                   </div>
+                                  {isCommitted && (
+                                    <span className="text-[10px] font-bold text-green-700 bg-green-100 border border-green-300 px-1.5 py-0.5 rounded-full inline-block mt-0.5">
+                                      Committed
+                                    </span>
+                                  )}
                                   <Badge variant="outline" className={`text-xs font-bold mt-1 ${POSITION_COLORS[player.position] ?? ""}`}>
                                     {POSITION_LABELS[player.position] ?? player.position}
                                   </Badge>
@@ -724,19 +870,31 @@ export default function Draft() {
                                   )}
                                 </div>
                                 <div className="flex flex-col gap-1 shrink-0">
-                                  <button
-                                    type="button"
-                                    title={isLocked ? "Unlock player" : "Lock player"}
-                                    onClick={() => handleToggleLock(player.id, isLocked)}
-                                    className={`h-7 w-7 flex items-center justify-center rounded border transition-colors ${
-                                      isLocked
-                                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/80"
-                                        : "text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
-                                    }`}
-                                  >
-                                    {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-                                  </button>
-                                  {!isLocked && (
+                                  {!isCommitted && (
+                                    <button
+                                      type="button"
+                                      title="Mark as committed — player accepted the spot"
+                                      onClick={() => handleCommit(player.id)}
+                                      className="h-7 w-7 flex items-center justify-center rounded border text-muted-foreground border-border hover:border-green-400 hover:text-green-600 transition-colors"
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                  {!isCommitted && (
+                                    <button
+                                      type="button"
+                                      title={isLocked ? "Unlock player" : "Lock player"}
+                                      onClick={() => handleToggleLock(player.id, isLocked)}
+                                      className={`h-7 w-7 flex items-center justify-center rounded border transition-colors ${
+                                        isLocked
+                                          ? "bg-primary text-primary-foreground border-primary hover:bg-primary/80"
+                                          : "text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
+                                      }`}
+                                    >
+                                      {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                                    </button>
+                                  )}
+                                  {!isLocked && !isCommitted && (
                                     <Button
                                       size="sm" variant="ghost"
                                       className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
@@ -774,6 +932,207 @@ export default function Draft() {
                   </div>
                 )}
               </TabsContent>
+
+              {/* Smart Assist tab */}
+              <TabsContent value="assist" className="flex-1 overflow-auto m-0 p-4 space-y-6">
+
+                {/* Unevaluated players warning */}
+                {unevaluatedWarnings.show && (
+                  <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <TriangleAlert className="h-4 w-4 text-orange-500 shrink-0" />
+                      <span className="text-sm font-bold text-orange-800">
+                        {unevaluatedWarnings.players.length} checked-in player{unevaluatedWarnings.players.length !== 1 ? "s" : ""} have no evaluation
+                      </span>
+                      <span className="text-xs text-orange-600 ml-auto">{unevaluatedWarnings.pct}% of checked-in players evaluated</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {unevaluatedWarnings.players.map((p) => (
+                        <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-200 bg-white text-sm">
+                          <span className="font-black text-primary">#{p.jerseyNumber}</span>
+                          <span className="font-semibold">{p.name}</span>
+                          <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                            {POSITION_LABELS[p.position] ?? p.position}
+                          </Badge>
+                          <a
+                            href={`/evaluate/${p.id}`}
+                            className="ml-1 text-xs text-orange-700 font-bold underline underline-offset-2 hover:text-orange-900"
+                          >
+                            Evaluate →
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Coach's Picks summary */}
+                {allMustHaves.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-black text-violet-600">★</span>
+                      <span className="text-sm font-bold">Coach's Picks — Guaranteed Spots</span>
+                      <span className="text-xs text-muted-foreground">These players are wanted regardless of evaluation score</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {allMustHaves.map((m) => {
+                        const player = allPlayers.find((p) => p.id === m.playerId);
+                        if (!player) return null;
+                        return (
+                          <div key={`${m.coachId}-${m.playerId}`} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-violet-200 bg-violet-50">
+                            <span className="font-black text-violet-600">★</span>
+                            <span className="font-black text-primary text-sm">#{player.jerseyNumber}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold truncate">{player.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{m.teamName}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bubble alert */}
+                {bubblePlayers.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <TriangleAlert className="h-4 w-4 text-amber-500" />
+                      <span className="text-sm font-bold">Bubble Players — Don't Miss These</span>
+                      <span className="text-xs text-muted-foreground">Available players close in score to already-drafted players</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {bubblePlayers.map((p) => (
+                        <div key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+                          <span className="font-black text-primary text-sm">#{p.jerseyNumber}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold truncate">{p.name}</div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                                {POSITION_LABELS[p.position] ?? p.position}
+                              </Badge>
+                              <span className="text-xs font-black text-amber-700">{p.overallScore?.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleClaim(p.id, p.position)}
+                            className="text-xs flex items-center gap-0.5 border border-dashed border-amber-400 text-amber-700 hover:bg-amber-200 px-2 py-1 rounded-md"
+                          >
+                            <Plus className="h-3 w-3" /> Claim
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Team health grid */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lightbulb className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-bold">Team Health — All Teams</span>
+                    <span className="text-xs text-muted-foreground">Each team needs at least {MIN_SETTERS} setters + mostly Outside Hitters</span>
+                  </div>
+                  <div className="space-y-3">
+                    {teamHealthData.map(({ coach, picks, setterCount, ohCount, totalPicked, setterGap, bestAvailableSetter, positionValuePicks }) => {
+                      const color = coachColorMap.get(coach.id) ?? TEAM_COLORS[0];
+                      const hasSetterGap = setterGap > 0;
+                      return (
+                        <Card key={coach.id} className={hasSetterGap ? "border-red-200" : "border-border"}>
+                          <CardContent className="p-4 space-y-3">
+                            {/* Team header */}
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${color.split(" ")[0]}`} />
+                              <div className="flex-1">
+                                <span className="font-bold text-sm">{coach.teamName}</span>
+                                <span className="text-muted-foreground text-xs ml-2">{coach.name}</span>
+                              </div>
+                              <span className="text-xs font-bold text-muted-foreground">{totalPicked}/12</span>
+                              {picks.filter((p) => (p as { committed?: boolean }).committed).length > 0 && (
+                                <span className="text-xs font-bold text-green-700 bg-green-100 border border-green-300 px-1.5 py-0.5 rounded-full">
+                                  <CheckCircle2 className="h-3 w-3 inline mr-0.5" />
+                                  {picks.filter((p) => (p as { committed?: boolean }).committed).length} committed
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Position breakdown */}
+                            <div className="flex flex-wrap gap-1.5">
+                              {["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"].map((pos) => {
+                                const cnt = picks.filter((p) => p.position === pos).length;
+                                const isGap = pos === "Setter" && cnt < MIN_SETTERS;
+                                return (
+                                  <div key={pos} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-bold ${
+                                    isGap ? "bg-red-50 text-red-700 border-red-300" : cnt > 0 ? POSITION_COLORS[pos] : "bg-muted text-muted-foreground border-border"
+                                  }`}>
+                                    {isGap && <TriangleAlert className="h-3 w-3" />}
+                                    {POSITION_LABELS[pos]} <span className="font-black">{cnt}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Gap suggestion */}
+                            {hasSetterGap && bestAvailableSetter && (
+                              <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                                <TriangleAlert className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-bold text-red-700 mb-1">
+                                    Missing setter{setterGap > 1 ? "s" : ""} — needs {setterGap} more
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-black text-primary text-sm">#{bestAvailableSetter.jerseyNumber}</span>
+                                    <span className="text-sm font-semibold">{bestAvailableSetter.name}</span>
+                                    <span className="text-xs text-muted-foreground">POS {bestAvailableSetter.positionScore?.toFixed(1)} · OVR {bestAvailableSetter.overallScore?.toFixed(1)}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setSelectedCoachId(coach.id); handleClaim(bestAvailableSetter.id, "Setter"); }}
+                                      className="ml-auto text-xs flex items-center gap-0.5 border border-dashed border-red-400 text-red-700 hover:bg-red-100 px-2 py-0.5 rounded-md whitespace-nowrap"
+                                    >
+                                      <Plus className="h-3 w-3" /> Claim for {coach.teamName}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Position value picks */}
+                            {positionValuePicks.length > 0 && (
+                              <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <Star className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-bold text-blue-700 mb-1">Position Value Picks — high position score, lower overall rank</div>
+                                  <div className="space-y-1">
+                                    {positionValuePicks.map((p) => (
+                                      <div key={p.id} className="flex items-center gap-2 text-sm">
+                                        <span className="font-black text-primary">#{p.jerseyNumber}</span>
+                                        <span className="font-semibold">{p.name}</span>
+                                        <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                                          {POSITION_LABELS[p.position] ?? p.position}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">POS {p.positionScore?.toFixed(1)} · OVR {p.overallScore?.toFixed(1)}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleClaim(p.id, p.position)}
+                                          className="ml-auto text-xs flex items-center gap-0.5 border border-dashed border-blue-400 text-blue-700 hover:bg-blue-100 px-2 py-0.5 rounded-md"
+                                        >
+                                          <Plus className="h-3 w-3" /> Claim
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              </TabsContent>
+
             </Tabs>
           )}
         </div>
