@@ -23,6 +23,7 @@ export const rosterPlayersTable = pgTable("roster_players", {
   playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
   position: text("position").notNull(),
   locked: boolean("locked").notNull().default(false),
+  committed: boolean("committed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

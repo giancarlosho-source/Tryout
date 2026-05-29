@@ -18,6 +18,13 @@ export const coachWishlistTable = pgTable("coach_wishlist", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [unique().on(t.coachId, t.playerId)]);
 
+export const coachMustHaveTable = pgTable("coach_must_have", {
+  id: serial("id").primaryKey(),
+  coachId: integer("coach_id").notNull().references(() => coachesTable.id, { onDelete: "cascade" }),
+  playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique().on(t.coachId, t.playerId)]);
+
 export const insertCoachSchema = createInsertSchema(coachesTable).omit({
   id: true,
   createdAt: true,
@@ -26,3 +33,4 @@ export const insertCoachSchema = createInsertSchema(coachesTable).omit({
 export type InsertCoach = z.infer<typeof insertCoachSchema>;
 export type Coach = typeof coachesTable.$inferSelect;
 export type CoachWishlistEntry = typeof coachWishlistTable.$inferSelect;
+export type CoachMustHaveEntry = typeof coachMustHaveTable.$inferSelect;

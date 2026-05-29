@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, isNotNull, and, ne } from "drizzle-orm";
-import { db, coachesTable, rostersTable, rosterPlayersTable, playersTable, coachWishlistTable } from "@workspace/db";
+import { db, coachesTable, rostersTable, rosterPlayersTable, playersTable, coachWishlistTable, coachMustHaveTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -84,7 +84,7 @@ router.get("/coaches/draft/all", async (_req, res): Promise<void> => {
     if (!coach) continue;
     const players = await db.select().from(rosterPlayersTable).where(eq(rosterPlayersTable.rosterId, roster.id));
     for (const p of players) {
-      picks.push({ playerId: p.playerId, coachId: coach.id, coachName: coach.name, teamName: coach.teamName, position: p.position });
+      picks.push({ playerId: p.playerId, coachId: coach.id, coachName: coach.name, teamName: coach.teamName, position: p.position, committed: p.committed, locked: p.locked });
     }
   }
 
@@ -197,6 +197,27 @@ router.patch("/coaches/:id/draft/players/:playerId", async (req, res): Promise<v
   res.json({ ok: true });
 });
 
+// Mark player as committed — clears from all other wishlists and must-have lists
+router.post("/coaches/:id/draft/players/:playerId/commit", async (req, res): Promise<void> => {
+  const coachId = parseInt(req.params.id);
+  const playerId = parseInt(req.params.playerId);
+  if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const rosters = await db.select().from(rostersTable).where(eq(rostersTable.coachId, coachId));
+  if (!rosters.length) { res.status(404).json({ error: "No draft found for this coach" }); return; }
+
+  // Mark committed
+  await db.update(rosterPlayersTable)
+    .set({ committed: true, locked: true })
+    .where(and(eq(rosterPlayersTable.rosterId, rosters[0].id), eq(rosterPlayersTable.playerId, playerId)));
+
+  // Remove from ALL coaches' wishlists and must-have lists
+  await db.delete(coachWishlistTable).where(eq(coachWishlistTable.playerId, playerId));
+  await db.delete(coachMustHaveTable).where(eq(coachMustHaveTable.playerId, playerId));
+
+  res.json({ ok: true });
+});
+
 // Get all wishlist picks across all coaches (for conflict detection)
 router.get("/coaches/wishlist/all", async (_req, res): Promise<void> => {
   const all = await db
@@ -241,6 +262,48 @@ router.delete("/coaches/:id/wishlist/:playerId", async (req, res): Promise<void>
   await db.delete(coachWishlistTable)
     .where(and(eq(coachWishlistTable.coachId, coachId), eq(coachWishlistTable.playerId, playerId)));
 
+  res.status(204).send();
+});
+
+// Get all must-have picks across all coaches
+router.get("/coaches/musthave/all", async (_req, res): Promise<void> => {
+  const all = await db
+    .select({
+      coachId: coachMustHaveTable.coachId,
+      playerId: coachMustHaveTable.playerId,
+      coachName: coachesTable.name,
+      teamName: coachesTable.teamName,
+    })
+    .from(coachMustHaveTable)
+    .innerJoin(coachesTable, eq(coachMustHaveTable.coachId, coachesTable.id));
+  res.json(all);
+});
+
+// Get a coach's must-have list
+router.get("/coaches/:id/musthave", async (req, res): Promise<void> => {
+  const coachId = parseInt(req.params.id);
+  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const entries = await db.select().from(coachMustHaveTable).where(eq(coachMustHaveTable.coachId, coachId));
+  res.json(entries.map((e) => e.playerId));
+});
+
+// Add to must-have
+router.post("/coaches/:id/musthave", async (req, res): Promise<void> => {
+  const coachId = parseInt(req.params.id);
+  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { playerId } = req.body as { playerId?: number };
+  if (!playerId) { res.status(400).json({ error: "playerId is required" }); return; }
+  await db.insert(coachMustHaveTable).values({ coachId, playerId }).onConflictDoNothing();
+  res.status(201).json({ ok: true });
+});
+
+// Remove from must-have
+router.delete("/coaches/:id/musthave/:playerId", async (req, res): Promise<void> => {
+  const coachId = parseInt(req.params.id);
+  const playerId = parseInt(req.params.playerId);
+  if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(coachMustHaveTable)
+    .where(and(eq(coachMustHaveTable.coachId, coachId), eq(coachMustHaveTable.playerId, playerId)));
   res.status(204).send();
 });
 

@@ -2687,6 +2687,148 @@ export const useRemoveFromWishlist = <TError = ErrorType<unknown>,
       return useMutation(getRemoveFromWishlistMutationOptions(options));
     }
 
+// ── Commit player hook ───────────────────────────────────────────────────────
+
+export const commitDraftPlayer = async (id: number, playerId: number, options?: RequestInit): Promise<void> => {
+  return customFetch<void>(`/api/coaches/${id}/draft/players/${playerId}/commit`, {
+    ...options, method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+  });
+};
+
+export const getCommitDraftPlayerMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError, { id: number; playerId: number }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError, { id: number; playerId: number }, TContext> => {
+  const mutationKey = ['commitDraftPlayer'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?
+    options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options
+    : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof commitDraftPlayer>>, { id: number; playerId: number }> = (props) => {
+    const { id, playerId } = props ?? {};
+    return commitDraftPlayer(id, playerId, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export const useCommitDraftPlayer = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError, { id: number; playerId: number }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationResult<Awaited<ReturnType<typeof commitDraftPlayer>>, TError, { id: number; playerId: number }, TContext> => {
+  return useMutation(getCommitDraftPlayerMutationOptions(options));
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── Coach's Pick (Must-Have) hooks ──────────────────────────────────────────
+
+export const getGetAllMustHavePicksUrl = () => `/api/coaches/musthave/all`;
+
+export const getAllMustHavePicks = async (options?: RequestInit): Promise<WishlistPick[]> => {
+  return customFetch<WishlistPick[]>(getGetAllMustHavePicksUrl(), { ...options, method: 'GET' });
+};
+
+export const getGetAllMustHavePicksQueryKey = () => [`/api/coaches/musthave/all`] as const;
+
+export const getGetAllMustHavePicksQueryOptions = <TData = Awaited<ReturnType<typeof getAllMustHavePicks>>, TError = ErrorType<unknown>>(
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAllMustHavePicks>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetAllMustHavePicksQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllMustHavePicks>>> = ({ signal }) => getAllMustHavePicks({ signal, ...requestOptions });
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getAllMustHavePicks>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useGetAllMustHavePicks<TData = Awaited<ReturnType<typeof getAllMustHavePicks>>, TError = ErrorType<unknown>>(
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAllMustHavePicks>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAllMustHavePicksQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetCoachMustHaveUrl = (id: number) => `/api/coaches/${id}/musthave`;
+
+export const getCoachMustHave = async (id: number, options?: RequestInit): Promise<number[]> => {
+  return customFetch<number[]>(getGetCoachMustHaveUrl(id), { ...options, method: 'GET' });
+};
+
+export const getGetCoachMustHaveQueryKey = (id: number) => [`/api/coaches/${id}/musthave`] as const;
+
+export const getGetCoachMustHaveQueryOptions = <TData = Awaited<ReturnType<typeof getCoachMustHave>>, TError = ErrorType<unknown>>(
+  id: number,
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getCoachMustHave>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetCoachMustHaveQueryKey(id);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCoachMustHave>>> = ({ signal }) => getCoachMustHave(id, { signal, ...requestOptions });
+  return { queryKey, queryFn, enabled: !!(id), ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getCoachMustHave>>, TError, TData> & { queryKey: QueryKey };
+};
+
+export function useGetCoachMustHave<TData = Awaited<ReturnType<typeof getCoachMustHave>>, TError = ErrorType<unknown>>(
+  id: number,
+  options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getCoachMustHave>>, TError, TData>; request?: SecondParameter<typeof customFetch> }
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCoachMustHaveQueryOptions(id, options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const addToMustHave = async (id: number, wishlistInput: WishlistInput, options?: RequestInit): Promise<void> => {
+  return customFetch<void>(`/api/coaches/${id}/musthave`, {
+    ...options, method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(wishlistInput),
+  });
+};
+
+export const getAddToMustHaveMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof addToMustHave>>, TError, { id: number; data: BodyType<WishlistInput> }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationOptions<Awaited<ReturnType<typeof addToMustHave>>, TError, { id: number; data: BodyType<WishlistInput> }, TContext> => {
+  const mutationKey = ['addToMustHave'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?
+    options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options
+    : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof addToMustHave>>, { id: number; data: BodyType<WishlistInput> }> = (props) => {
+    const { id, data } = props ?? {};
+    return addToMustHave(id, data, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export const useAddToMustHave = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof addToMustHave>>, TError, { id: number; data: BodyType<WishlistInput> }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationResult<Awaited<ReturnType<typeof addToMustHave>>, TError, { id: number; data: BodyType<WishlistInput> }, TContext> => {
+  return useMutation(getAddToMustHaveMutationOptions(options));
+};
+
+export const removeFromMustHave = async (id: number, playerId: number, options?: RequestInit): Promise<void> => {
+  return customFetch<void>(`/api/coaches/${id}/musthave/${playerId}`, { ...options, method: 'DELETE' });
+};
+
+export const getRemoveFromMustHaveMutationOptions = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof removeFromMustHave>>, TError, { id: number; playerId: number }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationOptions<Awaited<ReturnType<typeof removeFromMustHave>>, TError, { id: number; playerId: number }, TContext> => {
+  const mutationKey = ['removeFromMustHave'];
+  const { mutation: mutationOptions, request: requestOptions } = options ?
+    options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options
+    : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeFromMustHave>>, { id: number; playerId: number }> = (props) => {
+    const { id, playerId } = props ?? {};
+    return removeFromMustHave(id, playerId, requestOptions);
+  };
+  return { mutationFn, ...mutationOptions };
+};
+
+export const useRemoveFromMustHave = <TError = ErrorType<unknown>, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof removeFromMustHave>>, TError, { id: number; playerId: number }, TContext>; request?: SecondParameter<typeof customFetch> }
+): UseMutationResult<Awaited<ReturnType<typeof removeFromMustHave>>, TError, { id: number; playerId: number }, TContext> => {
+  return useMutation(getRemoveFromMustHaveMutationOptions(options));
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export const getUpdateNoteUrl = (id: number,) => {
 
 

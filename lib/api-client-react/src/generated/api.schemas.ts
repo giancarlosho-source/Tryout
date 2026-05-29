@@ -309,6 +309,8 @@ export interface DraftPick {
   coachName: string;
   teamName: string;
   position: string;
+  committed?: boolean;
+  locked?: boolean;
 }
 
 export interface WishlistPick {
