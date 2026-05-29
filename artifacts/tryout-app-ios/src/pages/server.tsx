@@ -6,7 +6,7 @@ import {
   useGetAllDraftPicks,
   useGetAllWishlistPicks,
   useGetAllMustHavePicks,
-} from "@/lib/api-client-react/src/generated/api";
+} from "@workspace/api-client-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,7 +26,7 @@ import type {
   Player,
   Coach,
   DraftPick,
-} from "@/lib/api-client-react/src/generated/api.schemas";
+} from "@workspace/api-client-react";
 
 const FAST_REFETCH = { refetchInterval: 5000 };
 const SLOW_REFETCH = { refetchInterval: 60000 };

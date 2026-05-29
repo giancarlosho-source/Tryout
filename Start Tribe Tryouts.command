@@ -33,26 +33,19 @@ cd "$DIR/artifacts/api-server"
 "$NODE" ./build.mjs 2>&1 | tail -3
 echo ""
 
-# Update capacitor config with current IP
-echo "Updating iPad connection to $LOCAL_IP..."
-cat > "$DIR/artifacts/tryout-app-ios/capacitor.config.ts" << EOF
-import type { CapacitorConfig } from "@capacitor/cli";
+# Update iPad .env with current IP
+echo "Updating iPad API connection to $LOCAL_IP..."
+echo "VITE_API_URL=http://$LOCAL_IP:8080" > "$DIR/artifacts/tryout-app-ios/.env"
 
-const config: CapacitorConfig = {
-  appId: "com.tribevb.tryouts",
-  appName: "Tribe Tryouts",
-  webDir: "dist/public",
-  server: {
-    url: "http://$LOCAL_IP:19107",
-    cleartext: true,
-  },
-  ios: {
-    contentInset: "always",
-  },
-};
+# Build iOS web app
+echo "Building iPad app..."
+cd "$DIR/artifacts/tryout-app-ios"
+"$NODE" node_modules/.bin/vite build --config vite.config.ts 2>&1 | tail -3
 
-export default config;
-EOF
+# Sync Capacitor
+echo "Syncing iPad app..."
+"$NODE" node_modules/.bin/cap sync ios 2>&1 | tail -3
+echo ""
 
 # Start API server in background
 echo "Starting API server on port 8080..."
@@ -74,8 +67,11 @@ echo ""
 echo "================================================"
 echo "  All systems GO!"
 echo ""
-echo "  iPads should connect to:"
-echo "  http://$LOCAL_IP:19107"
+echo "  iPad app: rebuild in Xcode (Cmd+R) to"
+echo "  push latest version to connected iPads."
+echo ""
+echo "  API server: http://$LOCAL_IP:8080"
+echo "  Web (browser): http://$LOCAL_IP:19107"
 echo ""
 echo "  Make sure all iPads are on the same Wi-Fi."
 echo "================================================"
