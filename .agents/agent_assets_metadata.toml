@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qxMXzbDAe3lelvLwTSLIN"
+uri = "file://tryoutpro-source.zip"
+type = "unspecified"
+title = "TryoutPro Source Code"
