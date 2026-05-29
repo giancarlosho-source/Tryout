@@ -4,10 +4,9 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { CheckCircle2, AlertCircle, TrendingUp, Zap, Star, Shield, ArrowLeftRight, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, AlertCircle, TrendingUp, Zap, Star, Shield, ArrowLeftRight, RefreshCw, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRoster } from "@/contexts/roster-context";
 
 const POSITION_COLORS: Record<string, string> = {
@@ -70,6 +69,64 @@ function SkillBar({ label, score, otherScore }: { label: string; score: number; 
       </div>
       <div className="w-8 text-right text-xs font-black tabular-nums">{score.toFixed(1)}</div>
     </div>
+  );
+}
+
+function PlayerSearchSelect({
+  players,
+  value,
+  onChange,
+  excludeId,
+  placeholder,
+}: {
+  players: { id: number; name: string; jerseyNumber: string | null; position: string }[];
+  value: string;
+  onChange: (id: string) => void;
+  excludeId: string;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = players.find((p) => String(p.id) === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="flex-1 h-10 font-semibold justify-between overflow-hidden">
+          <span className="truncate">
+            {selected
+              ? <><span className="text-primary font-black">#{selected.jerseyNumber}</span> {selected.name}</>
+              : <span className="text-muted-foreground font-normal">{placeholder}</span>
+            }
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-72" align="start">
+        <Command>
+          <CommandInput placeholder="Search by name or #number..." />
+          <CommandList>
+            <CommandEmpty>No players found.</CommandEmpty>
+            <CommandGroup>
+              {players
+                .filter((p) => String(p.id) !== excludeId)
+                .map((p) => (
+                  <CommandItem
+                    key={p.id}
+                    value={`${p.name} #${p.jerseyNumber} ${p.jerseyNumber}`}
+                    onSelect={() => { onChange(String(p.id)); setOpen(false); }}
+                  >
+                    <span className="font-black text-primary mr-2">#{p.jerseyNumber}</span>
+                    <span className="font-medium">{p.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {p.position.replace(/([A-Z])/g, " $1").trim()}
+                    </span>
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -155,7 +212,7 @@ function PlayerColumn({
                       .map((p) => (
                         <CommandItem
                           key={p.id}
-                          value={`${p.name} ${p.jerseyNumber}`}
+                          value={`${p.name} #${p.jerseyNumber} ${p.jerseyNumber}`}
                           onSelect={() => {
                             onSwap(String(p.id));
                             setSwapOpen(false);
@@ -383,35 +440,25 @@ export default function Compare() {
 
         {/* Player selectors */}
         <div className="flex items-center gap-3">
-          <Select value={leftId} onValueChange={setLeftId}>
-            <SelectTrigger className="flex-1 h-10 font-semibold">
-              <SelectValue placeholder="Select player A..." />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedPlayers.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)} disabled={String(p.id) === rightId}>
-                  #{p.jerseyNumber} — {p.name} ({p.position.replace(/([A-Z])/g, " $1").trim()})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PlayerSearchSelect
+            players={sortedPlayers}
+            value={leftId}
+            onChange={setLeftId}
+            excludeId={rightId}
+            placeholder="Select player A..."
+          />
 
           <Button variant="outline" size="icon" onClick={handleSwap} title="Swap players" className="shrink-0">
             <ArrowLeftRight className="h-4 w-4" />
           </Button>
 
-          <Select value={rightId} onValueChange={setRightId}>
-            <SelectTrigger className="flex-1 h-10 font-semibold">
-              <SelectValue placeholder="Select player B..." />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedPlayers.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)} disabled={String(p.id) === leftId}>
-                  #{p.jerseyNumber} — {p.name} ({p.position.replace(/([A-Z])/g, " $1").trim()})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PlayerSearchSelect
+            players={sortedPlayers}
+            value={rightId}
+            onChange={setRightId}
+            excludeId={leftId}
+            placeholder="Select player B..."
+          />
         </div>
       </div>
 
