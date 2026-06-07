@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getListPlayersQueryKey, getListRankingsQueryKey } from "@workspace/api-client-react";
+import { getServerUrl } from "@/lib/server-url";
 
 export function useLiveSync() {
   const queryClient = useQueryClient();
@@ -8,8 +9,7 @@ export function useLiveSync() {
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    const base = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
-    const url = `${base}/api/events`;
+    const url = `${getServerUrl()}/api/events`;
 
     function connect() {
       const es = new EventSource(url);

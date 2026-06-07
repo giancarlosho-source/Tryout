@@ -52,6 +52,17 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tribetryouts</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.tribevb.tryouts</string>
+		</dict>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Tribe Tryouts connects to the coordinator's Mac on the local network to sync player data and evaluations.</string>
 	<key>NSMicrophoneUsageDescription</key>

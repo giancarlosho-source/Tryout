@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Delete } from "lucide-react";
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+import { getServerUrl } from "@/lib/server-url";
+const API_BASE = getServerUrl();
 const STORAGE_KEY = "tribe_staff";
 
 type StaffMember = { id: number; name: string; role: string };

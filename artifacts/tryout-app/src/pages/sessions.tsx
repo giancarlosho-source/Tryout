@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, Calendar, Download, QrCode, Pencil, Wifi } from "lucide-react";
+import { CheckCircle2, Calendar, Download, QrCode, Pencil, Wifi, Smartphone, Copy, Check } from "lucide-react";
 
 const HELP = {
   title: "Session Management",
@@ -53,6 +53,9 @@ export default function Sessions() {
   // Network URL for QR (editable so user can correct if needed)
   const [baseUrl, setBaseUrl] = useState(window.location.origin);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [qrReady, setQrReady] = useState(false);
@@ -72,17 +75,17 @@ export default function Sessions() {
 
     fetch(`${API_BASE}/api/server-info`)
       .then((r) => r.json())
-      .then((info: { ip: string; port: number; tunnelUrl?: string | null }) => {
+      .then((info: { ip: string; port: number; tunnelUrl?: string | null; localUrl?: string | null }) => {
         if (info.tunnelUrl) {
-          // Prefer tunnel URL — works from any network
           setBaseUrl(info.tunnelUrl);
+          setTunnelUrl(info.tunnelUrl);
         } else {
-          // Fall back to local network IP
           const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
           if (isLocalhost && info.ip && info.ip !== "localhost") {
             setBaseUrl(`http://${info.ip}:${window.location.port || info.port}`);
           }
         }
+        if (info.localUrl) setLocalUrl(info.localUrl);
       })
       .catch(() => {});
   }, []);
@@ -352,6 +355,68 @@ export default function Sessions() {
             <Download className="h-4 w-4" /> Download PNG
           </button>
         </div>
+      </div>
+
+      {/* Staff Device Setup */}
+      <div className="border-t pt-8 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Smartphone className="h-5 w-5 text-primary" /> Staff Device Setup
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Share this URL with staff so their iPhones/iPads can connect to the server from any network.
+          </p>
+        </div>
+
+        {tunnelUrl ? (
+          <div className="bg-card border rounded-2xl p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="space-y-1 min-w-0">
+                <div className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" /> Tunnel active — works from any network
+                </div>
+                <div className="font-mono text-sm break-all text-foreground">{tunnelUrl}</div>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(tunnelUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold hover:bg-muted/40 transition-colors shrink-0"
+              >
+                {copied ? <><Check className="h-3.5 w-3.5 text-green-600" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy URL</>}
+              </button>
+            </div>
+            <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-3">
+              <p className="font-semibold text-foreground">How to connect a staff device:</p>
+              <ol className="list-decimal list-inside space-y-1 text-sm">
+                <li>Open the <strong>Tribe Tryouts</strong> app on the iPhone/iPad</li>
+                <li>On the "Connect to Server" screen, paste the URL above</li>
+                <li>Tap <strong>Connect</strong> — done! Works on any network.</li>
+              </ol>
+              <p className="text-xs text-muted-foreground pt-1">
+                💡 Share the URL via iMessage or AirDrop — staff only need to do this once per session (or when the server restarts).
+              </p>
+            </div>
+          </div>
+        ) : localUrl ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
+            <div className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+              ⚠ Same network only (no tunnel running)
+            </div>
+            <div className="font-mono text-sm break-all text-foreground">{localUrl}</div>
+            <p className="text-sm text-amber-700">
+              All staff devices must be on the same WiFi or hotspot as this Mac.
+              To enable any-network access, install Cloudflare tunnel:{" "}
+              <code className="bg-amber-100 px-1.5 py-0.5 rounded text-xs font-mono">brew install cloudflare/cloudflare/cloudflared</code>
+            </p>
+          </div>
+        ) : (
+          <div className="bg-muted/30 border rounded-2xl p-5 text-sm text-muted-foreground">
+            Loading server info…
+          </div>
+        )}
       </div>
     </div>
   );

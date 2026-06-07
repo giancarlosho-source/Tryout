@@ -24,7 +24,8 @@ const HELP = {
   ],
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+import { getServerUrl } from "@/lib/server-url";
+const API_BASE = getServerUrl();
 
 export default function PhotoStation() {
   const [search, setSearch] = useState("");
