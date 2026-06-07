@@ -8,6 +8,8 @@ export const coachesTable = pgTable("coaches", {
   name: text("name").notNull(),
   teamName: text("team_name").notNull(),
   draftPriority: text("draft_priority").default("[]").notNull(),
+  pin: text("pin"),
+  stationRole: text("station_role"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

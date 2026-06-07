@@ -1,4 +1,20 @@
 import { useState } from "react";
+
+const HELP = {
+  title: "Rankings",
+  description: "A live leaderboard of all players sorted by their average evaluation score across all skills.",
+  steps: [
+    { step: 1, text: "Players are sorted highest to lowest by average score. Scores update in real time as evaluators enter them." },
+    { step: 2, text: "Filter by position or age group using the dropdowns at the top." },
+    { step: 3, text: "Click the lock icon next to a player to pin their rank — locked players stay in place even as scores change." },
+    { step: 4, text: "Click a player's name to open their full profile with a breakdown by skill." },
+  ],
+  tips: [
+    "Use the lock to protect your top picks early — once locked, new scores won't bump them down.",
+    "Grey rows indicate players already added to a roster.",
+    "The score shown is the average across all evaluators and all skills scored for that player.",
+  ],
+};
 import { useListRankings, useOverrideRanking, getListRankingsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -28,18 +44,7 @@ const FLAG_COLORS: Record<string, string> = {
   "Missing Measurements":   "bg-red-100 text-red-600 border-red-200",
 };
 
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-pink-100 text-pink-700 border-pink-200",
-};
-
-const POSITION_LABELS: Record<string, string> = {
-  Setter: "Setter", OutsideHitter: "Outside Hitter",
-  MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
-};
+import { POSITION_COLORS, positionColor, positionLabel, primaryPosition } from "@/lib/positions";
 
 function ScorePill({ score, dimmed }: { score: number | null | undefined; dimmed?: boolean }) {
   if (score == null) return <span className="text-muted-foreground text-sm">—</span>;
@@ -62,10 +67,14 @@ type SortKey = "overall" | "position" | "potential" | "physical" | "height" | "v
 export default function Rankings() {
   const [sortBy, setSortBy] = useState<SortKey>("overall");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [ageFilter, setAgeFilter] = useState<string>("All");
   const { isOnRoster, getRosterSlot } = useRoster();
 
   const queryClient = useQueryClient();
   const { data: players, isLoading } = useListRankings({ sortBy, sortDir });
+
+  const ageGroups = Array.from(new Set((players ?? []).map((p) => p.age).filter(Boolean))).sort() as string[];
+  const visiblePlayers = ageFilter === "All" ? (players ?? []) : (players ?? []).filter((p) => p.age === ageFilter);
   const overrideRanking = useOverrideRanking();
 
   const handleSort = (key: SortKey) => {
@@ -99,13 +108,31 @@ export default function Rankings() {
       <div className="flex-none p-6 pb-4 border-b">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Rankings</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">Rankings</h1>
+            </div>
             <p className="text-muted-foreground text-sm mt-1">
               All players sorted by score — lock players to pin their rank.{" "}
               <span className="text-primary font-medium">Greyed rows are already on the active roster.</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            {ageGroups.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                {["All", ...ageGroups].map((age) => (
+                  <button
+                    key={age}
+                    onClick={() => setAgeFilter(age)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-all
+                      ${ageFilter === age
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/40 text-muted-foreground border-transparent hover:border-border"}`}
+                  >
+                    {age === "All" ? "All Ages" : age}
+                  </button>
+                ))}
+              </div>
+            )}
             <span className="text-sm text-muted-foreground font-medium">Sort by:</span>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
               <SelectTrigger className="w-44">
@@ -169,14 +196,14 @@ export default function Rankings() {
                   ))}
                 </TableRow>
               ))
-            ) : players?.length === 0 ? (
+            ) : visiblePlayers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={13} className="text-center py-16 text-muted-foreground">
-                  No players evaluated yet. Start evaluating players to see rankings.
+                  {ageFilter !== "All" ? `No evaluated players in ${ageFilter}.` : "No players evaluated yet. Start evaluating players to see rankings."}
                 </TableCell>
               </TableRow>
             ) : (
-              players?.map((player, idx) => {
+              visiblePlayers.map((player, idx) => {
                 const onRoster = isOnRoster(player.id);
                 const slot = getRosterSlot(player.id);
 
@@ -225,10 +252,10 @@ export default function Rankings() {
                       <Badge
                         variant="outline"
                         className={`text-xs font-semibold ${
-                          onRoster ? "bg-muted text-muted-foreground border-border" : POSITION_COLORS[player.position] || ""
+                          onRoster ? "bg-muted text-muted-foreground border-border" : positionColor(player.position)
                         }`}
                       >
-                        {POSITION_LABELS[player.position] || player.position}
+                        {positionLabel(player.position)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center"><ScorePill score={player.overallScore} dimmed={onRoster} /></TableCell>

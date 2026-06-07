@@ -1,4 +1,5 @@
 import { useGetPlayerStats, useGetSyncStatus, useTriggerSync } from "@workspace/api-client-react";
+import { primaryPosition, positionLabel, positionColor, POSITION_LABELS } from "@/lib/positions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Users, ClipboardCheck, AlertTriangle, Activity, TrendingUp, Upload, UsersRound } from "lucide-react";
@@ -126,23 +127,48 @@ export default function Dashboard() {
             <CardTitle>By Position</CardTitle>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="space-y-4">
-              {stats?.byPosition.map((pos) => (
-                <div key={pos.position} className="flex items-center">
-                  <div className="w-32 text-sm font-medium">{pos.position}</div>
-                  <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary" 
-                      style={{ width: `${(pos.count / (stats.totalPlayers || 1)) * 100}%` }}
-                    />
+            {statsLoading ? (
+              <div className="space-y-4">
+                {[1,2,3,4,5].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-32 h-4 bg-muted rounded animate-pulse" />
+                    <div className="flex-1 h-4 bg-muted rounded-full animate-pulse" />
+                    <div className="w-8 h-4 bg-muted rounded animate-pulse" />
                   </div>
-                  <div className="w-12 text-right text-sm font-bold">{pos.count}</div>
-                </div>
-              ))}
-              {(!stats?.byPosition || stats.byPosition.length === 0) && !statsLoading && (
+                ))}
+              </div>
+            ) : (() => {
+              // Normalize: group all variants by primary position key
+              const POSITION_ORDER = ["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
+              const grouped: Record<string, number> = {};
+              for (const pos of (stats?.byPosition ?? [])) {
+                const key = primaryPosition(pos.position);
+                grouped[key] = (grouped[key] ?? 0) + pos.count;
+              }
+              const rows = POSITION_ORDER
+                .map((key) => ({ key, count: grouped[key] ?? 0 }))
+                .filter((r) => r.count > 0);
+              const total = stats?.totalPlayers || 1;
+
+              return rows.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">No players imported yet.</div>
-              )}
-            </div>
+              ) : (
+                <div className="space-y-3">
+                  {rows.map(({ key, count }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <div className="w-32 text-sm font-semibold truncate">{positionLabel(key)}</div>
+                      <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${positionColor(key).split(" ")[0].replace("bg-", "bg-").replace("-100", "-400")}`}
+                          style={{ width: `${(count / total) * 100}%` }}
+                        />
+                      </div>
+                      <div className="w-8 text-right text-sm font-black tabular-nums">{count}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 

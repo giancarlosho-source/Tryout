@@ -52,5 +52,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Tribe Tryouts uses the microphone for voice-based player evaluation.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Tribe Tryouts uses speech recognition so coaches can score players hands-free.</string>
 </dict>
 </plist>

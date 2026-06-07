@@ -24,8 +24,12 @@ function ScorePill({ score }: { score: number | null | undefined }) {
 
 export default function PositionRankings() {
   const [activePosition, setActivePosition] = useState("Setter");
+  const [ageFilter, setAgeFilter] = useState<string>("All");
 
   const { data: players, isLoading } = useListRankings({ position: activePosition, sortBy: "position", sortDir: "desc" });
+
+  const ageGroups = Array.from(new Set((players ?? []).map((p) => p.age).filter(Boolean))).sort() as string[];
+  const visiblePlayers = ageFilter === "All" ? (players ?? []) : (players ?? []).filter((p) => p.age === ageFilter);
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
@@ -34,8 +38,8 @@ export default function PositionRankings() {
         <p className="text-muted-foreground text-sm mt-1">Top players ranked within each position group</p>
       </div>
 
-      <div className="flex-none px-6 pt-4 border-b pb-0">
-        <Tabs value={activePosition} onValueChange={setActivePosition}>
+      <div className="flex-none px-6 pt-4 border-b pb-3 space-y-3">
+        <Tabs value={activePosition} onValueChange={(v) => { setActivePosition(v); setAgeFilter("All"); }}>
           <TabsList className="bg-muted/50 p-1">
             {POSITIONS.map((p) => (
               <TabsTrigger key={p.key} value={p.key} className="px-5 py-2 text-sm font-semibold">
@@ -44,6 +48,22 @@ export default function PositionRankings() {
             ))}
           </TabsList>
         </Tabs>
+        {ageGroups.length > 1 && (
+          <div className="flex items-center gap-1.5">
+            {["All", ...ageGroups].map((age) => (
+              <button
+                key={age}
+                onClick={() => setAgeFilter(age)}
+                className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all
+                  ${ageFilter === age
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/40 text-muted-foreground border-transparent hover:border-border"}`}
+              >
+                {age === "All" ? "All Ages" : age}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -71,14 +91,16 @@ export default function PositionRankings() {
                   ))}
                 </TableRow>
               ))
-            ) : players?.length === 0 ? (
+            ) : visiblePlayers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-16 text-muted-foreground">
-                  No {POSITIONS.find((p) => p.key === activePosition)?.label} evaluated yet.
+                  {ageFilter !== "All"
+                    ? `No ${POSITIONS.find((p) => p.key === activePosition)?.label} in ${ageFilter}.`
+                    : `No ${POSITIONS.find((p) => p.key === activePosition)?.label} evaluated yet.`}
                 </TableCell>
               </TableRow>
             ) : (
-              players?.map((player, idx) => (
+              visiblePlayers.map((player, idx) => (
                 <TableRow key={player.id} className="group hover:bg-muted/30 transition-colors">
                   <TableCell>
                     <span className={`text-xl font-black tabular-nums ${idx === 0 ? "text-yellow-500" : idx === 1 ? "text-slate-400" : idx === 2 ? "text-amber-600" : "text-muted-foreground"}`}>

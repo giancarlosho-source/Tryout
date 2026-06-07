@@ -22,6 +22,7 @@ export const playersTable = pgTable("players", {
   rankPosition: integer("rank_position"),
   rankOverridePosition: integer("rank_override_position"),
   rankLocked: boolean("rank_locked").notNull().default(false),
+  photoUrl: text("photo_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

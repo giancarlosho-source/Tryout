@@ -1,22 +1,34 @@
-import { useState, useRef } from "react";
-import { useListPlayers } from "@workspace/api-client-react";
-import { Link, useLocation } from "wouter";
+import { useState, useRef, useEffect } from "react";
+
+const HELP = {
+  title: "Players",
+  description: "The Players page is your master roster. Every player registered for the tryout lives here.",
+  steps: [
+    { step: 1, text: "Add players manually with the New Player button, or use the Import page to load a CSV or Google Sheet." },
+    { step: 2, text: "Filter by position or age group using the tabs. Search by name or jersey number." },
+    { step: 3, text: "Click a player's name to open their profile — scores, measurements, photo, and notes all live there." },
+    { step: 4, text: "Use the quick-eval button (lightning bolt) to start scoring a player directly from this list." },
+  ],
+  tips: [
+    "Jersey numbers must be unique. If two players share a number, voice scoring on the iPad will be ambiguous.",
+    "Age group filters sync with the iPad stations — only players in the active session's age group appear on iPads.",
+    "Players marked as checked in show a green badge. Use this to verify attendance at a glance.",
+  ],
+};
+import { useListPlayers, useCreatePlayer, getListPlayersQueryKey } from "@workspace/api-client-react";
+import { Link, useLocation, useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, CheckCircle2, AlertCircle, ChevronRight, Activity, Zap, User } from "lucide-react";
+import { Search, CheckCircle2, AlertCircle, ChevronRight, Activity, Zap, User, X, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useRoster } from "@/contexts/roster-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-pink-100 text-pink-700 border-pink-200",
-};
+import { positionColor, positionLabel, primaryPosition, secondaryPosition, POSITION_LABELS } from "@/lib/positions";
 
 function startQueue(ids: number[], label: string, coachName: string, navigateTo: (path: string) => void) {
   if (!ids.length) return;
@@ -26,9 +38,38 @@ function startQueue(ids: number[], label: string, coachName: string, navigateTo:
 
 export default function Players() {
   const [positionFilter, setPositionFilter] = useState<string>("All");
+  const [ageFilter, setAgeFilter] = useState<string>("All");
   const [search, setSearch] = useState("");
   const { isOnRoster, getRosterSlot } = useRoster();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const urlFilter = new URLSearchParams(searchString).get("filter") ?? "";
+  const [activeFilter, setActiveFilter] = useState(urlFilter);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setActiveFilter(new URLSearchParams(searchString).get("filter") ?? "");
+  }, [searchString]);
+
+  // New player dialog
+  const [newPlayerOpen, setNewPlayerOpen] = useState(false);
+  const [npName, setNpName] = useState("");
+  const [npJersey, setNpJersey] = useState("");
+  const [npPosition, setNpPosition] = useState("");
+  const [npAge, setNpAge] = useState("");
+  const createPlayer = useCreatePlayer();
+
+  const handleCreatePlayer = async () => {
+    if (!npName.trim()) return;
+    await createPlayer.mutateAsync({
+      data: { name: npName.trim(), jerseyNumber: npJersey || undefined, position: npPosition || undefined, age: npAge || undefined },
+    });
+    queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey({}) });
+    toast({ title: "Player created" });
+    setNewPlayerOpen(false);
+    setNpName(""); setNpJersey(""); setNpPosition(""); setNpAge("");
+  };
 
   const [coachDialogOpen, setCoachDialogOpen] = useState(false);
   const [coachNameInput, setCoachNameInput] = useState("");
@@ -39,11 +80,19 @@ export default function Players() {
     position: positionFilter !== "All" ? positionFilter : undefined,
   });
 
-  const filteredPlayers = players?.filter(
-    (p) =>
+  const ageGroups = Array.from(new Set((players ?? []).map((p) => p.age).filter(Boolean))).sort() as string[];
+
+  const filteredPlayers = players?.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.jerseyNumber ?? "").toLowerCase().includes(search.toLowerCase())
-  ) ?? [];
+      (p.jerseyNumber ?? "").toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (ageFilter !== "All" && (p.age ?? "") !== ageFilter) return false;
+    if (activeFilter === "not-checked-in") return !p.checkedIn;
+    if (activeFilter === "missing-measurements") return !p.heightInches || !p.standingReachInches || !p.verticalJumpInches;
+    if (activeFilter === "not-evaluated") return p.overallScore == null;
+    return true;
+  }) ?? [];
 
   const checkedInIds = filteredPlayers.filter((p) => p.checkedIn).map((p) => p.id);
   const allIds = filteredPlayers.map((p) => p.id);
@@ -72,8 +121,13 @@ export default function Players() {
     <div className="flex flex-col h-full overflow-hidden bg-background">
       <div className="flex-none p-6 pb-4 border-b space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Players</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Players</h1>
+          </div>
           <div className="flex items-center gap-3">
+            <Button size="sm" onClick={() => setNewPlayerOpen(true)} className="gap-1.5">
+              <UserPlus className="h-4 w-4" /> New Player
+            </Button>
             {/* Start evaluation session */}
             <div className="flex items-center gap-1.5 border rounded-lg px-1 py-1 bg-muted/30">
               <span className="text-xs text-muted-foreground font-semibold pl-1.5 pr-0.5">
@@ -113,6 +167,41 @@ export default function Players() {
             </div>
           </div>
         </div>
+
+        {activeFilter && (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold w-fit
+            ${activeFilter === "missing-measurements" ? "bg-red-50 text-red-700 border border-red-200"
+            : activeFilter === "not-evaluated" ? "bg-amber-50 text-amber-700 border border-amber-200"
+            : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+            {activeFilter === "missing-measurements" ? (
+              <><AlertCircle className="h-4 w-4" /> Showing players with missing measurements</>
+            ) : activeFilter === "not-evaluated" ? (
+              <><Activity className="h-4 w-4" /> Showing players not yet evaluated</>
+            ) : (
+              <><CheckCircle2 className="h-4 w-4" /> Showing players not yet checked in</>
+            )}
+            <button onClick={() => navigate("/players")} className="ml-2 hover:opacity-70">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {ageGroups.length > 1 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {["All", ...ageGroups].map((age) => (
+              <button
+                key={age}
+                onClick={() => setAgeFilter(age)}
+                className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all
+                  ${ageFilter === age
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/40 text-muted-foreground border-transparent hover:border-border"}`}
+              >
+                {age === "All" ? "All Ages" : age}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 overflow-x-auto">
           <Tabs value={positionFilter} onValueChange={setPositionFilter} className="flex-1">
@@ -192,31 +281,31 @@ export default function Players() {
                       {player.jerseyNumber}
                     </TableCell>
                     <TableCell className={`font-bold text-base ${onRoster ? "text-muted-foreground" : ""}`}>
-                      <button
-                        className="text-left hover:underline underline-offset-2 hover:text-primary transition-colors"
-                        onClick={() => {
-                          const idx = filteredPlayers.findIndex((p) => p.id === player.id);
-                          const queueIds = [
-                            ...filteredPlayers.slice(idx).map((p) => p.id),
-                            ...filteredPlayers.slice(0, idx).map((p) => p.id),
-                          ];
-                          openCoachDialog(queueIds, sessionLabel);
-                        }}
+                      <Link
+                        href={`/players/${player.id}`}
+                        className="hover:underline underline-offset-2 hover:text-primary transition-colors"
                       >
                         {player.name}
-                      </button>
+                      </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`font-semibold border ${
-                          onRoster
-                            ? "bg-muted text-muted-foreground border-border"
-                            : POSITION_COLORS[player.position] || "bg-secondary/10 text-secondary-foreground border-secondary/20"
-                        }`}
-                      >
-                        {player.position}
-                      </Badge>
+                      <div className="flex flex-col gap-0.5">
+                        <Badge
+                          variant="secondary"
+                          className={`font-semibold border w-fit ${
+                            onRoster
+                              ? "bg-muted text-muted-foreground border-border"
+                              : positionColor(player.position)
+                          }`}
+                        >
+                          {positionLabel(player.position)}
+                        </Badge>
+                        {secondaryPosition(player.position) && (
+                          <span className="text-[10px] text-muted-foreground/60 font-medium pl-0.5">
+                            +{POSITION_LABELS[secondaryPosition(player.position)!] || secondaryPosition(player.position)}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center text-sm font-medium tabular-nums text-muted-foreground">
                       {player.age ?? <span className="text-muted-foreground/30">—</span>}
@@ -286,6 +375,50 @@ export default function Players() {
           </TableBody>
         </Table>
       </div>
+
+      {/* New player dialog */}
+      <Dialog open={newPlayerOpen} onOpenChange={setNewPlayerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" /> Add Player
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Full Name *</label>
+              <Input value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="e.g. Maria Garcia"
+                className="mt-1" onKeyDown={(e) => { if (e.key === "Enter") handleCreatePlayer(); }} autoFocus />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Jersey #</label>
+                <Input value={npJersey} onChange={(e) => setNpJersey(e.target.value)} placeholder="e.g. 12" className="mt-1" />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Age Group</label>
+                <Input value={npAge} onChange={(e) => setNpAge(e.target.value)} placeholder="e.g. 16U" className="mt-1" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Position</label>
+              <select value={npPosition} onChange={(e) => setNpPosition(e.target.value)}
+                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring">
+                <option value="">— Select —</option>
+                {Object.entries(POSITION_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setNewPlayerOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreatePlayer} disabled={!npName.trim() || createPlayer.isPending} className="font-bold">
+              <UserPlus className="h-4 w-4 mr-1" /> {createPlayer.isPending ? "Creating…" : "Create Player"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Coach name dialog */}
       <Dialog open={coachDialogOpen} onOpenChange={setCoachDialogOpen}>

@@ -10,6 +10,10 @@ echo "  TRIBE TRYOUTS - Starting servers..."
 echo "================================================"
 echo ""
 
+# Keep Mac awake while servers are running
+caffeinate -s &
+CAFFEINATE_PID=$!
+
 # Get local IP
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "unknown")
 
@@ -40,11 +44,11 @@ echo "VITE_API_URL=http://$LOCAL_IP:8080" > "$DIR/artifacts/tryout-app-ios/.env"
 # Build iOS web app
 echo "Building iPad app..."
 cd "$DIR/artifacts/tryout-app-ios"
-"$NODE" node_modules/.bin/vite build --config vite.config.ts 2>&1 | tail -3
+"$NODE" node_modules/vite/bin/vite.js build --config vite.config.ts 2>&1 | tail -3
 
 # Sync Capacitor
 echo "Syncing iPad app..."
-"$NODE" node_modules/.bin/cap sync ios 2>&1 | tail -3
+"$NODE" node_modules/@capacitor/cli/bin/capacitor sync ios 2>&1 | tail -3
 echo ""
 
 # Start API server in background
@@ -63,6 +67,26 @@ else
   exit 1
 fi
 
+# Start Cloudflare tunnel for athlete registration (works from any network)
+TUNNEL_URL=""
+if command -v cloudflared &>/dev/null; then
+  echo "Starting registration tunnel..."
+  rm -f /tmp/tribe-tunnel.log
+  cloudflared tunnel --url http://localhost:19107 --no-autoupdate \
+    --logfile /tmp/tribe-tunnel.log 2>&1 &
+  TUNNEL_PID=$!
+
+  # Wait up to 15s for the tunnel URL to appear
+  for i in $(seq 1 15); do
+    TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/tribe-tunnel.log 2>/dev/null | head -1)
+    [ -n "$TUNNEL_URL" ] && break
+    sleep 1
+  done
+else
+  echo "cloudflared not installed — skipping registration tunnel."
+  echo "(Run: brew install cloudflare/cloudflare/cloudflared)"
+fi
+
 echo ""
 echo "================================================"
 echo "  All systems GO!"
@@ -70,8 +94,24 @@ echo ""
 echo "  iPad app: rebuild in Xcode (Cmd+R) to"
 echo "  push latest version to connected iPads."
 echo ""
-echo "  API server: http://$LOCAL_IP:8080"
-echo "  Web (browser): http://$LOCAL_IP:19107"
+echo "  API server:    http://$LOCAL_IP:8080"
+echo "  Admin console: http://$LOCAL_IP:19107"
+echo ""
+if [ -n "$TUNNEL_URL" ]; then
+  echo "  ┌─────────────────────────────────────────┐"
+  echo "  │  ATHLETE REGISTRATION (any network)     │"
+  echo "  │  $TUNNEL_URL/register"
+  echo "  │                                         │"
+  # Print QR code in terminal if qrencode is available
+  if command -v qrencode &>/dev/null; then
+    qrencode -t UTF8 "$TUNNEL_URL/register" 2>/dev/null
+  else
+    echo "  │  (install qrencode for QR in terminal)  │"
+  fi
+  echo "  └─────────────────────────────────────────┘"
+else
+  echo "  Registration: http://$LOCAL_IP:8080/register (WiFi only)"
+fi
 echo ""
 echo "  Make sure all iPads are on the same Wi-Fi."
 echo "================================================"

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Tribe VB Tryouts — Register</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8f9fa;
+      color: #1a1a1a;
+      min-height: 100dvh;
+      padding: 0 0 40px;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header img { height: 40px; width: 40px; object-fit: contain; }
+    header .title { font-size: 17px; font-weight: 900; color: #7c3aed; letter-spacing: -0.3px; }
+    header .sub   { font-size: 12px; color: #6b7280; font-weight: 600; }
+
+    .session-banner {
+      display: none;
+      background: #7c3aed;
+      color: #fff;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      align-items: center;
+      gap: 8px;
+    }
+    .session-banner.show { display: flex; }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      margin: 20px 16px 0;
+      padding: 24px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .card h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .card .desc { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+      color: #1a1a1a;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { border-color: #7c3aed; }
+    select:disabled, input:disabled {
+      background: #f3f4f6;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .age-note {
+      font-size: 12px;
+      color: #7c3aed;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 15px;
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 800;
+      margin-top: 24px;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button[type="submit"]:active { background: #6d28d9; transform: scale(.98); }
+    button[type="submit"]:disabled { background: #c4b5fd; cursor: not-allowed; transform: none; }
+
+    .success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 48px 20px;
+      gap: 12px;
+    }
+    .success.show { display: flex; }
+    .check-circle {
+      width: 80px; height: 80px;
+      background: #d1fae5;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
+    }
+    .success h2 { font-size: 26px; font-weight: 900; }
+    .success p  { font-size: 15px; color: #6b7280; max-width: 260px; }
+
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .error-msg.show { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="/tribe-logo.png" alt="Tribe VB" onerror="this.style.display='none'" />
+  <div>
+    <div class="title">Tribe VB Tryouts</div>
+    <div class="sub" id="headerSub">2026–2027 Player Registration</div>
+  </div>
+</header>
+
+<div class="session-banner" id="sessionBanner">
+  <span>📅</span>
+  <span id="sessionLabel"></span>
+</div>
+
+<div id="formCard" class="card">
+  <h2>Player Registration</h2>
+  <p class="desc">Fill in your info to register for today's tryout. A staff member will assign your jersey number.</p>
+
+  <form id="regForm" autocomplete="off">
+    <label>Full Name *</label>
+    <input type="text" id="name" placeholder="First and Last Name" required autocomplete="name" />
+
+    <label>Primary Position *</label>
+    <select id="position" required>
+      <option value="">Select your position...</option>
+      <option value="Setter">Setter</option>
+      <option value="OutsideHitter">Outside Hitter</option>
+      <option value="MiddleBlocker">Middle Blocker</option>
+      <option value="Opposite">Opposite / Right Side</option>
+      <option value="Libero">Libero / DS</option>
+      <option value="Undecided">Not sure yet</option>
+    </select>
+
+    <label>Age Group *</label>
+    <select id="age" required>
+      <option value="">Select...</option>
+      <option>10</option><option>11</option><option>12</option>
+      <option>13</option><option>14</option><option>15</option>
+      <option>16</option><option>17</option><option>18</option>
+    </select>
+    <p class="age-note" id="ageNote" style="display:none">✓ Auto-filled from today's event</p>
+
+    <div id="errorMsg" class="error-msg"></div>
+    <button type="submit" id="submitBtn">Register →</button>
+  </form>
+</div>
+
+<div id="successCard" class="card success">
+  <div class="check-circle">✓</div>
+  <h2 id="successName"></h2>
+  <p>You're registered! See a staff member to get your jersey number and get started.</p>
+</div>
+
+<script>
+  // Auto-fill age group from active session
+  fetch('/api/settings')
+    .then(r => r.json())
+    .then(settings => {
+      const event = settings['session.event'] || '';
+      const date  = settings['session.date']  || '';
+
+      // Show session banner
+      if (event) {
+        const label = date
+          ? event + ' — ' + new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+          : event;
+        document.getElementById('sessionLabel').textContent = label;
+        document.getElementById('sessionBanner').classList.add('show');
+        document.getElementById('headerSub').textContent = event + ' Registration';
+      }
+
+      // Extract age from event name e.g. "14U Tryouts" → "14"
+      const match = event.match(/^(\d+)U/i);
+      if (match) {
+        const ageSelect = document.getElementById('age');
+        ageSelect.value = match[1];
+        ageSelect.disabled = true;
+        document.getElementById('ageNote').style.display = 'block';
+      }
+    })
+    .catch(() => {});
+
+  document.getElementById('regForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    btn.disabled = true;
+    btn.textContent = 'Registering…';
+    errorMsg.classList.remove('show');
+
+    const name = document.getElementById('name').value.trim();
+    const pos  = document.getElementById('position').value;
+    const age  = document.getElementById('age').value;
+
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, position: pos, age: age || null }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+      document.getElementById('successName').textContent = name;
+      document.getElementById('formCard').style.display = 'none';
+      document.getElementById('successCard').classList.add('show');
+
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Register →';
+    }
+  });
+</script>
+</body>
+</html>

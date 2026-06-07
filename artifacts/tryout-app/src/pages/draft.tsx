@@ -1,4 +1,23 @@
 import { useState, useMemo } from "react";
+
+const HELP = {
+  title: "Live Draft",
+  description: "The draft lets each coach/team claim players after tryouts are complete. Run it live in the room or remotely.",
+  steps: [
+    { step: 1, text: "Select your team from the left panel to activate your draft queue." },
+    { step: 2, text: "Browse the player pool on the right — sorted by ranking by default." },
+    { step: 3, text: "Tap a player to draft them to your team. They move from the pool to your roster." },
+    { step: 4, text: "Use the Wishlist (heart) to mark players you want before the draft starts." },
+    { step: 5, text: "Must-Haves (star) are your highest priority picks — they show at the top of your wishlist." },
+  ],
+  tips: [
+    "Once a player is drafted by any team, they are removed from the pool for all other teams.",
+    "Coaches can view rankings and build wishlists before the draft starts — encourage this.",
+    "The draft order is not enforced by the app — you manage the turn order in the room.",
+    "Locked players (from Rankings) cannot be drafted until unlocked by an admin.",
+  ],
+};
+
 import {
   useListCoaches, useCreateCoach, useDeleteCoach, useImportCoachesCsv,
   useGetCoachDraft, useAddPlayerToDraft, useRemovePlayerFromDraft,
@@ -25,15 +44,13 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+import { POSITION_COLORS, positionColor } from "@/lib/positions";
+
 const POSITION_LABELS: Record<string, string> = {
   Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
 };
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-teal-100 text-teal-700 border-teal-200",
+const POSITION_COLORS_WITH_UNDECIDED: Record<string, string> = {
+  ...POSITION_COLORS,
   Undecided: "bg-gray-100 text-gray-600 border-gray-200",
 };
 const TEAM_COLORS = [
@@ -302,7 +319,7 @@ export default function Draft() {
       .filter((p) =>
         !q ||
         p.name.toLowerCase().includes(q) ||
-        p.jerseyNumber.toString().includes(q)
+        (p.jerseyNumber ?? "").includes(q)
       )
       .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0));
   }, [availablePlayers, poolPosition, poolSearch]);
@@ -400,7 +417,9 @@ export default function Draft() {
       <div className="flex-none p-6 pb-4 border-b">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Live Draft</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">Live Draft</h1>
+            </div>
             <p className="text-sm text-muted-foreground mt-1">
               Select a coach/team, then tap players from the pool to claim them.
             </p>
@@ -462,7 +481,7 @@ export default function Draft() {
                             type="button"
                             onClick={() => togglePriority(pos)}
                             className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                              selected ? `${POSITION_COLORS[pos]} border-current` : "bg-muted/50 text-muted-foreground border-border hover:border-muted-foreground"
+                              selected ? `${POSITION_COLORS_WITH_UNDECIDED[pos]} border-current` : "bg-muted/50 text-muted-foreground border-border hover:border-muted-foreground"
                             }`}
                           >
                             {selected && <span className="font-black text-[10px] w-3.5 h-3.5 rounded-full bg-current/20 flex items-center justify-center">{idx + 1}</span>}
@@ -476,7 +495,7 @@ export default function Draft() {
                         {newPriority.map((pos, idx) => (
                           <div key={pos} className="flex items-center gap-2">
                             <span className="text-xs font-black text-muted-foreground w-4 text-right">{idx + 1}.</span>
-                            <Badge variant="outline" className={`text-xs font-bold flex-1 ${POSITION_COLORS[pos] ?? ""}`}>
+                            <Badge variant="outline" className={`text-xs font-bold flex-1 ${POSITION_COLORS_WITH_UNDECIDED[pos] ?? ""}`}>
                               {POSITION_LABELS[pos]} — {pos.replace(/([A-Z])/g, " $1").trim()}
                             </Badge>
                             <div className="flex gap-0.5">
@@ -552,7 +571,7 @@ export default function Draft() {
                     {Array.isArray(coach.draftPriority) && coach.draftPriority.length > 0 && (
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {coach.draftPriority.map((pos: string, i: number) => (
-                          <span key={pos} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${POSITION_COLORS[pos] ?? "bg-muted text-muted-foreground"}`}>
+                          <span key={pos} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${POSITION_COLORS_WITH_UNDECIDED[pos] ?? "bg-muted text-muted-foreground"}`}>
                             <span className="opacity-60">{i + 1}.</span>{POSITION_LABELS[pos] ?? pos}
                           </span>
                         ))}
@@ -613,7 +632,7 @@ export default function Draft() {
                             active
                               ? pos === "All"
                                 ? "bg-foreground text-background border-foreground"
-                                : `${POSITION_COLORS[pos]} border-current`
+                                : `${POSITION_COLORS_WITH_UNDECIDED[pos]} border-current`
                               : "bg-transparent text-muted-foreground border-border hover:border-muted-foreground"
                           }`}
                         >
@@ -698,7 +717,7 @@ export default function Draft() {
                                   )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                  <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${POSITION_COLORS[player.position] ?? ""}`}>
+                                  <Badge variant="outline" className={`text-xs font-bold py-0 h-4 ${positionColor(player.position)}`}>
                                     {POSITION_LABELS[player.position] ?? player.position}
                                   </Badge>
                                   {player.checkedIn ? (
@@ -862,7 +881,7 @@ export default function Draft() {
                                       Committed
                                     </span>
                                   )}
-                                  <Badge variant="outline" className={`text-xs font-bold mt-1 ${POSITION_COLORS[player.position] ?? ""}`}>
+                                  <Badge variant="outline" className={`text-xs font-bold mt-1 ${positionColor(player.position)}`}>
                                     {POSITION_LABELS[player.position] ?? player.position}
                                   </Badge>
                                   {player.overallScore != null && (
@@ -920,7 +939,7 @@ export default function Draft() {
                           {["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero"].map((pos) => {
                             const count = draftPlayers.filter((p) => p.position === pos).length;
                             return (
-                              <div key={pos} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${count > 0 ? POSITION_COLORS[pos] : "bg-muted text-muted-foreground border-border"}`}>
+                              <div key={pos} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${count > 0 ? POSITION_COLORS_WITH_UNDECIDED[pos] : "bg-muted text-muted-foreground border-border"}`}>
                                 <span>{POSITION_LABELS[pos]}</span>
                                 <span className="font-black">{count}</span>
                               </div>
@@ -951,7 +970,7 @@ export default function Draft() {
                         <div key={p.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-200 bg-white text-sm">
                           <span className="font-black text-primary">#{p.jerseyNumber}</span>
                           <span className="font-semibold">{p.name}</span>
-                          <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                          <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${positionColor(p.position)}`}>
                             {POSITION_LABELS[p.position] ?? p.position}
                           </Badge>
                           <a
@@ -1008,7 +1027,7 @@ export default function Draft() {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold truncate">{p.name}</div>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                              <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${positionColor(p.position)}`}>
                                 {POSITION_LABELS[p.position] ?? p.position}
                               </Badge>
                               <span className="text-xs font-black text-amber-700">{p.overallScore?.toFixed(1)}</span>
@@ -1064,7 +1083,7 @@ export default function Draft() {
                                 const isGap = pos === "Setter" && cnt < MIN_SETTERS;
                                 return (
                                   <div key={pos} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-bold ${
-                                    isGap ? "bg-red-50 text-red-700 border-red-300" : cnt > 0 ? POSITION_COLORS[pos] : "bg-muted text-muted-foreground border-border"
+                                    isGap ? "bg-red-50 text-red-700 border-red-300" : cnt > 0 ? POSITION_COLORS_WITH_UNDECIDED[pos] : "bg-muted text-muted-foreground border-border"
                                   }`}>
                                     {isGap && <TriangleAlert className="h-3 w-3" />}
                                     {POSITION_LABELS[pos]} <span className="font-black">{cnt}</span>
@@ -1108,7 +1127,7 @@ export default function Draft() {
                                       <div key={p.id} className="flex items-center gap-2 text-sm">
                                         <span className="font-black text-primary">#{p.jerseyNumber}</span>
                                         <span className="font-semibold">{p.name}</span>
-                                        <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${POSITION_COLORS[p.position] ?? ""}`}>
+                                        <Badge variant="outline" className={`text-[10px] font-bold py-0 h-4 ${positionColor(p.position)}`}>
                                           {POSITION_LABELS[p.position] ?? p.position}
                                         </Badge>
                                         <span className="text-xs text-muted-foreground">POS {p.positionScore?.toFixed(1)} · OVR {p.overallScore?.toFixed(1)}</span>

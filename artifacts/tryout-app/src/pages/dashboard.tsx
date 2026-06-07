@@ -1,7 +1,8 @@
 import { useGetPlayerStats, useGetSyncStatus, useTriggerSync } from "@workspace/api-client-react";
+import { primaryPosition, positionLabel, positionColor } from "@/lib/positions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, ClipboardCheck, AlertTriangle, Activity, TrendingUp, Upload, UsersRound } from "lucide-react";
+import { RefreshCw, Users, ClipboardCheck, AlertTriangle, Activity, TrendingUp, Upload, UsersRound, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Dashboard() {
@@ -64,60 +65,78 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover-elevate border-primary/20 bg-primary/5">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-primary">Checked In</CardTitle>
-            <ClipboardCheck className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="h-10 w-20 bg-muted rounded animate-pulse" />
-            ) : (
-              <div className="flex items-baseline gap-2">
-                <div className="text-4xl font-black text-primary">{stats?.checkedIn || 0}</div>
-                <div className="text-sm font-medium text-muted-foreground">/ {stats?.totalPlayers || 0}</div>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">Currently in gym</p>
-          </CardContent>
-        </Card>
+        <Link href="/players?filter=not-checked-in" className="block">
+          <Card className="hover-elevate border-primary/20 bg-primary/5 cursor-pointer hover:border-primary/40 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-primary">Checked In</CardTitle>
+              <ClipboardCheck className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="h-10 w-20 bg-muted rounded animate-pulse" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <div className="text-4xl font-black text-primary">{stats?.checkedIn || 0}</div>
+                  <div className="text-sm font-medium text-muted-foreground">/ {stats?.totalPlayers || 0}</div>
+                </div>
+              )}
+              <p className="text-xs text-primary/60 mt-2 flex items-center gap-0.5">
+                View missing check-ins <ChevronRight className="h-3 w-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="hover-elevate">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evaluated</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="h-10 w-20 bg-muted rounded animate-pulse" />
-            ) : (
-              <div className="flex items-baseline gap-2">
-                <div className="text-4xl font-black">{stats?.evaluated || 0}</div>
-                <div className="text-sm font-medium text-muted-foreground">players</div>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">With at least one score</p>
-          </CardContent>
-        </Card>
+        <Link href="/players?filter=not-evaluated" className="block">
+          {(() => {
+            const pending = (stats?.totalPlayers || 0) - (stats?.evaluated || 0);
+            const hasPending = pending > 0;
+            return (
+              <Card className={`cursor-pointer transition-colors ${hasPending ? "border-amber-200 bg-amber-50 hover:border-amber-300" : "hover-elevate"}`}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className={`text-sm font-medium ${hasPending ? "text-amber-700" : ""}`}>Evaluated</CardTitle>
+                  <Activity className={`h-4 w-4 ${hasPending ? "text-amber-600" : "text-muted-foreground"}`} />
+                </CardHeader>
+                <CardContent>
+                  {statsLoading ? (
+                    <div className="h-10 w-20 bg-muted rounded animate-pulse" />
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <div className={`text-4xl font-black ${hasPending ? "text-amber-700" : ""}`}>{stats?.evaluated || 0}</div>
+                      <div className="text-sm font-medium text-muted-foreground">/ {stats?.totalPlayers || 0}</div>
+                    </div>
+                  )}
+                  <p className={`text-xs mt-2 flex items-center gap-0.5 ${hasPending ? "text-amber-600/70" : "text-muted-foreground"}`}>
+                    {hasPending ? <><span className="font-bold">{pending} pending</span> — <Link href="/coverage" className="underline">coverage matrix <ChevronRight className="h-3 w-3 inline" /></Link></> : "All players evaluated"}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
+        </Link>
 
-        <Card className={stats?.missingMeasurements ? "border-red-200 bg-red-50 dark:bg-red-950/20" : "hover-elevate"}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${stats?.missingMeasurements ? 'text-red-600 dark:text-red-400' : ''}`}>
-              Missing Measurements
-            </CardTitle>
-            <AlertTriangle className={`h-4 w-4 ${stats?.missingMeasurements ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="h-10 w-20 bg-muted rounded animate-pulse" />
-            ) : (
-              <div className={`text-4xl font-black ${stats?.missingMeasurements ? 'text-red-600 dark:text-red-400' : ''}`}>
-                {stats?.missingMeasurements || 0}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">Need height/reach/jump</p>
-          </CardContent>
-        </Card>
+        <Link href="/players?filter=missing-measurements" className="block">
+          <Card className={`cursor-pointer transition-colors ${stats?.missingMeasurements ? "border-red-200 bg-red-50 hover:border-red-300" : "hover-elevate"}`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-medium ${stats?.missingMeasurements ? 'text-red-600' : ''}`}>
+                Missing Measurements
+              </CardTitle>
+              <AlertTriangle className={`h-4 w-4 ${stats?.missingMeasurements ? 'text-red-600' : 'text-muted-foreground'}`} />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="h-10 w-20 bg-muted rounded animate-pulse" />
+              ) : (
+                <div className={`text-4xl font-black ${stats?.missingMeasurements ? 'text-red-600' : ''}`}>
+                  {stats?.missingMeasurements || 0}
+                </div>
+              )}
+              <p className={`text-xs mt-2 flex items-center gap-0.5 ${stats?.missingMeasurements ? 'text-red-500/70' : 'text-muted-foreground'}`}>
+                View players <ChevronRight className="h-3 w-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -126,23 +145,51 @@ export default function Dashboard() {
             <CardTitle>By Position</CardTitle>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="space-y-4">
-              {stats?.byPosition.map((pos) => (
-                <div key={pos.position} className="flex items-center">
-                  <div className="w-32 text-sm font-medium">{pos.position}</div>
-                  <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary" 
-                      style={{ width: `${(pos.count / (stats.totalPlayers || 1)) * 100}%` }}
-                    />
-                  </div>
-                  <div className="w-12 text-right text-sm font-bold">{pos.count}</div>
+            {(() => {
+              const POSITION_ORDER = ["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
+              const grouped: Record<string, number> = {};
+              for (const pos of (stats?.byPosition ?? [])) {
+                const key = primaryPosition(pos.position);
+                grouped[key] = (grouped[key] ?? 0) + pos.count;
+              }
+              const rows = POSITION_ORDER
+                .map((key) => ({ key, count: grouped[key] ?? 0 }))
+                .filter((r) => r.count > 0);
+              const total = stats?.totalPlayers || 1;
+
+              if (statsLoading) return (
+                <div className="space-y-4">
+                  {[1,2,3,4,5].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-32 h-4 bg-muted rounded animate-pulse" />
+                      <div className="flex-1 h-4 bg-muted rounded-full animate-pulse" />
+                      <div className="w-8 h-4 bg-muted rounded animate-pulse" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {(!stats?.byPosition || stats.byPosition.length === 0) && !statsLoading && (
+              );
+
+              if (rows.length === 0) return (
                 <div className="text-center py-6 text-muted-foreground">No players imported yet.</div>
-              )}
-            </div>
+              );
+
+              return (
+                <div className="space-y-3">
+                  {rows.map(({ key, count }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <div className="w-32 text-sm font-semibold truncate">{positionLabel(key)}</div>
+                      <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${positionColor(key).split(" ")[0].replace("-100", "-400")}`}
+                          style={{ width: `${(count / total) * 100}%` }}
+                        />
+                      </div>
+                      <div className="w-8 text-right text-sm font-black tabular-nums">{count}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 

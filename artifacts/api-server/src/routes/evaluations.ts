@@ -8,6 +8,7 @@ import {
   UpdateEvaluationBody,
 } from "@workspace/api-zod";
 import { recomputeAllScores } from "../scoring";
+import { broadcast } from "../events";
 
 const router: IRouter = Router();
 
@@ -74,6 +75,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
 
   // Recompute scores across all players (physical score is percentile-based — needs full pool)
   await recomputeAllScores();
+  broadcast("scores:changed");
 
   res.json(evalResult);
 });
@@ -106,6 +108,38 @@ router.patch("/evaluations/:id", async (req, res): Promise<void> => {
   await recomputeAllScores();
 
   res.json(updated);
+});
+
+// Specific route must come before the generic /:id route
+// coachName param "__null__" means IS NULL (evaluations submitted without a coach)
+router.delete("/evaluations/coach/:playerId/:coachName", async (req, res): Promise<void> => {
+  const playerId = parseInt(req.params.playerId);
+  const coachName = req.params.coachName;
+  if (isNaN(playerId)) { res.status(400).json({ error: "Invalid playerId" }); return; }
+
+  const coachFilter = coachName === "__null__"
+    ? isNull(evaluationsTable.coachName)
+    : eq(evaluationsTable.coachName, coachName);
+
+  await db.delete(evaluationsTable).where(
+    and(eq(evaluationsTable.playerId, playerId), coachFilter)
+  );
+  await recomputeAllScores();
+  broadcast("scores:changed");
+  res.status(204).send();
+});
+
+router.delete("/evaluations/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const existing = await db.select().from(evaluationsTable).where(eq(evaluationsTable.id, id));
+  if (existing.length === 0) { res.status(404).json({ error: "Evaluation not found" }); return; }
+
+  await db.delete(evaluationsTable).where(eq(evaluationsTable.id, id));
+  await recomputeAllScores();
+  broadcast("scores:changed");
+  res.status(204).send();
 });
 
 export default router;

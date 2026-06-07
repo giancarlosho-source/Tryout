@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull, or, sql } from "drizzle-orm";
+import { eq, and, isNull, or, sql, inArray } from "drizzle-orm";
 import { db, playersTable, evaluationsTable, coachNotesTable } from "@workspace/db";
+import { broadcast } from "../events";
 import {
   ListPlayersQueryParams,
   CreatePlayerBody,
@@ -77,6 +78,27 @@ router.get("/players", async (req, res): Promise<void> => {
   res.json(players);
 });
 
+// POST /players/bulk-checkin — check in multiple players by jersey number in one shot
+router.post("/players/bulk-checkin", async (req, res): Promise<void> => {
+  const { jerseyNumbers } = req.body as { jerseyNumbers?: unknown };
+  if (!Array.isArray(jerseyNumbers) || jerseyNumbers.length === 0) {
+    res.status(400).json({ error: "jerseyNumbers must be a non-empty array" });
+    return;
+  }
+  const nums = jerseyNumbers.map(String).filter(Boolean);
+  const updated = await db
+    .update(playersTable)
+    .set({ checkedIn: true })
+    .where(inArray(playersTable.jerseyNumber, nums))
+    .returning({ id: playersTable.id, jerseyNumber: playersTable.jerseyNumber, name: playersTable.name });
+
+  const found = new Set(updated.map((p) => p.jerseyNumber));
+  const notFound = nums.filter((n) => !found.has(n));
+
+  broadcast("players:changed");
+  res.json({ checked: updated, notFound });
+});
+
 router.post("/players", async (req, res): Promise<void> => {
   const parsed = CreatePlayerBody.safeParse(req.body);
   if (!parsed.success) {
@@ -85,6 +107,7 @@ router.post("/players", async (req, res): Promise<void> => {
   }
 
   const [player] = await db.insert(playersTable).values(parsed.data).returning();
+  broadcast("players:changed");
   res.status(201).json(player);
 });
 
@@ -198,6 +221,7 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
   // Recompute all scores since measurements may have changed (physical score is percentile-based)
   if (imported > 0 || updated > 0) {
     await recomputeAllScores();
+    broadcast("players:changed");
   }
 
   res.json({ imported, updated, errors });
@@ -284,6 +308,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  broadcast("players:changed");
   res.json(player);
 });
 
@@ -293,6 +318,7 @@ router.delete("/players/all", async (req, res): Promise<void> => {
   await db.delete(coachNotesTable);
   await db.delete(playersTable);
   req.log.info("All players deleted");
+  broadcast("players:changed");
   res.sendStatus(204);
 });
 
@@ -313,6 +339,7 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  broadcast("players:changed");
   res.sendStatus(204);
 });
 

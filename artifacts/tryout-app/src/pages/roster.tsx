@@ -9,14 +9,7 @@ import { Sparkles, RefreshCw, AlertCircle, User, Lock, ClipboardList } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { useRoster } from "@/contexts/roster-context";
 
-const POSITION_COLORS: Record<string, string> = {
-  Setter: "bg-purple-100 text-purple-700 border-purple-200",
-  OutsideHitter: "bg-blue-100 text-blue-700 border-blue-200",
-  MiddleBlocker: "bg-green-100 text-green-700 border-green-200",
-  Opposite: "bg-orange-100 text-orange-700 border-orange-200",
-  Libero: "bg-pink-100 text-pink-700 border-pink-200",
-  Undecided: "bg-gray-100 text-gray-600 border-gray-200",
-};
+import { positionColor, positionLabel } from "@/lib/positions";
 
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter", OutsideHitter: "Outside Hitter",
@@ -158,7 +151,7 @@ export default function Roster() {
                 <Card key={position} className={slots.length === 0 ? "border-dashed border-muted-foreground/30" : ""}>
                   <CardHeader className="pb-2 pt-4 px-4">
                     <CardTitle className="flex items-center justify-between">
-                      <Badge variant="outline" className={`text-xs font-bold ${POSITION_COLORS[position] || ""}`}>
+                      <Badge variant="outline" className={`text-xs font-bold ${positionColor(position) || ""}`}>
                         {label}
                       </Badge>
                       <span className="text-sm font-semibold text-muted-foreground">
@@ -236,7 +229,7 @@ export default function Roster() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-sm truncate">{p.name}</div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <Badge variant="outline" className={`text-xs py-0 ${POSITION_COLORS[p.position] || ""}`}>
+                            <Badge variant="outline" className={`text-xs py-0 ${positionColor(p.position) || ""}`}>
                               {POSITION_LABELS[p.position] || p.position}
                             </Badge>
                             <ScorePill score={p.overallScore} />

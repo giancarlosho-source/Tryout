@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useGetPlayer, useUpsertEvaluation, getListRankingsQueryKey, getGetPlayerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, CheckCircle2, Save, X, Zap, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Save, X, Zap, User, Mic, MicOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSkillVoice } from "@/hooks/use-speech";
 
 const UNIVERSAL_SKILLS = [
   "Serving", "Passing", "Defense", "Volleyball IQ",
@@ -25,6 +26,22 @@ const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter", OutsideHitter: "Outside Hitter",
   MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
 };
+
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+};
+
+function parseScoreFromTranscript(transcript: string): number | null {
+  const text = transcript.toLowerCase().trim();
+  for (const [word, num] of Object.entries(NUMBER_WORDS)) {
+    if (text === word || text.includes(word)) return num;
+  }
+  const match = text.match(/\b(10|[1-9])\b/);
+  if (match) return parseInt(match[1]);
+  return null;
+}
+
 
 function ScoreButton({ value, selected, onClick }: { value: number; selected: boolean; onClick: () => void }) {
   const colorMap: Record<number, string> = {
@@ -79,6 +96,10 @@ function SkillRow({
   saving: boolean;
   saved: boolean;
 }) {
+  const { listening, toggle, supported } = useSkillVoice((score) => {
+    if (!saving) onScore(skill, category, score);
+  });
+
   return (
     <div className="py-4 border-b last:border-0">
       <div className="flex items-center justify-between mb-3">
@@ -88,11 +109,26 @@ function SkillRow({
             <CheckCircle2 className="h-4 w-4 text-green-500" />
           )}
         </div>
-        {currentScore != null && (
-          <Badge variant="outline" className="font-black text-base px-3 py-1 tabular-nums">
-            {currentScore}/10
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {supported && (
+            <button
+              onClick={toggle}
+              className={`flex items-center justify-center h-8 w-8 rounded-full border-2 transition-all
+                ${listening
+                  ? "bg-red-500 border-red-600 text-white animate-pulse"
+                  : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                }`}
+              title="Tap and say a number"
+            >
+              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
+          {currentScore != null && (
+            <Badge variant="outline" className="font-black text-base px-3 py-1 tabular-nums">
+              {currentScore}/10
+            </Badge>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-10 gap-1.5">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (

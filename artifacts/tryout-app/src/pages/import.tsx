@@ -1,4 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+
+const HELP = {
+  title: "Import Players",
+  description: "Load your player roster from a Google Sheet or a CSV file instead of adding players one by one.",
+  steps: [
+    { step: 1, text: "Google Sheets: paste the share URL of your sheet (must be set to 'Anyone with link can view'). Click Sync." },
+    { step: 2, text: "CSV: export your roster to CSV and drag it onto the upload area, or click to browse." },
+    { step: 3, text: "Required columns: Name. Optional: Jersey Number, Position, Age Group, Height, Weight." },
+    { step: 4, text: "Existing players are matched by jersey number and updated — not duplicated. Evaluation scores are never overwritten." },
+  ],
+  tips: [
+    "Run the import before tryout day so players are already in the system when iPads start.",
+    "You can re-import anytime to pick up roster changes — it's safe to run multiple times.",
+    "The jersey number column header must be exactly: JerseyNumber or Jersey Number (case-insensitive).",
+  ],
+};
 import {
   useImportPlayersCsv,
   useSyncFromGoogleSheets,
@@ -220,7 +236,9 @@ export default function Import() {
       <div className="flex-none p-6 pb-4 border-b">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Import Players</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight">Import Players</h1>
+            </div>
             <p className="text-muted-foreground text-sm mt-1">
               Sync from Google Sheets or upload a CSV. Jersey number is the unique key — existing players are updated, not duplicated. Evaluation scores are never overwritten.
             </p>

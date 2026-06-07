@@ -1,21 +1,18 @@
-import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useState, useRef } from "react";
+import { useRoute, Link, useLocation } from "wouter";
 import {
   useGetPlayer, useGeneratePlayerSummary, useCreateNote, useDeleteNote,
-  useListNotes, getGetPlayerQueryKey, getListNotesQueryKey,
+  useListNotes, useUpdatePlayer, useDeletePlayer, getGetPlayerQueryKey, getListNotesQueryKey, getListPlayersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Activity, Sparkles, Trash2, AlertCircle, CheckCircle2, Zap, Star, TrendingUp, Shield } from "lucide-react";
+import { ChevronLeft, Activity, Sparkles, Trash2, AlertCircle, CheckCircle2, Zap, Star, TrendingUp, Shield, Camera, X, Pencil, Save, UserCheck, UserMinus, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const POSITION_LABELS: Record<string, string> = {
-  Setter: "Setter", OutsideHitter: "Outside Hitter",
-  MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
-};
+import { positionLabel, primaryPosition, secondaryPosition, POSITION_LABELS } from "@/lib/positions";
 
 const FLAG_STYLES: Record<string, { color: string; icon: typeof Zap }> = {
   "High Potential":         { color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: TrendingUp },
@@ -42,6 +39,104 @@ function ScoreBar({ label, score }: { label: string; score: number }) {
   );
 }
 
+const COACH_COLORS = ["bg-blue-100 text-blue-700 border-blue-200", "bg-violet-100 text-violet-700 border-violet-200", "bg-emerald-100 text-emerald-700 border-emerald-200", "bg-orange-100 text-orange-700 border-orange-200", "bg-pink-100 text-pink-700 border-pink-200"];
+
+function CoachBreakdown({
+  evaluations, playerId, apiBase, onDeleted,
+}: {
+  evaluations: { id: number; skill: string; score: number; coachName?: string | null; category: string }[];
+  playerId: number;
+  apiBase: string;
+  onDeleted: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [deletingCoach, setDeletingCoach] = useState<string | null>(null);
+  // undefined = no confirm open; null = confirm for unassigned evaluations; string = confirm for named coach
+  const [confirmCoach, setConfirmCoach] = useState<string | null | undefined>(undefined);
+  const { toast } = useToast();
+
+  const coaches = Array.from(new Set(evaluations.map((e) => e.coachName ?? null)));
+
+  const handleDeleteCoach = async (coachName: string | null) => {
+    setDeletingCoach(coachName ?? "__null__");
+    try {
+      const nameParam = coachName === null ? "__null__" : encodeURIComponent(coachName);
+      const res = await fetch(`${apiBase}/api/evaluations/coach/${playerId}/${nameParam}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Server error");
+      toast({ title: `Scores from ${coachName} removed` });
+      onDeleted();
+    } catch {
+      toast({ title: "Failed to remove scores", variant: "destructive" });
+    } finally {
+      setDeletingCoach(null);
+      setConfirmCoach(undefined);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2 cursor-pointer select-none" onClick={() => setOpen((v) => !v)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-bold">Coach Evaluations</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {coaches.length} coach{coaches.length !== 1 ? "es" : ""} · scores averaged per skill
+            </p>
+          </div>
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
+      </CardHeader>
+      {open && (
+        <CardContent className="space-y-5">
+          {coaches.map((coach, ci) => {
+            const displayName = coach ?? "Unassigned";
+            const coachKey = coach ?? "__null__";
+            const coachEvals = evaluations.filter((e) => (e.coachName ?? null) === coach);
+            const colorClass = COACH_COLORS[ci % COACH_COLORS.length];
+            return (
+              <div key={coachKey} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className={`font-semibold ${colorClass}`}>{displayName}</Badge>
+                  {confirmCoach !== undefined && confirmCoach === coach ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Remove all scores from {displayName}?</span>
+                      <button
+                        onClick={() => handleDeleteCoach(coach)}
+                        disabled={deletingCoach === coachKey}
+                        className="text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
+                      >
+                        {deletingCoach === coachKey ? "Removing…" : "Confirm"}
+                      </button>
+                      <button onClick={() => setConfirmCoach(undefined)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmCoach(coach)}
+                      className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" /> Remove
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 pl-1">
+                  {coachEvals.sort((a, b) => a.skill.localeCompare(b.skill)).map((e) => (
+                    <div key={e.id} className="flex items-center gap-2">
+                      <div className="flex-1 text-xs text-muted-foreground truncate">{e.skill}</div>
+                      <div className={`text-sm font-black tabular-nums w-6 text-right ${e.score >= 8 ? "text-green-600" : e.score >= 5 ? "text-yellow-600" : "text-red-500"}`}>
+                        {e.score}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 function ConfidencePip({ score }: { score: number }) {
   const level = score >= 7 ? "High" : score >= 4 ? "Medium" : "Low";
   const color = score >= 7 ? "text-green-700 bg-green-50 border-green-200" : score >= 4 ? "text-yellow-700 bg-yellow-50 border-yellow-200" : "text-red-700 bg-red-50 border-red-200";
@@ -55,6 +150,7 @@ function ConfidencePip({ score }: { score: number }) {
 
 export default function PlayerProfile() {
   const [, params] = useRoute("/players/:id");
+  const [, navigate] = useLocation();
   const playerId = params?.id ? parseInt(params.id) : null;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -75,6 +171,110 @@ export default function PlayerProfile() {
     risks: string[]; positionFit: string; potentialNote: string; suggestedPositionChange: string | null;
   } | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const effectivePhotoUrl = photoUrl !== undefined ? photoUrl : (player as any)?.photoUrl ?? null;
+  const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!playerId) return;
+    setPhotoUploading(true);
+    const form = new FormData();
+    form.append("photo", file);
+    try {
+      const res = await fetch(`${apiBase}/api/players/${playerId}/photo`, { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setPhotoUrl(json.photoUrl);
+      queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
+      toast({ title: "Photo saved" });
+    } catch {
+      toast({ title: "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const updatePlayer = useUpdatePlayer();
+  const deletePlayer = useDeletePlayer();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDeletePlayer = async () => {
+    if (!playerId) return;
+    await deletePlayer.mutateAsync({ id: playerId });
+    queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey({}) });
+    navigate("/players");
+    toast({ title: "Player deleted" });
+  };
+
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [eName, setEName] = useState("");
+  const [eJersey, setEJersey] = useState("");
+  const [ePosition, setEPosition] = useState("");
+  const [eAge, setEAge] = useState("");
+
+  const startEditInfo = () => {
+    setEName(player?.name ?? "");
+    setEJersey(player?.jerseyNumber ?? "");
+    setEPosition(player?.position ?? "");
+    setEAge(player?.age ?? "");
+    setEditingInfo(true);
+  };
+
+  const saveInfo = async () => {
+    if (!playerId) return;
+    await updatePlayer.mutateAsync({
+      id: playerId,
+      data: { name: eName, jerseyNumber: eJersey, position: ePosition || undefined, age: eAge || undefined },
+    });
+    queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
+    setEditingInfo(false);
+    toast({ title: "Player updated" });
+  };
+
+  const toggleCheckIn = async () => {
+    if (!playerId) return;
+    await updatePlayer.mutateAsync({ id: playerId, data: { checkedIn: !player?.checkedIn } });
+    queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
+    toast({ title: player?.checkedIn ? "Check-in cleared" : "Checked in!" });
+  };
+
+  const [editingMeasurements, setEditingMeasurements] = useState(false);
+  const [mHeight, setMHeight] = useState("");
+  const [mReach, setMReach] = useState("");
+  const [mVert, setMVert] = useState("");
+
+  const startEditMeasurements = () => {
+    setMHeight(player?.heightInches?.toString() ?? "");
+    setMReach(player?.standingReachInches?.toString() ?? "");
+    setMVert(player?.verticalJumpInches?.toString() ?? "");
+    setEditingMeasurements(true);
+  };
+
+  const saveMeasurements = async () => {
+    if (!playerId) return;
+    await updatePlayer.mutateAsync({
+      id: playerId,
+      data: {
+        heightInches: mHeight ? parseFloat(mHeight) : null,
+        standingReachInches: mReach ? parseFloat(mReach) : null,
+        verticalJumpInches: mVert ? parseFloat(mVert) : null,
+      },
+    });
+    queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
+    setEditingMeasurements(false);
+    toast({ title: "Measurements saved" });
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!playerId) return;
+    await fetch(`${apiBase}/api/players/${playerId}/photo`, { method: "DELETE" });
+    setPhotoUrl(null);
+    queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
+    toast({ title: "Photo removed" });
+  };
 
   const handleGenerateSummary = () => {
     if (!playerId) return;
@@ -131,35 +331,147 @@ export default function PlayerProfile() {
             <Link href="/players"><ChevronLeft className="h-4 w-4 mr-1" /> Players</Link>
           </Button>
           <div className="flex-1 flex items-center gap-4 flex-wrap">
-            <span className="text-4xl font-black text-primary tabular-nums">#{player.jerseyNumber}</span>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold leading-tight">{player.name}</h1>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge variant="outline" className="font-semibold">
-                  {POSITION_LABELS[player.position] || player.position}
-                </Badge>
-                {player.age && (
-                  <Badge variant="outline" className="text-muted-foreground font-medium">
-                    {player.age}
-                  </Badge>
-                )}
-                {player.checkedIn ? (
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Checked In
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground">Not Here</Badge>
-                )}
-                {player.confidenceScore != null && (
-                  <ConfidencePip score={player.confidenceScore} />
-                )}
+            {/* Player photo */}
+          <div className="relative group shrink-0">
+            <div
+              className="w-20 h-20 rounded-full overflow-hidden border-2 border-muted bg-muted flex items-center justify-center cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {effectivePhotoUrl ? (
+                <img
+                  src={`${apiBase}${effectivePhotoUrl}`}
+                  alt={player.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Camera className="h-7 w-7 text-muted-foreground/40" />
+              )}
+              {photoUploading && (
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="h-5 w-5 text-white" />
               </div>
             </div>
-            <Button asChild className="shrink-0">
-              <Link href={`/evaluate/${player.id}`}>
-                <Activity className="h-4 w-4 mr-2" /> Evaluate
-              </Link>
-            </Button>
+            {effectivePhotoUrl && (
+              <button
+                onClick={handlePhotoDelete}
+                className="absolute -top-1 -right-1 bg-white border border-border rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ""; }}
+            />
+          </div>
+
+          {editingInfo ? (
+            <div className="flex-1 space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Jersey #</label>
+                  <input value={eJersey} onChange={(e) => setEJersey(e.target.value)}
+                    className="w-full border-2 rounded-lg px-3 py-2 text-xl font-black tabular-nums mt-0.5 focus:border-primary outline-none" placeholder="#" />
+                </div>
+                <div className="flex-3 flex-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Name</label>
+                  <input value={eName} onChange={(e) => setEName(e.target.value)}
+                    className="w-full border-2 rounded-lg px-3 py-2 text-base font-bold mt-0.5 focus:border-primary outline-none" placeholder="Full name" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Position</label>
+                  <select value={ePosition} onChange={(e) => setEPosition(e.target.value)}
+                    className="w-full border-2 rounded-lg px-3 py-2 text-sm font-semibold mt-0.5 focus:border-primary outline-none bg-white">
+                    <option value="">—</option>
+                    {Object.entries(POSITION_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Age Group</label>
+                  <input value={eAge} onChange={(e) => setEAge(e.target.value)}
+                    className="w-full border-2 rounded-lg px-3 py-2 text-sm font-semibold mt-0.5 focus:border-primary outline-none" placeholder="e.g. 16U" />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button onClick={saveInfo} disabled={updatePlayer.isPending} size="sm" className="gap-1.5">
+                  <Save className="h-3.5 w-3.5" /> Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setEditingInfo(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <span className="text-4xl font-black text-primary tabular-nums">#{player.jerseyNumber}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold leading-tight">{player.name}</h1>
+                  <button onClick={startEditInfo} className="text-muted-foreground hover:text-primary transition-colors shrink-0">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <Badge variant="outline" className="font-semibold">
+                    {POSITION_LABELS[primaryPosition(player.position)] || primaryPosition(player.position)}
+                  </Badge>
+                  {secondaryPosition(player.position) && (
+                    <Badge variant="outline" className="text-muted-foreground font-medium">
+                      +{POSITION_LABELS[secondaryPosition(player.position)!] || secondaryPosition(player.position)}
+                    </Badge>
+                  )}
+                  {player.age && (
+                    <Badge variant="outline" className="text-muted-foreground font-medium">
+                      {player.age}
+                    </Badge>
+                  )}
+                  <button onClick={toggleCheckIn} className="shrink-0">
+                    {player.checkedIn ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 cursor-pointer hover:bg-green-100">
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Checked In
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground cursor-pointer hover:bg-muted">
+                        <UserCheck className="h-3 w-3 mr-1" /> Check In
+                      </Badge>
+                    )}
+                  </button>
+                  {player.confidenceScore != null && (
+                    <ConfidencePip score={player.confidenceScore} />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button asChild>
+                  <Link href={`/evaluate/${player.id}`}>
+                    <Activity className="h-4 w-4 mr-2" /> Evaluate
+                  </Link>
+                </Button>
+                {confirmDelete ? (
+                  <>
+                    <Button variant="destructive" size="sm" onClick={handleDeletePlayer} disabled={deletePlayer.isPending} className="font-bold">
+                      {deletePlayer.isPending ? "Deleting…" : "Confirm Delete"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                  </>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60">
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
           </div>
         </div>
 
@@ -198,13 +510,71 @@ export default function PlayerProfile() {
               </CardContent>
             </Card>
           ))}
-          <Card>
+          <Card className={missingMeasurements && !editingMeasurements ? "border-red-200 bg-red-50/50" : ""}>
             <CardContent className="p-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">Measurements</div>
-              {missingMeasurements ? (
-                <div className="text-sm text-red-600 font-semibold flex items-center gap-1 mt-1">
-                  <AlertCircle className="h-4 w-4" /> Missing
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Measurements</div>
+                {!editingMeasurements && (
+                  <button onClick={startEditMeasurements} className="text-muted-foreground hover:text-primary transition-colors">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              {editingMeasurements ? (
+                <div className="space-y-2 mt-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Height (in)</label>
+                    <input
+                      type="number"
+                      value={mHeight}
+                      onChange={(e) => setMHeight(e.target.value)}
+                      placeholder="e.g. 72"
+                      className="w-full border rounded px-2 py-1 text-sm mt-0.5"
+                      step="0.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Standing Reach (in)</label>
+                    <input
+                      type="number"
+                      value={mReach}
+                      onChange={(e) => setMReach(e.target.value)}
+                      placeholder="e.g. 90"
+                      className="w-full border rounded px-2 py-1 text-sm mt-0.5"
+                      step="0.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Vertical Jump (in)</label>
+                    <input
+                      type="number"
+                      value={mVert}
+                      onChange={(e) => setMVert(e.target.value)}
+                      placeholder="e.g. 24"
+                      className="w-full border rounded px-2 py-1 text-sm mt-0.5"
+                      step="0.5"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={saveMeasurements}
+                      disabled={updatePlayer.isPending}
+                      className="flex-1 flex items-center justify-center gap-1 bg-primary text-primary-foreground text-xs font-bold py-1.5 rounded hover:opacity-90 disabled:opacity-50"
+                    >
+                      <Save className="h-3 w-3" /> Save
+                    </button>
+                    <button
+                      onClick={() => setEditingMeasurements(false)}
+                      className="flex-1 text-xs font-semibold py-1.5 rounded border hover:bg-muted"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : missingMeasurements ? (
+                <button onClick={startEditMeasurements} className="text-sm text-red-600 font-semibold flex items-center gap-1 mt-1 hover:underline">
+                  <AlertCircle className="h-4 w-4" /> Tap to enter
+                </button>
               ) : (
                 <div className="space-y-1 text-sm font-medium mt-1">
                   <div>{Math.floor(player.heightInches! / 12)}'{Math.round(player.heightInches! % 12)}" height</div>
@@ -251,7 +621,7 @@ export default function PlayerProfile() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold">
-                  {POSITION_LABELS[player.position] || "Position"} Skills
+                  {POSITION_LABELS[primaryPosition(player.position)] || "Position"} Skills
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">Position-specific weighted score</p>
               </CardHeader>
@@ -271,6 +641,16 @@ export default function PlayerProfile() {
             </Card>
           )}
         </div>
+
+        {/* Coach Breakdown */}
+        {(player.evaluations?.length ?? 0) > 0 && (
+          <CoachBreakdown
+            evaluations={player.evaluations!}
+            playerId={player.id}
+            apiBase={apiBase}
+            onDeleted={() => queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(player.id) })}
+          />
+        )}
 
         {/* AI Summary */}
         <Card>

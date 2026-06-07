@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, CheckCircle2, AlertCircle, ChevronRight, Activity, Zap, User } from "lucide-react";
+import { Search, CheckCircle2, AlertCircle, ChevronRight, Activity, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useRoster } from "@/contexts/roster-context";
+import { CoachPicker } from "@/components/coach-picker";
 
 const POSITION_COLORS: Record<string, string> = {
   Setter: "bg-purple-100 text-purple-700 border-purple-200",
@@ -31,9 +31,8 @@ export default function Players() {
   const [, navigate] = useLocation();
 
   const [coachDialogOpen, setCoachDialogOpen] = useState(false);
-  const [coachNameInput, setCoachNameInput] = useState("");
+  const [coachName, setCoachName] = useState("");
   const [pendingQueue, setPendingQueue] = useState<{ ids: number[]; label: string } | null>(null);
-  const coachInputRef = useRef<HTMLInputElement>(null);
 
   const { data: players, isLoading } = useListPlayers({
     position: positionFilter !== "All" ? positionFilter : undefined,
@@ -57,15 +56,13 @@ export default function Players() {
 
   const openCoachDialog = (ids: number[], label: string) => {
     setPendingQueue({ ids, label });
-    setCoachNameInput("");
     setCoachDialogOpen(true);
-    setTimeout(() => coachInputRef.current?.focus(), 50);
   };
 
-  const confirmCoachName = () => {
+  const confirmCoachName = (name: string) => {
+    setCoachName(name);
     if (!pendingQueue) return;
-    setCoachDialogOpen(false);
-    startQueue(pendingQueue.ids, pendingQueue.label, coachNameInput, navigate);
+    startQueue(pendingQueue.ids, pendingQueue.label, name, navigate);
   };
 
   return (
@@ -287,36 +284,12 @@ export default function Players() {
         </Table>
       </div>
 
-      {/* Coach name dialog */}
-      <Dialog open={coachDialogOpen} onOpenChange={setCoachDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-primary" />
-              Who is evaluating?
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <Input
-              ref={coachInputRef}
-              placeholder="Your name (e.g. Coach Sarah)"
-              value={coachNameInput}
-              onChange={(e) => setCoachNameInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") confirmCoachName(); }}
-              className="text-base"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              Each coach's scores are kept separate and averaged together for rankings.
-            </p>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setCoachDialogOpen(false)}>Cancel</Button>
-            <Button onClick={confirmCoachName} className="font-bold">
-              <Zap className="h-4 w-4 mr-1" /> Start Session
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CoachPicker
+        open={coachDialogOpen}
+        onOpenChange={setCoachDialogOpen}
+        value={coachName}
+        onChange={confirmCoachName}
+      />
     </div>
   );
 }
