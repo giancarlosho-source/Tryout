@@ -14,8 +14,11 @@ echo ""
 caffeinate -s &
 CAFFEINATE_PID=$!
 
-# Get local IP
+# Get local IP and Bonjour hostname
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "unknown")
+# Bonjour name is stable across WiFi, hotspot, any network — use it for the iOS app
+BONJOUR_NAME=$(scutil --get LocalHostName 2>/dev/null || hostname)
+IOS_API_URL="http://${BONJOUR_NAME}.local:8080"
 
 # Make sure PostgreSQL is running
 if ! pg_isready -q 2>/dev/null; then
@@ -37,9 +40,9 @@ cd "$DIR/artifacts/api-server"
 "$NODE" ./build.mjs 2>&1 | tail -3
 echo ""
 
-# Update iPad .env with current IP
-echo "Updating iPad API connection to $LOCAL_IP..."
-echo "VITE_API_URL=http://$LOCAL_IP:8080" > "$DIR/artifacts/tryout-app-ios/.env"
+# Update iPad .env with Bonjour hostname (works on any network — WiFi, hotspot, etc.)
+echo "Updating iPad API connection to $IOS_API_URL..."
+echo "VITE_API_URL=$IOS_API_URL" > "$DIR/artifacts/tryout-app-ios/.env"
 
 # Build iOS web app
 echo "Building iPad app..."
@@ -91,10 +94,10 @@ echo ""
 echo "================================================"
 echo "  All systems GO!"
 echo ""
-echo "  iPad app: rebuild in Xcode (Cmd+R) to"
-echo "  push latest version to connected iPads."
+echo "  iPad/iPhone app: rebuild in Xcode (Cmd+R) to"
+echo "  push latest version to connected devices."
 echo ""
-echo "  API server:    http://$LOCAL_IP:8080"
+echo "  API server:    $IOS_API_URL  (works on any network)"
 echo "  Admin console: http://$LOCAL_IP:19107"
 echo ""
 if [ -n "$TUNNEL_URL" ]; then
@@ -113,7 +116,7 @@ else
   echo "  Registration: http://$LOCAL_IP:8080/register (WiFi only)"
 fi
 echo ""
-echo "  Make sure all iPads are on the same Wi-Fi."
+echo "  Make sure all devices are on the same network (WiFi or hotspot)."
 echo "================================================"
 echo ""
 echo "  Starting web app... (this window must stay open)"

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { networkInterfaces } from "os";
 import { readFileSync } from "fs";
+import { execFileSync } from "child_process";
 import { HealthCheckResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -38,7 +39,15 @@ router.get("/server-info", (req, res) => {
     if (match) tunnelUrl = match[0];
   } catch { /* no tunnel running */ }
 
-  res.json({ ip: preferred, allIPs: localIPs, port, tunnelUrl });
+  // Bonjour/mDNS hostname — stable across WiFi, hotspot, any local network
+  let bonjourName = "";
+  try {
+    bonjourName = execFileSync("scutil", ["--get", "LocalHostName"], { encoding: "utf8" }).trim();
+  } catch { /* fallback handled below */ }
+  if (!bonjourName) bonjourName = networkInterfaces()["en0"]?.[0]?.address ?? preferred;
+  const localUrl = `http://${bonjourName}.local:${port}`;
+
+  res.json({ ip: preferred, allIPs: localIPs, port, tunnelUrl, localUrl, bonjourName });
 });
 
 export default router;
