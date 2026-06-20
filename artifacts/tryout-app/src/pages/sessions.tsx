@@ -391,7 +391,7 @@ export default function Sessions() {
             <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-3">
               <p className="font-semibold text-foreground">How to connect a staff device:</p>
               <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Open the <strong>Tribe Tryouts</strong> app on the iPhone/iPad</li>
+                <li>Open the <strong>TryoutDesk</strong> app on the iPhone/iPad</li>
                 <li>On the "Connect to Server" screen, paste the URL above</li>
                 <li>Tap <strong>Connect</strong> — done! Works on any network.</li>
               </ol>

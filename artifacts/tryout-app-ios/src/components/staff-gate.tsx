@@ -4,7 +4,7 @@ import { Delete } from "lucide-react";
 
 import { getServerUrl } from "@/lib/server-url";
 const API_BASE = getServerUrl();
-const STORAGE_KEY = "tribe_staff";
+const STORAGE_KEY = "tryoutdesk_staff";
 
 type StaffMember = { id: number; name: string; role: string };
 type Screen = "pick" | "pin";
@@ -168,9 +168,9 @@ function StaffLoginScreen({ onAuth }: { onAuth: (m: StaffMember) => void }) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <img src="/tribe-logo.png" alt="Tribe VB" className="h-16 w-16 object-contain mx-auto"
+          <img src="/tribe-logo.png" alt="TryoutDesk" className="h-16 w-16 object-contain mx-auto"
             onError={(e) => (e.currentTarget.style.display = "none")} />
-          <h1 className="text-3xl font-black tracking-tight text-gray-900">Tribe Tryouts</h1>
+          <h1 className="text-3xl font-black tracking-tight text-gray-900">TryoutDesk</h1>
           <p className="text-gray-500 font-medium">Who are you?</p>
         </div>
 

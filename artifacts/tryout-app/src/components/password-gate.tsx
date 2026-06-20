@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Shield, Lock } from "lucide-react";
 
-const STORAGE_KEY = "tribe_admin_auth";
+const STORAGE_KEY = "tryoutdesk_admin_auth";
 const API_BASE = (import.meta as { env: { VITE_API_URL?: string } }).env.VITE_API_URL ?? "";
 
 async function checkRequired(): Promise<boolean> {
@@ -89,7 +89,7 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
             <Shield className="h-8 w-8 text-primary-foreground" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-black tracking-tight">Tribe Tryouts</h1>
+            <h1 className="text-2xl font-black tracking-tight">TryoutDesk</h1>
             <p className="text-sm text-muted-foreground mt-1">Admin Console</p>
           </div>
         </div>

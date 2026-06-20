@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Tribe Tryouts</string>
+        <string>TryoutDesk</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -57,17 +57,17 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>tribetryouts</string>
+				<string>tryoutdesk</string>
 			</array>
 			<key>CFBundleURLName</key>
-			<string>com.tribevb.tryouts</string>
+			<string>com.tryoutdesk.app</string>
 		</dict>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Tribe Tryouts connects to the coordinator's Mac on the local network to sync player data and evaluations.</string>
+	<string>TryoutDesk connects to the coordinator's server to sync player data and evaluations.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Tribe Tryouts uses the microphone for voice-based player evaluation.</string>
+	<string>TryoutDesk uses the microphone for voice-based player evaluation.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Tribe Tryouts uses speech recognition so coaches can score players hands-free.</string>
+	<string>TryoutDesk uses speech recognition so coaches can score players hands-free.</string>
 </dict>
 </plist>

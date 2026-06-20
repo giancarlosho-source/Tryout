@@ -34,7 +34,7 @@ router.get("/server-info", (req, res) => {
   // Read tunnel URL from cloudflared log if available
   let tunnelUrl: string | null = null;
   try {
-    const log = readFileSync("/tmp/tribe-tunnel.log", "utf8");
+    const log = readFileSync("/tmp/tryoutdesk-tunnel.log", "utf8");
     const match = log.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
     if (match) tunnelUrl = match[0];
   } catch { /* no tunnel running */ }

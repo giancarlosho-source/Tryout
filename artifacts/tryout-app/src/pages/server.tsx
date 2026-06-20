@@ -450,7 +450,7 @@ export default function ServerView() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b bg-white shrink-0">
         <div className="flex items-center gap-4">
-          <img src="/tribe-logo.png" alt="Tribe VB" className="h-9 w-9 object-contain" />
+          <img src="/tribe-logo.png" alt="TryoutDesk" className="h-9 w-9 object-contain" />
           <div>
             <h1 className="text-xl font-black tracking-tight">Command Center</h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">Live view · all players, rosters, and evaluations</p>

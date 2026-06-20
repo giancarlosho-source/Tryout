@@ -56,8 +56,8 @@ export default function StationSelect() {
         return;
       }
       // Store session in localStorage
-      localStorage.setItem("tribe_staff", JSON.stringify({ id: data.id, name: data.name, role: data.role }));
-      localStorage.setItem("tribe_station_mode", data.role);
+      localStorage.setItem("tryoutdesk_staff", JSON.stringify({ id: data.id, name: data.name, role: data.role }));
+      localStorage.setItem("tryoutdesk_station_mode", data.role);
       navigate("/station/evaluation");
     } catch {
       setError("Could not connect. Try again.");
@@ -72,7 +72,7 @@ export default function StationSelect() {
   }, [pin]);
 
   const goAdmin = () => {
-    localStorage.removeItem("tribe_staff");
+    localStorage.removeItem("tryoutdesk_staff");
     navigate("/");
   };
 
@@ -148,11 +148,11 @@ export default function StationSelect() {
         <div className="text-center space-y-2">
           <img
             src="/tribe-logo.png"
-            alt="Tribe VB"
+            alt="TryoutDesk"
             className="h-16 w-16 object-contain mx-auto"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
-          <h1 className="text-3xl font-black tracking-tight text-gray-900">Tribe Tryouts</h1>
+          <h1 className="text-3xl font-black tracking-tight text-gray-900">TryoutDesk</h1>
           <p className="text-gray-500 font-medium">Who are you?</p>
         </div>
 

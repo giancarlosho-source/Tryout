@@ -37,7 +37,7 @@ function ServerSetup({ onConnected }: { onConnected: () => void }) {
     setTesting(true);
     setError("");
     try {
-      const res = await fetch(`${trimmed}/api/health`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${trimmed}/api/healthz`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) throw new Error("Bad response");
       setServerUrl(trimmed);
       setBaseUrl(trimmed);
@@ -55,11 +55,11 @@ function ServerSetup({ onConnected }: { onConnected: () => void }) {
         <div className="text-center space-y-3">
           <img
             src="/tribe-logo.png"
-            alt="Tribe VB"
+            alt="TryoutDesk"
             className="h-20 w-20 object-contain mx-auto"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
-          <h1 className="text-3xl font-black tracking-tight text-gray-900">Tribe Tryouts</h1>
+          <h1 className="text-3xl font-black tracking-tight text-gray-900">TryoutDesk</h1>
           <p className="text-gray-500 font-medium">Connect to the coordinator's server</p>
         </div>
 
@@ -112,12 +112,12 @@ function ServerSetup({ onConnected }: { onConnected: () => void }) {
 function App() {
   const [serverReady, setServerReady] = useState(() => !!getServerUrl());
 
-  // Handle tribetryouts://connect?server=... deep links
+  // Handle tryoutdesk://connect?server=... deep links
   useEffect(() => {
     const sub = CapApp.addListener("appUrlOpen", (data) => {
       try {
         const url = new URL(data.url);
-        if (url.protocol === "tribetryouts:" && url.hostname === "connect") {
+        if (url.protocol === "tryoutdesk:" && url.hostname === "connect") {
           const server = url.searchParams.get("server");
           if (server) {
             setServerUrl(server.replace(/\/$/, ""));

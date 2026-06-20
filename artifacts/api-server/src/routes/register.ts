@@ -13,7 +13,7 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tribe VB – Athlete Registration</title>
+  <title>TryoutDesk – Athlete Registration</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -86,7 +86,7 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
 <body>
   <div class="card">
     <div class="logo">
-      <h1>🏐 Tribe Volleyball</h1>
+      <h1>🏐 TryoutDesk</h1>
       <p>2026–2027 Tryout Registration</p>
     </div>
     <hr class="divider" />
@@ -121,7 +121,7 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
     <div class="success" id="success">
       <div class="check">✅</div>
       <h2>You're registered!</h2>
-      <p id="success-msg">Welcome to the Tribe tryout.<br/>See you on the court!</p>
+      <p id="success-msg">Welcome to TryoutDesk.<br/>See you on the court!</p>
     </div>
   </div>
 

@@ -77,9 +77,9 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full overflow-hidden bg-background">
         <Sidebar className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="flex items-center px-3 py-3 gap-3 border-b border-sidebar-border bg-white">
-            <img src="/tribe-logo.png" alt="Tribe VB" className="h-10 w-10 object-contain flex-shrink-0" />
+            <img src="/tribe-logo.png" alt="TryoutDesk" className="h-10 w-10 object-contain flex-shrink-0" />
             <div className="flex flex-col leading-tight">
-              <span className="text-base font-black tracking-tight text-primary">Tribe Tryouts</span>
+              <span className="text-base font-black tracking-tight text-primary">TryoutDesk</span>
               <span className="text-xs font-bold text-sidebar-foreground/60 tracking-wide">2026–2027</span>
             </div>
           </SidebarHeader>

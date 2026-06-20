@@ -16,7 +16,7 @@ export function StationShell({ title, color, children }: StationShellProps) {
         <div className="flex items-center gap-3">
           <img src="/tribe-logo.png" alt="" className="h-8 w-8 object-contain opacity-90" onError={(e) => (e.currentTarget.style.display = "none")} />
           <div>
-            <div className="text-xs font-bold opacity-70 uppercase tracking-widest">Tribe Tryouts</div>
+            <div className="text-xs font-bold opacity-70 uppercase tracking-widest">TryoutDesk</div>
             <div className="text-lg font-black leading-tight">{title} Station</div>
           </div>
         </div>

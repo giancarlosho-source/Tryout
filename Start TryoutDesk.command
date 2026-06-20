@@ -1,12 +1,12 @@
 #!/bin/bash
-# Double-click this file to start the Tribe Tryouts server
+# Double-click this file to start the TryoutDesk server
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 NODE="/Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
 DATABASE_URL="postgresql://localhost/tribe_tryouts"
 
 echo "================================================"
-echo "  TRIBE TRYOUTS - Starting servers..."
+echo "  TRYOUTDESK - Starting servers..."
 echo "================================================"
 echo ""
 
@@ -57,15 +57,15 @@ echo ""
 # Start API server in background
 echo "Starting API server on port 8080..."
 DATABASE_URL="$DATABASE_URL" PORT=8080 "$NODE" --enable-source-maps \
-  "$DIR/artifacts/api-server/dist/index.mjs" &> /tmp/tribe-api.log &
+  "$DIR/artifacts/api-server/dist/index.mjs" &> /tmp/tryoutdesk-api.log &
 API_PID=$!
 sleep 2
 
 if kill -0 $API_PID 2>/dev/null; then
   echo "API server running (PID $API_PID)"
 else
-  echo "ERROR: API server failed to start. Check /tmp/tribe-api.log"
-  cat /tmp/tribe-api.log | tail -10
+  echo "ERROR: API server failed to start. Check /tmp/tryoutdesk-api.log"
+  cat /tmp/tryoutdesk-api.log | tail -10
   read -p "Press Enter to close..."
   exit 1
 fi
@@ -74,14 +74,14 @@ fi
 TUNNEL_URL=""
 if command -v cloudflared &>/dev/null; then
   echo "Starting registration tunnel..."
-  rm -f /tmp/tribe-tunnel.log
+  rm -f /tmp/tryoutdesk-tunnel.log
   cloudflared tunnel --url http://localhost:19107 --no-autoupdate \
-    --logfile /tmp/tribe-tunnel.log 2>&1 &
+    --logfile /tmp/tryoutdesk-tunnel.log 2>&1 &
   TUNNEL_PID=$!
 
   # Wait up to 15s for the tunnel URL to appear
   for i in $(seq 1 15); do
-    TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/tribe-tunnel.log 2>/dev/null | head -1)
+    TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/tryoutdesk-tunnel.log 2>/dev/null | head -1)
     [ -n "$TUNNEL_URL" ] && break
     sleep 1
   done

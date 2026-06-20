@@ -1,4 +1,4 @@
-const STORAGE_KEY = "tribe_server_url";
+const STORAGE_KEY = "tryoutdesk_server_url";
 
 export function getServerUrl(): string {
   try {
