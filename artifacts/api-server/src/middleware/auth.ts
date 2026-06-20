@@ -1,15 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-// Routes that don't require a JWT
+// Routes that don't require a JWT (paths are relative to /api mount point)
 const PUBLIC_PATHS = new Set([
-  "/api/auth/signup",
-  "/api/auth/login",
-  "/api/auth/status",
-  "/api/healthz",
-  "/api/server-info",
-  "/api/events",
-  "/register",
+  "/auth/signup",
+  "/auth/login",
+  "/auth/status",
+  "/healthz",
+  "/server-info",
+  "/events",
 ]);
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
