@@ -46,7 +46,15 @@
       "Bash(sed -i '' 's/\"appId\": \"com.tribevb.tryouts\"/\"appId\": \"com.tryoutdesk.app\"/g; s/\"appName\": \"Tribe Tryouts\"/\"appName\": \"TryoutDesk\"/g' /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app-ios/ios/App/App/capacitor.config.json)",
       "Bash(sed -i '' \"s/appId: \\\\\"com.tribevb.tryouts\\\\\"/appId: \\\\\"com.tryoutdesk.app\\\\\"/g\" /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app-ios/capacitor.config.ts)",
       "Bash(sed -i '' 's/tribe_station_mode/tryoutdesk_station_mode/g' /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app/src/pages/station-select.tsx)",
-      "Bash(sed -i '' 's/apple-mobile-web-app-title\" content=\"Tribe Tryouts\"/apple-mobile-web-app-title\" content=\"TryoutDesk\"/g; s/<title>Tribe Tryouts<\\\\/title>/<title>TryoutDesk<\\\\/title>/g' \"/Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app-ios/ios/App/App/public/index.html\")"
+      "Bash(sed -i '' 's/apple-mobile-web-app-title\" content=\"Tribe Tryouts\"/apple-mobile-web-app-title\" content=\"TryoutDesk\"/g; s/<title>Tribe Tryouts<\\\\/title>/<title>TryoutDesk<\\\\/title>/g' \"/Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app-ios/ios/App/App/public/index.html\")",
+      "Bash(/Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/.bin/pnpm --filter api-server add bcryptjs jsonwebtoken)",
+      "Bash(/Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/.bin/pnpm --filter api-server add -D @types/bcryptjs @types/jsonwebtoken)",
+      "Bash(pnpm --filter api-server add bcryptjs jsonwebtoken)",
+      "Bash(pnpm --filter api-server add -D @types/bcryptjs @types/jsonwebtoken)",
+      "Bash(pnpm add *)",
+      "Bash(DATABASE_URL=\"postgresql://localhost/tribe_tryouts\" /Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node lib/db/node_modules/drizzle-kit/bin.cjs push --config lib/db/drizzle.config.ts)",
+      "Bash(/Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ./build.mjs)",
+      "Bash(PORT=19107 BASE_PATH=\"/\" /Users/gian/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build)"
     ]
   }
 }
