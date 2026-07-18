@@ -164,28 +164,28 @@ export declare const ListPlayersResponse: zod.ZodArray<zod.ZodObject<{
  * @summary Create a player
  */
 export declare const CreatePlayerBody: zod.ZodObject<{
-    jerseyNumber: zod.ZodString;
+    jerseyNumber: zod.ZodOptional<zod.ZodString>;
     name: zod.ZodString;
-    position: zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>;
+    position: zod.ZodOptional<zod.ZodEnum<["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"]>>;
     checkedIn: zod.ZodOptional<zod.ZodBoolean>;
     age: zod.ZodOptional<zod.ZodNullable<zod.ZodString>>;
     heightInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     standingReachInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
     verticalJumpInches: zod.ZodOptional<zod.ZodNullable<zod.ZodNumber>>;
 }, "strip", zod.ZodTypeAny, {
-    position: "Setter" | "OutsideHitter" | "MiddleBlocker" | "Opposite" | "Libero" | "Undecided";
-    jerseyNumber: string;
     name: string;
+    position?: "Setter" | "OutsideHitter" | "MiddleBlocker" | "Opposite" | "Libero" | "Undecided" | undefined;
     checkedIn?: boolean | undefined;
+    jerseyNumber?: string | undefined;
     age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
     verticalJumpInches?: number | null | undefined;
 }, {
-    position: "Setter" | "OutsideHitter" | "MiddleBlocker" | "Opposite" | "Libero" | "Undecided";
-    jerseyNumber: string;
     name: string;
+    position?: "Setter" | "OutsideHitter" | "MiddleBlocker" | "Opposite" | "Libero" | "Undecided" | undefined;
     checkedIn?: boolean | undefined;
+    jerseyNumber?: string | undefined;
     age?: string | null | undefined;
     heightInches?: number | null | undefined;
     standingReachInches?: number | null | undefined;
@@ -1934,18 +1934,24 @@ export declare const GetAllDraftPicksResponseItem: zod.ZodObject<{
     coachName: zod.ZodString;
     teamName: zod.ZodString;
     position: zod.ZodString;
+    committed: zod.ZodOptional<zod.ZodBoolean>;
+    locked: zod.ZodOptional<zod.ZodBoolean>;
 }, "strip", zod.ZodTypeAny, {
     position: string;
     playerId: number;
     coachName: string;
     teamName: string;
     coachId: number;
+    locked?: boolean | undefined;
+    committed?: boolean | undefined;
 }, {
     position: string;
     playerId: number;
     coachName: string;
     teamName: string;
     coachId: number;
+    locked?: boolean | undefined;
+    committed?: boolean | undefined;
 }>;
 export declare const GetAllDraftPicksResponse: zod.ZodArray<zod.ZodObject<{
     playerId: zod.ZodNumber;
@@ -1953,18 +1959,24 @@ export declare const GetAllDraftPicksResponse: zod.ZodArray<zod.ZodObject<{
     coachName: zod.ZodString;
     teamName: zod.ZodString;
     position: zod.ZodString;
+    committed: zod.ZodOptional<zod.ZodBoolean>;
+    locked: zod.ZodOptional<zod.ZodBoolean>;
 }, "strip", zod.ZodTypeAny, {
     position: string;
     playerId: number;
     coachName: string;
     teamName: string;
     coachId: number;
+    locked?: boolean | undefined;
+    committed?: boolean | undefined;
 }, {
     position: string;
     playerId: number;
     coachName: string;
     teamName: string;
     coachId: number;
+    locked?: boolean | undefined;
+    committed?: boolean | undefined;
 }>, "many">;
 /**
  * @summary Delete a coach
@@ -2208,6 +2220,19 @@ export declare const TogglePlayerLockBody: zod.ZodObject<{
     locked: boolean;
 }>;
 /**
+ * @summary Mark a player as committed to a coach's draft
+ */
+export declare const CommitDraftPlayerParams: zod.ZodObject<{
+    id: zod.ZodNumber;
+    playerId: zod.ZodNumber;
+}, "strip", zod.ZodTypeAny, {
+    id: number;
+    playerId: number;
+}, {
+    id: number;
+    playerId: number;
+}>;
+/**
  * @summary Get all wishlist picks across all coaches
  */
 export declare const GetAllWishlistPicksResponseItem: zod.ZodObject<{
@@ -2275,6 +2300,83 @@ export declare const AddToWishlistBody: zod.ZodObject<{
  * @summary Remove a player from a coach's wishlist
  */
 export declare const RemoveFromWishlistParams: zod.ZodObject<{
+    id: zod.ZodNumber;
+    playerId: zod.ZodNumber;
+}, "strip", zod.ZodTypeAny, {
+    id: number;
+    playerId: number;
+}, {
+    id: number;
+    playerId: number;
+}>;
+/**
+ * @summary Get all must-have picks across all coaches
+ */
+export declare const GetAllMustHavePicksResponseItem: zod.ZodObject<{
+    playerId: zod.ZodNumber;
+    coachId: zod.ZodNumber;
+    coachName: zod.ZodString;
+    teamName: zod.ZodString;
+}, "strip", zod.ZodTypeAny, {
+    playerId: number;
+    coachName: string;
+    teamName: string;
+    coachId: number;
+}, {
+    playerId: number;
+    coachName: string;
+    teamName: string;
+    coachId: number;
+}>;
+export declare const GetAllMustHavePicksResponse: zod.ZodArray<zod.ZodObject<{
+    playerId: zod.ZodNumber;
+    coachId: zod.ZodNumber;
+    coachName: zod.ZodString;
+    teamName: zod.ZodString;
+}, "strip", zod.ZodTypeAny, {
+    playerId: number;
+    coachName: string;
+    teamName: string;
+    coachId: number;
+}, {
+    playerId: number;
+    coachName: string;
+    teamName: string;
+    coachId: number;
+}>, "many">;
+/**
+ * @summary Get a coach's must-have list
+ */
+export declare const GetCoachMustHaveParams: zod.ZodObject<{
+    id: zod.ZodNumber;
+}, "strip", zod.ZodTypeAny, {
+    id: number;
+}, {
+    id: number;
+}>;
+export declare const GetCoachMustHaveResponseItem: zod.ZodNumber;
+export declare const GetCoachMustHaveResponse: zod.ZodArray<zod.ZodNumber, "many">;
+/**
+ * @summary Add a player to a coach's must-have list
+ */
+export declare const AddToMustHaveParams: zod.ZodObject<{
+    id: zod.ZodNumber;
+}, "strip", zod.ZodTypeAny, {
+    id: number;
+}, {
+    id: number;
+}>;
+export declare const AddToMustHaveBody: zod.ZodObject<{
+    playerId: zod.ZodNumber;
+}, "strip", zod.ZodTypeAny, {
+    playerId: number;
+}, {
+    playerId: number;
+}>;
+/**
+ * @summary Remove a player from a coach's must-have list
+ */
+export declare const RemoveFromMustHaveParams: zod.ZodObject<{
     id: zod.ZodNumber;
     playerId: zod.ZodNumber;
 }, "strip", zod.ZodTypeAny, {

@@ -106,9 +106,9 @@ export declare const PlayerInputPosition: {
     readonly Undecided: "Undecided";
 };
 export interface PlayerInput {
-    jerseyNumber: string;
+    jerseyNumber?: string;
     name: string;
-    position: PlayerInputPosition;
+    position?: PlayerInputPosition;
     checkedIn?: boolean;
     /**
        * Age group (e.g. 10U, 11U, 12U)
@@ -283,6 +283,15 @@ export interface PlayerLockInput {
     locked: boolean;
 }
 export interface WishlistInput {
+    playerId: number;
+}
+export interface MustHavePick {
+    playerId: number;
+    coachId: number;
+    coachName: string;
+    teamName: string;
+}
+export interface MustHaveInput {
     playerId: number;
 }
 export interface DraftPlayerBody {

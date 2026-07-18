@@ -1,0 +1,1 @@
+{"version":3,"file":"rosterUpdate.d.ts","sourceRoot":"","sources":["../../../src/generated/types/rosterUpdate.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,YAAY;IAC3B,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,kBAAkB,CAAC,EAAE,MAAM,CAAC;IAC5B,kBAAkB,CAAC,EAAE,MAAM,CAAC;IAC5B,aAAa,CAAC,EAAE,MAAM,CAAC;IACvB,WAAW,CAAC,EAAE,MAAM,CAAC;CACtB"}
