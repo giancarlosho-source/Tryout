@@ -16,17 +16,19 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 type StaffMember = { id: number; name: string; role: string };
 
-type Screen = "pick" | "pin";
+type Screen = "pick" | "pin" | "setup";
 
 export default function StationSelect() {
   const [, navigate] = useLocation();
   const params = useParams<{ slug?: string }>();
   const slugFromUrl = params.slug ?? new URLSearchParams(window.location.search).get("club");
-  // Persist slug so PWA home screen shortcut (which ignores query params) still works
   if (slugFromUrl) localStorage.setItem("tryoutdesk_club_slug", slugFromUrl);
-  const slug = slugFromUrl ?? localStorage.getItem("tryoutdesk_club_slug");
+  const savedSlug = localStorage.getItem("tryoutdesk_club_slug");
+  const slug = slugFromUrl ?? savedSlug;
+
   const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [screen, setScreen] = useState<Screen>("pick");
+  const [screen, setScreen] = useState<Screen>(slug ? "pick" : "setup");
+  const [clubInput, setClubInput] = useState("");
   const [selected, setSelected] = useState<StaffMember | null>(null);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -108,6 +110,42 @@ export default function StationSelect() {
     localStorage.removeItem("tryoutdesk_staff");
     navigate("/");
   };
+
+  // ── Setup screen (first-time PWA open with no club set) ─────────────────────
+  if (screen === "setup") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-black tracking-tight text-gray-900">TryoutDesk</h1>
+            <p className="text-gray-500 font-medium">Enter your club code to get started</p>
+          </div>
+          <div className="space-y-3">
+            <input
+              type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="e.g. tribe"
+              value={clubInput}
+              onChange={(e) => setClubInput(e.target.value.toLowerCase().trim())}
+              className="w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-lg font-mono text-center focus:outline-none focus:border-primary"
+            />
+            <button
+              disabled={!clubInput}
+              onClick={() => {
+                localStorage.setItem("tryoutdesk_club_slug", clubInput);
+                window.location.reload();
+              }}
+              className="touch-manipulation w-full h-14 rounded-2xl bg-gray-900 text-white text-lg font-bold active:scale-95 transition-all disabled:opacity-40"
+            >
+              Continue
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground">Ask your club director for the club code.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ── PIN screen ──────────────────────────────────────────────────────────────
   if (screen === "pin" && selected) {
