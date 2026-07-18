@@ -112,7 +112,7 @@ function PlayerSearchSelect({
                     <span className="font-black text-primary mr-2">#{p.jerseyNumber}</span>
                     <span className="font-medium">{p.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {p.position.replace(/([A-Z])/g, " $1").trim()}
+                      {(p.position ?? "").replace(/([A-Z])/g, " $1").trim()}
                     </span>
                   </CommandItem>
                 ))}
@@ -156,7 +156,7 @@ function PlayerColumn({
         <div className="text-xl font-bold">{player.name}</div>
         <div className="flex items-center justify-center gap-2 flex-wrap">
           <Badge variant="outline" className={`font-semibold border ${positionColor(player.position)}`}>
-            {player.position.replace(/([A-Z])/g, " $1").trim()}
+            {(player.position ?? "").replace(/([A-Z])/g, " $1").trim()}
           </Badge>
           {player.checkedIn ? (
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
@@ -215,7 +215,7 @@ function PlayerColumn({
                           <span className="font-black text-primary mr-2">#{p.jerseyNumber}</span>
                           <span className="font-medium">{p.name}</span>
                           <span className="ml-auto text-xs text-muted-foreground">
-                            {p.position.replace(/([A-Z])/g, " $1").trim()}
+                            {(p.position ?? "").replace(/([A-Z])/g, " $1").trim()}
                           </span>
                         </CommandItem>
                       ))}
@@ -301,7 +301,7 @@ function PlayerColumn({
         <Card>
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {player.position.replace(/([A-Z])/g, " $1").trim()} Skills
+              {(player.position ?? "").replace(/([A-Z])/g, " $1").trim()} Skills
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-2">
