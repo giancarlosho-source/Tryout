@@ -139,19 +139,13 @@ export default function EvaluationStation() {
 
   const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
   const [publicPlayers, setPublicPlayers] = useState<{ id: number; name: string; jerseyNumber?: string | null; position?: string | null; age?: string | null; checkedIn?: boolean | null }[] | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>("loading…");
-
   useEffect(() => {
     const slug = localStorage.getItem("tryoutdesk_club_slug");
-    if (!slug) { setDebugInfo("no slug in localStorage"); return; }
-    setDebugInfo(`slug=${slug}, fetching…`);
+    if (!slug) return;
     fetch(`${API_BASE}/api/players/public/${slug}`)
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) { setPublicPlayers(data); setDebugInfo(`slug=${slug}, ${data.length} players`); }
-        else setDebugInfo(`slug=${slug}, bad response: ${JSON.stringify(data).slice(0, 80)}`);
-      })
-      .catch((e) => setDebugInfo(`slug=${slug}, error: ${String(e)}`));
+      .then((data) => { if (Array.isArray(data)) setPublicPlayers(data); })
+      .catch(() => {});
   }, [API_BASE]);
 
   const { data: authedPlayers } = useListPlayers({}, { query: { enabled: publicPlayers === null } });
@@ -203,9 +197,6 @@ export default function EvaluationStation() {
   return (
     <StationShell title="Evaluation" color="bg-purple-600">
       <div className="max-w-lg mx-auto p-4 space-y-4">
-
-        {/* DEBUG — remove after diagnosis */}
-        <div className="text-xs bg-yellow-100 border border-yellow-300 rounded p-2 font-mono break-all">{debugInfo}</div>
 
         {/* Coach selector */}
         <button
