@@ -136,10 +136,24 @@ export default function EvaluationStation() {
 
   const upsert = useUpsertEvaluation();
   const { sessionAge } = useActiveSession();
-  const { data: allPlayers } = useListPlayers({});
+
+  // Use public endpoint when on a station tablet (no admin token)
+  const clubSlug = localStorage.getItem("tryoutdesk_club_slug");
+  const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+  const [publicPlayers, setPublicPlayers] = useState<{ id: number; name: string; jerseyNumber?: string | null; position?: string | null; age?: string | null; checkedIn?: boolean | null }[]>([]);
+  useEffect(() => {
+    if (!clubSlug) return;
+    fetch(`${API_BASE}/api/players/public/${clubSlug}`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setPublicPlayers(data); })
+      .catch(() => {});
+  }, [clubSlug, API_BASE]);
+
+  const { data: authedPlayers } = useListPlayers({}, { query: { enabled: !clubSlug } });
+  const allPlayers = clubSlug ? publicPlayers : (authedPlayers ?? []);
   const players = sessionAge
-    ? (allPlayers ?? []).filter((p) => !p.age || (p.age ?? "").replace(/U$/i, "") === sessionAge)
-    : (allPlayers ?? []);
+    ? allPlayers.filter((p) => !p.age || (p.age ?? "").replace(/U$/i, "") === sessionAge)
+    : allPlayers;
   const { data: coaches } = useListCoaches();
   const evaluators = coaches?.filter((c) => c.teamName === "Evaluator") ?? [];
 

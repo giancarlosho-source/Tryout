@@ -92,7 +92,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use("/uploads", express.static(uploadsDir));
 
 const PUBLIC_PATHS = new Set(["/billing/webhook", "/billing/signup-trial", "/cron/trial-reminders"]);
-const PUBLIC_PREFIXES = ["/staff/public/"];
+const PUBLIC_PREFIXES = ["/staff/public/", "/players/public/"];
 
 // Rate limit auth endpoints: 10 attempts per 15 minutes per IP
 app.use("/api/auth/login",         rateLimit("login",          10, 15 * 60 * 1000));
