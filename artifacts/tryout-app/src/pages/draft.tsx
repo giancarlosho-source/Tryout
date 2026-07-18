@@ -1068,10 +1068,10 @@ export default function Draft() {
                                 <span className="text-muted-foreground text-xs ml-2">{coach.name}</span>
                               </div>
                               <span className="text-xs font-bold text-muted-foreground">{totalPicked}/12</span>
-                              {picks.filter((p) => (p as { committed?: boolean }).committed).length > 0 && (
+                              {picks.filter((p) => p.committed).length > 0 && (
                                 <span className="text-xs font-bold text-green-700 bg-green-100 border border-green-300 px-1.5 py-0.5 rounded-full">
                                   <CheckCircle2 className="h-3 w-3 inline mr-0.5" />
-                                  {picks.filter((p) => (p as { committed?: boolean }).committed).length} committed
+                                  {picks.filter((p) => p.committed).length} committed
                                 </span>
                               )}
                             </div>

@@ -39,7 +39,7 @@ type ClubRow = {
   emailVerifiedAt: string | null;
 };
 
-async function apiFetch(path: string, opts?: RequestInit) {
+async function apiFetch<T = Record<string, never>>(path: string, opts?: RequestInit): Promise<T> {
   const r = await fetch(`${API_BASE}/api${path}`, {
     ...opts,
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAdminToken()}`, ...(opts?.headers ?? {}) },
@@ -47,7 +47,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   let d: { error?: string } = {};
   try { d = await r.json(); } catch { /* non-JSON response */ }
   if (!r.ok) throw new Error(d.error ?? `Request failed (${r.status})`);
-  return d;
+  return d as T;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -139,7 +139,7 @@ function ClubUsersSection({ clubId, clubName }: { clubId: number; clubName: stri
   async function load() {
     setLoading(true);
     try {
-      const d = await apiFetch(`/admin/clubs/${clubId}/users`);
+      const d = await apiFetch<{ users: ClubUserRow[] }>(`/admin/clubs/${clubId}/users`);
       setUsers(d.users);
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -154,7 +154,7 @@ function ClubUsersSection({ clubId, clubName }: { clubId: number; clubName: stri
     e.preventDefault();
     setAdding(true); setError("");
     try {
-      const d = await apiFetch(`/admin/clubs/${clubId}/users`, {
+      const d = await apiFetch<{ user: ClubUserRow }>(`/admin/clubs/${clubId}/users`, {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       });
@@ -230,7 +230,7 @@ function EditRow({ club, onSave, onDelete }: { club: ClubRow; onSave: (updated: 
   async function impersonate() {
     setImpersonating(true);
     try {
-      const d = await apiFetch(`/admin/clubs/${club.id}/impersonate`, { method: "POST" });
+      const d = await apiFetch<{ token: string }>(`/admin/clubs/${club.id}/impersonate`, { method: "POST" });
       localStorage.setItem(CLUB_TOKEN_KEY, d.token);
       navigate("/");
       window.location.reload();
@@ -256,7 +256,7 @@ function EditRow({ club, onSave, onDelete }: { club: ClubRow; onSave: (updated: 
   async function save() {
     setSaving(true);
     try {
-      const d = await apiFetch(`/admin/clubs/${club.id}`, {
+      const d = await apiFetch<{ club: Partial<ClubRow> }>(`/admin/clubs/${club.id}`, {
         method: "PUT",
         body: JSON.stringify({
           status,
@@ -356,7 +356,7 @@ function EditRow({ club, onSave, onDelete }: { club: ClubRow; onSave: (updated: 
         <button
           onClick={async () => {
             try {
-              const d = await apiFetch(`/admin/clubs/${club.id}`, { method: "PUT", body: JSON.stringify({ emailVerified: true }) });
+              const d = await apiFetch<{ club: Partial<ClubRow> }>(`/admin/clubs/${club.id}`, { method: "PUT", body: JSON.stringify({ emailVerified: true }) });
               onSave({ ...club, ...d.club });
               alert("Email marked as verified.");
             } catch (e) { alert(String(e)); }
@@ -442,7 +442,7 @@ function CreateClubModal({ onClose, onCreated }: { onClose: () => void; onCreate
     e.preventDefault();
     setSaving(true); setError("");
     try {
-      const d = await apiFetch("/admin/clubs", {
+      const d = await apiFetch<{ club: ClubRow }>("/admin/clubs", {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       });
@@ -500,7 +500,7 @@ export default function Admin() {
     if (!tok) { navigate("/admin/login"); return; }
     setLoading(true); setError("");
     try {
-      const d = await apiFetch("/admin/clubs");
+      const d = await apiFetch<{ clubs: ClubRow[] }>("/admin/clubs");
       setClubs(d.clubs ?? []);
     } catch (e) {
       const msg = String(e);

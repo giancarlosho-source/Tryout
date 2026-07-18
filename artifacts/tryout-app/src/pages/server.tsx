@@ -6,6 +6,12 @@ import {
   useGetAllDraftPicks,
   useGetAllWishlistPicks,
   useGetAllMustHavePicks,
+  getListPlayersQueryKey,
+  getListCoachesQueryKey,
+  getGetAllDraftPicksQueryKey,
+  getGetAllWishlistPicksQueryKey,
+  getGetAllMustHavePicksQueryKey,
+  getListEvaluationsQueryKey,
 } from "@workspace/api-client-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -377,12 +383,12 @@ function PlayersTab({ players, draftPickMap, evalCountMap }: PlayersTabProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ServerView() {
-  const { data: players = [] } = useListPlayers(undefined, { query: FAST_REFETCH });
-  const { data: coaches = [] } = useListCoaches({ query: FAST_REFETCH });
-  const { data: allDraftPicks = [] } = useGetAllDraftPicks({ query: FAST_REFETCH });
-  const { data: allWishlistPicks = [] } = useGetAllWishlistPicks({ query: FAST_REFETCH });
-  const { data: allMustHavePicks = [] } = useGetAllMustHavePicks({ query: FAST_REFETCH });
-  const { data: evaluations = [] } = useListEvaluations(undefined, { query: SLOW_REFETCH });
+  const { data: players = [] } = useListPlayers(undefined, { query: { ...FAST_REFETCH, queryKey: getListPlayersQueryKey() } });
+  const { data: coaches = [] } = useListCoaches({ query: { ...FAST_REFETCH, queryKey: getListCoachesQueryKey() } });
+  const { data: allDraftPicks = [] } = useGetAllDraftPicks({ query: { ...FAST_REFETCH, queryKey: getGetAllDraftPicksQueryKey() } });
+  const { data: allWishlistPicks = [] } = useGetAllWishlistPicks({ query: { ...FAST_REFETCH, queryKey: getGetAllWishlistPicksQueryKey() } });
+  const { data: allMustHavePicks = [] } = useGetAllMustHavePicks({ query: { ...FAST_REFETCH, queryKey: getGetAllMustHavePicksQueryKey() } });
+  const { data: evaluations = [] } = useListEvaluations(undefined, { query: { ...SLOW_REFETCH, queryKey: getListEvaluationsQueryKey() } });
 
   const rankedCoaches = useMemo(
     () => [...coaches].sort((a, b) => a.teamName.localeCompare(b.teamName)),

@@ -5,7 +5,7 @@ const TOKEN_KEY = "tryoutdesk_token";
 const CLUB_KEY = "tryoutdesk_club";
 const API_BASE = (import.meta as { env: { VITE_API_URL?: string } }).env.VITE_API_URL ?? "";
 
-export type ClubInfo = { id: number; name: string; email: string; logoUrl?: string | null; primaryColor?: string | null; status?: string; trialEndsAt?: string | null; emailVerified?: boolean };
+export type ClubInfo = { id: number; slug?: string | null; name: string; email: string; logoUrl?: string | null; primaryColor?: string | null; status?: string; trialEndsAt?: string | null; emailVerified?: boolean };
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListPlayers, useGetPlayer } from "@workspace/api-client-react";
+import { useListPlayers, useGetPlayer, getGetPlayerQueryKey, getPlayer } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const FLAG_STYLES: Record<string, { color: string; icon: typeof Zap }> = {
   "Missing Measurements":      { color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle },
 };
 
-type PlayerData = NonNullable<ReturnType<typeof useGetPlayer>["data"]>;
+type PlayerData = Awaited<ReturnType<typeof getPlayer>>;
 
 function ScoreCell({
   value,
@@ -342,10 +342,10 @@ export default function Compare() {
   const { data: players } = useListPlayers({});
 
   const { data: leftPlayer } = useGetPlayer(parseInt(leftId), {
-    query: { enabled: !!leftId },
+    query: { queryKey: getGetPlayerQueryKey(parseInt(leftId)), enabled: !!leftId },
   });
   const { data: rightPlayer } = useGetPlayer(parseInt(rightId), {
-    query: { enabled: !!rightId },
+    query: { queryKey: getGetPlayerQueryKey(parseInt(rightId)), enabled: !!rightId },
   });
 
   const sortedPlayers = [...(players ?? [])].sort((a, b) => a.name.localeCompare(b.name));

@@ -289,7 +289,7 @@ export default function Rankings() {
                         size="sm"
                         variant={player.rankLocked ? "default" : "outline"}
                         className={`w-24 h-9 font-semibold ${player.rankLocked ? "bg-primary text-primary-foreground" : ""} ${onRoster ? "opacity-50" : ""}`}
-                        onClick={() => handleLockToggle(player.id, player.rankLocked)}
+                        onClick={() => handleLockToggle(player.id, player.rankLocked ?? false)}
                         disabled={overrideRanking.isPending}
                       >
                         {player.rankLocked ? (

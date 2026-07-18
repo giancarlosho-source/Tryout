@@ -15,7 +15,7 @@ const HELP = {
     "Players marked as checked in show a green badge. Use this to verify attendance at a glance.",
   ],
 };
-import { useListPlayers, useCreatePlayer, useUpdatePlayer, getListPlayersQueryKey } from "@workspace/api-client-react";
+import { useListPlayers, useCreatePlayer, useUpdatePlayer, getListPlayersQueryKey, type PlayerInputPosition, type PlayerUpdatePosition } from "@workspace/api-client-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,7 +63,12 @@ export default function Players() {
   const handleCreatePlayer = async () => {
     if (!npName.trim()) return;
     await createPlayer.mutateAsync({
-      data: { name: npName.trim(), jerseyNumber: npJersey || undefined, position: npPosition || undefined, age: npAge || undefined },
+      data: {
+        name: npName.trim(),
+        jerseyNumber: npJersey || undefined,
+        position: npPosition ? (npPosition as PlayerInputPosition) : undefined,
+        age: npAge || undefined,
+      },
     });
     queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey({}) });
     toast({ title: "Player created" });
@@ -80,7 +85,7 @@ export default function Players() {
   const [editingPositionId, setEditingPositionId] = useState<number | null>(null);
 
   const setPosition = async (playerId: number, position: string) => {
-    await updatePlayer.mutateAsync({ id: playerId, data: { position } });
+    await updatePlayer.mutateAsync({ id: playerId, data: { position: position as PlayerUpdatePosition } });
     queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey({}) });
     setEditingPositionId(null);
   };

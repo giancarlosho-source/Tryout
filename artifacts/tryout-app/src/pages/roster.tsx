@@ -30,7 +30,7 @@ export default function Roster() {
   const { toast } = useToast();
   const { setRoster, clearRoster } = useRoster();
 
-  const { data: suggestion, isLoading: suggestLoading, isFetching: suggestFetching, refetch: refetchSuggestion } = useSuggestRoster({ query: { enabled: false } });
+  const { data: suggestion, isLoading: suggestLoading, isFetching: suggestFetching, refetch: refetchSuggestion } = useSuggestRoster({ query: { queryKey: getSuggestRosterQueryKey(), enabled: false } });
   const createRoster = useCreateRoster();
   const addPlayer = useAddPlayerToRoster();
 
@@ -49,7 +49,7 @@ export default function Roster() {
 
   const handleSaveRoster = async () => {
     if (!suggestion) return;
-    const { data: roster } = await createRoster.mutateAsync({ data: { name: `Roster ${new Date().toLocaleString()}` } });
+    const roster = await createRoster.mutateAsync({ data: { name: `Roster ${new Date().toLocaleString()}` } });
     for (const slot of suggestion.players) {
       await addPlayer.mutateAsync({ id: roster.id, data: { playerId: slot.playerId, position: slot.position, locked: slot.locked } });
     }

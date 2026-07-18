@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useListPlayers, useListCoaches, useUpsertEvaluation, getListRankingsQueryKey } from "@workspace/api-client-react";
+import { useListPlayers, useListCoaches, useUpsertEvaluation, getListRankingsQueryKey, getListPlayersQueryKey } from "@workspace/api-client-react";
 import { useActiveSession } from "@/hooks/use-active-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { StationShell } from "@/components/station-shell";
@@ -149,7 +149,7 @@ export default function EvaluationStation() {
       .catch(() => setPublicPlayersError(true));
   }, [API_BASE]);
 
-  const { data: authedPlayers, isError: authedPlayersError, refetch: refetchPlayers } = useListPlayers({}, { query: { enabled: publicPlayers === null } });
+  const { data: authedPlayers, isError: authedPlayersError, refetch: refetchPlayers } = useListPlayers({}, { query: { queryKey: getListPlayersQueryKey({}), enabled: publicPlayers === null } });
   const allPlayers = publicPlayers ?? authedPlayers ?? [];
   const playersLoadFailed = publicPlayers === null && publicPlayersError && authedPlayersError;
   const players = sessionAge

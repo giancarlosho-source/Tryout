@@ -3,6 +3,7 @@ import { useRoute, Link, useLocation } from "wouter";
 import {
   useGetPlayer, useGeneratePlayerSummary, useCreateNote, useDeleteNote,
   useListNotes, useUpdatePlayer, useDeletePlayer, getGetPlayerQueryKey, getListNotesQueryKey, getListPlayersQueryKey,
+  type PlayerUpdatePosition,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -170,7 +171,7 @@ export default function PlayerProfile() {
 
   const [aiSummary, setAiSummary] = useState<{
     summary: string; strengths: string[]; weaknesses: string[];
-    risks: string[]; positionFit: string; potentialNote: string; suggestedPositionChange: string | null;
+    risks: string[]; positionFit: string; potentialNote: string; suggestedPositionChange?: string | null;
   } | null>(null);
   const [noteText, setNoteText] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -234,7 +235,7 @@ export default function PlayerProfile() {
     if (!playerId) return;
     await updatePlayer.mutateAsync({
       id: playerId,
-      data: { name: eName, jerseyNumber: eJersey, position: ePosition || undefined, age: eAge || undefined },
+      data: { name: eName, jerseyNumber: eJersey, position: ePosition ? (ePosition as PlayerUpdatePosition) : undefined, age: eAge || undefined },
     });
     queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
     setEditingInfo(false);
@@ -344,7 +345,7 @@ export default function PlayerProfile() {
   const validPositionSkills = new Set(POSITION_SKILLS[playerPrimaryPosition] ?? []);
 
   // Average scores across all coaches for each skill
-  function avgBySkill(evals: typeof player.evaluations) {
+  function avgBySkill(evals: NonNullable<typeof player>["evaluations"]) {
     const map = new Map<string, number[]>();
     for (const e of evals ?? []) {
       const key = canonicalSkill(e.skill);
