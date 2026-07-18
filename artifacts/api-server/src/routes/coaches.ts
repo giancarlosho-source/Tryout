@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, isNotNull, and, ne } from "drizzle-orm";
+import { eq, isNotNull, and, ne, inArray } from "drizzle-orm";
 import { db, coachesTable, rostersTable, rosterPlayersTable, playersTable, coachWishlistTable, coachMustHaveTable } from "@workspace/db";
 import jwt from "jsonwebtoken";
 import { broadcast } from "../events";
@@ -17,6 +17,11 @@ const parseCoach = (c: typeof coachesTable.$inferSelect) => ({
   ...c,
   draftPriority: (() => { try { return JSON.parse(c.draftPriority); } catch { return []; } })(),
 });
+
+async function verifyCoachInClub(coachId: number, clubId: number): Promise<boolean> {
+  const [coach] = await db.select().from(coachesTable).where(and(eq(coachesTable.id, coachId), eq(coachesTable.clubId, clubId)));
+  return !!coach;
+}
 
 router.get("/coaches", async (req, res): Promise<void> => {
   const clubId = getClubId(req);
@@ -213,8 +218,11 @@ router.patch("/coaches/:id/draft/players/:playerId", async (req, res): Promise<v
     .where(and(eq(rosterPlayersTable.rosterId, rosters[0].id), eq(rosterPlayersTable.playerId, playerId)));
 
   if (locked) {
-    await db.delete(coachWishlistTable)
-      .where(and(eq(coachWishlistTable.playerId, playerId), ne(coachWishlistTable.coachId, coachId)));
+    const clubCoachIds = (await db.select({ id: coachesTable.id }).from(coachesTable).where(eq(coachesTable.clubId, clubId))).map((c) => c.id);
+    if (clubCoachIds.length) {
+      await db.delete(coachWishlistTable)
+        .where(and(eq(coachWishlistTable.playerId, playerId), ne(coachWishlistTable.coachId, coachId), inArray(coachWishlistTable.coachId, clubCoachIds)));
+    }
   }
 
   broadcast("players:changed");
@@ -235,8 +243,11 @@ router.post("/coaches/:id/draft/players/:playerId/commit", async (req, res): Pro
     .set({ committed: true, locked: true })
     .where(and(eq(rosterPlayersTable.rosterId, rosters[0].id), eq(rosterPlayersTable.playerId, playerId)));
 
-  await db.delete(coachWishlistTable).where(eq(coachWishlistTable.playerId, playerId));
-  await db.delete(coachMustHaveTable).where(eq(coachMustHaveTable.playerId, playerId));
+  const clubCoachIds = (await db.select({ id: coachesTable.id }).from(coachesTable).where(eq(coachesTable.clubId, clubId))).map((c) => c.id);
+  if (clubCoachIds.length) {
+    await db.delete(coachWishlistTable).where(and(eq(coachWishlistTable.playerId, playerId), inArray(coachWishlistTable.coachId, clubCoachIds)));
+    await db.delete(coachMustHaveTable).where(and(eq(coachMustHaveTable.playerId, playerId), inArray(coachMustHaveTable.coachId, clubCoachIds)));
+  }
 
   broadcast("players:changed");
   res.json({ ok: true });
@@ -262,6 +273,9 @@ router.get("/coaches/:id/wishlist", async (req, res): Promise<void> => {
   const coachId = parseInt(req.params.id);
   if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
+
   const entries = await db.select().from(coachWishlistTable).where(eq(coachWishlistTable.coachId, coachId));
   res.json(entries.map((e) => e.playerId));
 });
@@ -274,6 +288,9 @@ router.post("/coaches/:id/wishlist", async (req, res): Promise<void> => {
   const { playerId } = req.body as { playerId?: number };
   if (!playerId) { res.status(400).json({ error: "playerId is required" }); return; }
 
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
+
   await db.insert(coachWishlistTable).values({ coachId, playerId }).onConflictDoNothing();
   broadcast("players:changed");
   res.status(201).json({ ok: true });
@@ -284,6 +301,9 @@ router.delete("/coaches/:id/wishlist/:playerId", async (req, res): Promise<void>
   const coachId = parseInt(req.params.id);
   const playerId = parseInt(req.params.playerId);
   if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
 
   await db.delete(coachWishlistTable)
     .where(and(eq(coachWishlistTable.coachId, coachId), eq(coachWishlistTable.playerId, playerId)));
@@ -311,6 +331,8 @@ router.get("/coaches/musthave/all", async (req, res): Promise<void> => {
 router.get("/coaches/:id/musthave", async (req, res): Promise<void> => {
   const coachId = parseInt(req.params.id);
   if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   const entries = await db.select().from(coachMustHaveTable).where(eq(coachMustHaveTable.coachId, coachId));
   res.json(entries.map((e) => e.playerId));
 });
@@ -321,6 +343,8 @@ router.post("/coaches/:id/musthave", async (req, res): Promise<void> => {
   if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { playerId } = req.body as { playerId?: number };
   if (!playerId) { res.status(400).json({ error: "playerId is required" }); return; }
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   await db.insert(coachMustHaveTable).values({ coachId, playerId }).onConflictDoNothing();
   broadcast("players:changed");
   res.status(201).json({ ok: true });
@@ -331,6 +355,8 @@ router.delete("/coaches/:id/musthave/:playerId", async (req, res): Promise<void>
   const coachId = parseInt(req.params.id);
   const playerId = parseInt(req.params.playerId);
   if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const clubId = getClubId(req);
+  if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   await db.delete(coachMustHaveTable)
     .where(and(eq(coachMustHaveTable.coachId, coachId), eq(coachMustHaveTable.playerId, playerId)));
   broadcast("players:changed");

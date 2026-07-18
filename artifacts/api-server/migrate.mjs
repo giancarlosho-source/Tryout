@@ -33,6 +33,9 @@ const safetyAlters = [
   `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS slug text`,
   `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS terms_agreed_at timestamptz`,
   `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS email_verified_at timestamptz`,
+  `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS stripe_customer_id text`,
+  `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS stripe_subscription_id text`,
+  `ALTER TABLE clubs ADD COLUMN IF NOT EXISTS subscription_ends_at timestamptz`,
   `UPDATE clubs SET slug = regexp_replace(lower(name), '[^a-z0-9]+', '-', 'g') WHERE slug IS NULL OR slug = ''`,
   // club_id on all tenant tables
   `ALTER TABLE players ADD COLUMN IF NOT EXISTS club_id integer NOT NULL DEFAULT 1 REFERENCES clubs(id)`,

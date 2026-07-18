@@ -218,6 +218,10 @@ router.delete("/rosters/:id/players/:playerId", async (req, res): Promise<void> 
   const params = RemovePlayerFromRosterParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
+  const clubId = getClubId(req);
+  const [roster] = await db.select().from(rostersTable).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId)));
+  if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
+
   await db.delete(rosterPlayersTable).where(
     and(eq(rosterPlayersTable.rosterId, params.data.id), eq(rosterPlayersTable.playerId, params.data.playerId))
   );
