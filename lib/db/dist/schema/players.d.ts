@@ -20,6 +20,23 @@ export declare const playersTable: import("drizzle-orm/pg-core").PgTableWithColu
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        clubId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "club_id";
+            tableName: "players";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         jerseyNumber: import("drizzle-orm/pg-core").PgColumn<{
             name: "jersey_number";
             tableName: "players";
@@ -328,6 +345,23 @@ export declare const playersTable: import("drizzle-orm/pg-core").PgTableWithColu
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        photoUrl: import("drizzle-orm/pg-core").PgColumn<{
+            name: "photo_url";
+            tableName: "players";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "players";
@@ -366,8 +400,9 @@ export declare const playersTable: import("drizzle-orm/pg-core").PgTableWithColu
     dialect: "pg";
 }>;
 export declare const insertPlayerSchema: z.ZodObject<{
-    jerseyNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     name: z.ZodString;
+    clubId: z.ZodInt;
+    jerseyNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     position: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     age: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     checkedIn: z.ZodOptional<z.ZodBoolean>;
@@ -375,6 +410,7 @@ export declare const insertPlayerSchema: z.ZodObject<{
     standingReachInches: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     verticalJumpInches: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     rankLocked: z.ZodOptional<z.ZodBoolean>;
+    photoUrl: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, {
     out: {};
     in: {};

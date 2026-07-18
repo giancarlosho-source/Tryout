@@ -1,10 +1,11 @@
-export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "settings";
+import { z } from "zod/v4";
+export declare const staffTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "staff";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "settings";
+            tableName: "staff";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -21,7 +22,7 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
         }, {}, {}>;
         clubId: import("drizzle-orm/pg-core").PgColumn<{
             name: "club_id";
-            tableName: "settings";
+            tableName: "staff";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -36,9 +37,9 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        key: import("drizzle-orm/pg-core").PgColumn<{
-            name: "key";
-            tableName: "settings";
+        name: import("drizzle-orm/pg-core").PgColumn<{
+            name: "name";
+            tableName: "staff";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -53,9 +54,9 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "settings";
+        pin: import("drizzle-orm/pg-core").PgColumn<{
+            name: "pin";
+            tableName: "staff";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -70,9 +71,26 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        updatedAt: import("drizzle-orm/pg-core").PgColumn<{
-            name: "updated_at";
-            tableName: "settings";
+        role: import("drizzle-orm/pg-core").PgColumn<{
+            name: "role";
+            tableName: "staff";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "staff";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -90,5 +108,15 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
     };
     dialect: "pg";
 }>;
-export type Setting = typeof settingsTable.$inferSelect;
-//# sourceMappingURL=settings.d.ts.map
+export declare const insertStaffSchema: z.ZodObject<{
+    name: z.ZodString;
+    clubId: z.ZodInt;
+    pin: z.ZodString;
+    role: z.ZodOptional<z.ZodString>;
+}, {
+    out: {};
+    in: {};
+}>;
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type Staff = typeof staffTable.$inferSelect;
+//# sourceMappingURL=staff.d.ts.map

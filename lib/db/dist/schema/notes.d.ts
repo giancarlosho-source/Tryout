@@ -1,11 +1,11 @@
 import { z } from "zod/v4";
-export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "evaluations";
+export declare const coachNotesTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "coach_notes";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "evaluations";
+            tableName: "coach_notes";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -22,7 +22,7 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
         }, {}, {}>;
         clubId: import("drizzle-orm/pg-core").PgColumn<{
             name: "club_id";
-            tableName: "evaluations";
+            tableName: "coach_notes";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -39,7 +39,7 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
         }, {}, {}>;
         playerId: import("drizzle-orm/pg-core").PgColumn<{
             name: "player_id";
-            tableName: "evaluations";
+            tableName: "coach_notes";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -54,82 +54,14 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        category: import("drizzle-orm/pg-core").PgColumn<{
-            name: "category";
-            tableName: "evaluations";
+        content: import("drizzle-orm/pg-core").PgColumn<{
+            name: "content";
+            tableName: "coach_notes";
             dataType: "string";
             columnType: "PgText";
             data: string;
             driverParam: string;
             notNull: true;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        skill: import("drizzle-orm/pg-core").PgColumn<{
-            name: "skill";
-            tableName: "evaluations";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        score: import("drizzle-orm/pg-core").PgColumn<{
-            name: "score";
-            tableName: "evaluations";
-            dataType: "number";
-            columnType: "PgReal";
-            data: number;
-            driverParam: string | number;
-            notNull: true;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: undefined;
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        notes: import("drizzle-orm/pg-core").PgColumn<{
-            name: "notes";
-            tableName: "evaluations";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
-            hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {}>;
-        coachName: import("drizzle-orm/pg-core").PgColumn<{
-            name: "coach_name";
-            tableName: "evaluations";
-            dataType: "string";
-            columnType: "PgText";
-            data: string;
-            driverParam: string;
-            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;
@@ -141,7 +73,7 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
         }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
-            tableName: "evaluations";
+            tableName: "coach_notes";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -158,7 +90,7 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
-            tableName: "evaluations";
+            tableName: "coach_notes";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -176,18 +108,14 @@ export declare const evaluationsTable: import("drizzle-orm/pg-core").PgTableWith
     };
     dialect: "pg";
 }>;
-export declare const insertEvaluationSchema: z.ZodObject<{
+export declare const insertNoteSchema: z.ZodObject<{
     clubId: z.ZodInt;
     playerId: z.ZodInt;
-    category: z.ZodString;
-    skill: z.ZodString;
-    score: z.ZodNumber;
-    notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    coachName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    content: z.ZodString;
 }, {
     out: {};
     in: {};
 }>;
-export type InsertEvaluation = z.infer<typeof insertEvaluationSchema>;
-export type Evaluation = typeof evaluationsTable.$inferSelect;
-//# sourceMappingURL=evaluations.d.ts.map
+export type InsertNote = z.infer<typeof insertNoteSchema>;
+export type CoachNote = typeof coachNotesTable.$inferSelect;
+//# sourceMappingURL=notes.d.ts.map

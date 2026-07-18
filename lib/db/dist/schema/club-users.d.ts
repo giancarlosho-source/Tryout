@@ -1,10 +1,10 @@
-export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
-    name: "settings";
+export declare const clubUsersTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "club_users";
     schema: undefined;
     columns: {
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
-            tableName: "settings";
+            tableName: "club_users";
             dataType: "number";
             columnType: "PgSerial";
             data: number;
@@ -21,7 +21,7 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
         }, {}, {}>;
         clubId: import("drizzle-orm/pg-core").PgColumn<{
             name: "club_id";
-            tableName: "settings";
+            tableName: "club_users";
             dataType: "number";
             columnType: "PgInteger";
             data: number;
@@ -36,9 +36,9 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        key: import("drizzle-orm/pg-core").PgColumn<{
-            name: "key";
-            tableName: "settings";
+        name: import("drizzle-orm/pg-core").PgColumn<{
+            name: "name";
+            tableName: "club_users";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -53,9 +53,9 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        value: import("drizzle-orm/pg-core").PgColumn<{
-            name: "value";
-            tableName: "settings";
+        email: import("drizzle-orm/pg-core").PgColumn<{
+            name: "email";
+            tableName: "club_users";
             dataType: "string";
             columnType: "PgText";
             data: string;
@@ -70,9 +70,26 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
-        updatedAt: import("drizzle-orm/pg-core").PgColumn<{
-            name: "updated_at";
-            tableName: "settings";
+        passwordHash: import("drizzle-orm/pg-core").PgColumn<{
+            name: "password_hash";
+            tableName: "club_users";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "club_users";
             dataType: "date";
             columnType: "PgTimestamp";
             data: Date;
@@ -90,5 +107,6 @@ export declare const settingsTable: import("drizzle-orm/pg-core").PgTableWithCol
     };
     dialect: "pg";
 }>;
-export type Setting = typeof settingsTable.$inferSelect;
-//# sourceMappingURL=settings.d.ts.map
+export type ClubUser = typeof clubUsersTable.$inferSelect;
+export type NewClubUser = typeof clubUsersTable.$inferInsert;
+//# sourceMappingURL=club-users.d.ts.map
