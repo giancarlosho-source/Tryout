@@ -1,9 +1,85 @@
 import { useGetPlayerStats, useGetSyncStatus, useTriggerSync } from "@workspace/api-client-react";
-import { primaryPosition, positionLabel, positionColor } from "@/lib/positions";
+import { primaryPosition, positionLabel, positionColor, positionBarColor } from "@/lib/positions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, ClipboardCheck, AlertTriangle, Activity, TrendingUp, Upload, UsersRound, ChevronRight } from "lucide-react";
+import { RefreshCw, Users, ClipboardCheck, AlertTriangle, Activity, TrendingUp, Upload, UsersRound, ChevronRight, X, FileSpreadsheet, Settings, QrCode } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
+
+const ONBOARDING_DISMISSED_KEY = "tryoutdesk_onboarding_dismissed";
+
+function OnboardingBanner() {
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "1");
+
+  if (dismissed) return null;
+
+  function dismiss() {
+    localStorage.setItem(ONBOARDING_DISMISSED_KEY, "1");
+    setDismissed(true);
+  }
+
+  const steps = [
+    {
+      number: 1,
+      icon: <FileSpreadsheet className="h-5 w-5" />,
+      title: "Import your players",
+      description: "Upload a CSV or paste from Google Sheets",
+      href: "/import",
+      cta: "Go to Import",
+    },
+    {
+      number: 2,
+      icon: <Settings className="h-5 w-5" />,
+      title: "Set your session name",
+      description: 'Name your age group (e.g. "14U") in Settings',
+      href: "/settings",
+      cta: "Open Settings",
+    },
+    {
+      number: 3,
+      icon: <QrCode className="h-5 w-5" />,
+      title: "Share the QR code",
+      description: "Coaches scan to start scoring on their iPads",
+      href: "/register",
+      cta: "Get QR Code",
+    },
+  ];
+
+  return (
+    <div className="relative rounded-xl border border-primary/30 bg-primary/5 p-6">
+      <button
+        onClick={dismiss}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Dismiss"
+      >
+        <X className="h-4 w-4" />
+      </button>
+      <h2 className="text-lg font-bold mb-1">Welcome to TryoutDesk 👋</h2>
+      <p className="text-sm text-muted-foreground mb-5">Complete these 3 steps to run your first tryout.</p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {steps.map((step) => (
+          <div key={step.number} className="flex flex-col gap-3 rounded-lg bg-background border p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-black">
+                {step.number}
+              </div>
+              <div className="p-1.5 rounded-md bg-primary/10 text-primary">{step.icon}</div>
+            </div>
+            <div>
+              <div className="font-semibold text-sm">{step.title}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{step.description}</div>
+            </div>
+            <Link href={step.href} className="mt-auto">
+              <Button size="sm" variant="outline" className="w-full text-xs">
+                {step.cta} <ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetPlayerStats();
@@ -16,9 +92,10 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-6 space-y-6 bg-muted/20">
+      {!statsLoading && stats?.totalPlayers === 0 && <OnboardingBanner />}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Live Tryout Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Real-time overview of evaluations and rankings</p>
         </div>
         <div className="flex items-center gap-4 bg-card px-4 py-2 rounded-lg border shadow-sm">
@@ -180,8 +257,8 @@ export default function Dashboard() {
                       <div className="w-32 text-sm font-semibold truncate">{positionLabel(key)}</div>
                       <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${positionColor(key).split(" ")[0].replace("-100", "-400")}`}
-                          style={{ width: `${(count / total) * 100}%` }}
+                          className="h-full rounded-full"
+                          style={{ width: `${(count / total) * 100}%`, backgroundColor: positionBarColor(key) }}
                         />
                       </div>
                       <div className="w-8 text-right text-sm font-black tabular-nums">{count}</div>

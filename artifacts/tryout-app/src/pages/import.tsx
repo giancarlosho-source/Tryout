@@ -1,18 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const HELP = {
-  title: "Import Players",
-  description: "Load your player roster from a Google Sheet or a CSV file instead of adding players one by one.",
+  title: "Import",
+  description: "Load your players and coaches from a CSV file or Google Sheet instead of adding them one by one.",
   steps: [
-    { step: 1, text: "Google Sheets: paste the share URL of your sheet (must be set to 'Anyone with link can view'). Click Sync." },
-    { step: 2, text: "CSV: export your roster to CSV and drag it onto the upload area, or click to browse." },
-    { step: 3, text: "Required columns: Name. Optional: Jersey Number, Position, Age Group, Height, Weight." },
-    { step: 4, text: "Existing players are matched by jersey number and updated — not duplicated. Evaluation scores are never overwritten." },
+    { step: 1, text: "Download the template for players or coaches, fill it in, and upload it." },
+    { step: 2, text: "Google Sheets: paste the share URL of your sheet (must be 'Anyone with link can view'). Click Sync." },
+    { step: 3, text: "Existing players are matched by jersey number and updated — not duplicated. Evaluation scores are never overwritten." },
+    { step: 4, text: "Coaches are matched by name — re-importing updates their role." },
   ],
   tips: [
     "Run the import before tryout day so players are already in the system when iPads start.",
     "You can re-import anytime to pick up roster changes — it's safe to run multiple times.",
-    "The jersey number column header must be exactly: JerseyNumber or Jersey Number (case-insensitive).",
   ],
 };
 import {
@@ -29,18 +28,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, CheckCircle2, AlertCircle, FileText, X, Sheet, RefreshCw, Info, Trash2, Loader2, Clock } from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle, FileText, X, Sheet, RefreshCw, Info, Trash2, Loader2, Download, Users, UserCheck } from "lucide-react";
 
-const SAMPLE_CSV = `jerseyNumber,name,position,checkedIn,height,standingReachInches,verticalJump
-1,Emma Rodriguez,Setter,true,68,84,24
-3,Maya Johnson,OutsideHitter,true,72,90,28
-7,Olivia Chen,MiddleBlocker,true,74,92,29
-9,Chloe Brown,Opposite,true,73,90,30
-11,Isabella Moore,Libero,true,64,78,20`;
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+
+// ── Templates ────────────────────────────────────────────────────────────────
+
+const PLAYER_TEMPLATE = `jerseyNumber,name,position,age,height,standingReachInches,verticalJump
+1,Emma Rodriguez,Setter,16,68,84,24
+3,Maya Johnson,OutsideHitter,17,72,90,28
+7,Olivia Chen,MiddleBlocker,16,74,92,29
+9,Chloe Brown,Opposite,17,73,90,30
+11,Isabella Moore,Libero,16,64,78,20`;
+
+const COACH_TEMPLATE = `name,teamName
+Sarah Johnson,Evaluator
+Mike Chen,Court Coach
+Amanda Torres,Evaluator
+David Park,Head Coach`;
+
+function downloadCsv(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Shared components ─────────────────────────────────────────────────────────
 
 type ImportResult = { imported: number; updated: number; errors: string[] };
 
-function ResultCard({ result }: { result: ImportResult }) {
+function ResultCard({ result, noun = "player" }: { result: ImportResult; noun?: string }) {
   const hasErrors = result.errors.length > 0;
   const hasSuccess = result.imported > 0 || result.updated > 0;
   return (
@@ -50,13 +71,13 @@ function ResultCard({ result }: { result: ImportResult }) {
           {result.imported > 0 && (
             <div className="flex items-center gap-2 text-green-700 font-semibold">
               <CheckCircle2 className="h-5 w-5" />
-              {result.imported} player{result.imported !== 1 ? "s" : ""} imported
+              {result.imported} {noun}{result.imported !== 1 ? "s" : ""} imported
             </div>
           )}
           {result.updated > 0 && (
             <div className="flex items-center gap-2 text-blue-700 font-semibold">
               <CheckCircle2 className="h-5 w-5" />
-              {result.updated} player{result.updated !== 1 ? "s" : ""} updated
+              {result.updated} {noun}{result.updated !== 1 ? "s" : ""} updated
             </div>
           )}
           {!hasSuccess && !hasErrors && (
@@ -78,16 +99,25 @@ function ResultCard({ result }: { result: ImportResult }) {
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function Import() {
   const queryClient = useQueryClient();
 
-  // CSV state
+  // Player CSV state
   const [csvText, setCsvText] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [csvResult, setCsvResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1JlWA2uZ3YFOgvCUZAqO27bSAyAbjjsUAJlVy6-61MvE/edit?gid=432850694#gid=432850694";
+  // Coach CSV state
+  const [coachCsvText, setCoachCsvText] = useState("");
+  const [coachDragOver, setCoachDragOver] = useState(false);
+  const [coachResult, setCoachResult] = useState<ImportResult | null>(null);
+  const [coachImporting, setCoachImporting] = useState(false);
+  const coachFileInputRef = useRef<HTMLInputElement>(null);
+
+  const DEFAULT_SHEET_URL = "";
 
   // Google Sheets state
   const [sheetUrl, setSheetUrl] = useState(DEFAULT_SHEET_URL);
@@ -95,14 +125,10 @@ export default function Import() {
   const [tabs, setTabs] = useState<string[] | null>(null);
   const [tabsLoading, setTabsLoading] = useState(false);
   const [sheetGid, setSheetGid] = useState<string | null>(null);
-  const [checkedInOnly, setCheckedInOnly] = useState(false);
   const [sheetsResult, setSheetsResult] = useState<ImportResult | null>(null);
   const [sheetsError, setSheetsError] = useState<string | null>(null);
-  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
-  const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Extract sheet ID from URL to detect valid URLs
   function extractSheetId(input: string): string | null {
     const trimmed = input.trim();
     if (/^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) return trimmed;
@@ -110,7 +136,6 @@ export default function Import() {
     return match ? match[1] : null;
   }
 
-  // Fetch tabs whenever a valid sheet URL is entered
   useEffect(() => {
     const id = extractSheetId(sheetUrl);
     if (!id) { setTabs(null); return; }
@@ -118,7 +143,7 @@ export default function Import() {
     setTabs(null);
     setSheetName("");
     const params = new URLSearchParams({ sheetUrl: sheetUrl.trim() });
-    fetch(`${import.meta.env.BASE_URL}api/sync/sheets/tabs?${params}`)
+    fetch(`${API_BASE}/api/sync/sheets/tabs?${params}`)
       .then((r) => r.json())
       .then((data: { tabs?: string[]; gid?: string }) => { setTabs(data.tabs ?? []); setSheetGid(data.gid ?? null); })
       .catch(() => { setTabs([]); })
@@ -133,7 +158,7 @@ export default function Import() {
 
   const clearAllPlayers = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/players/all`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/players/all`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to clear players");
     },
     onSuccess: () => {
@@ -154,11 +179,24 @@ export default function Import() {
     reader.readAsText(file);
   };
 
+  const handleCoachFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => setCoachCsvText(e.target?.result as string);
+    reader.readAsText(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file?.type === "text/csv" || file?.name.endsWith(".csv")) handleFile(file);
+  };
+
+  const handleCoachDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setCoachDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type === "text/csv" || file?.name.endsWith(".csv")) handleCoachFile(file);
   };
 
   const handleCsvImport = () => {
@@ -172,31 +210,51 @@ export default function Import() {
     );
   };
 
-  // Load saved settings on mount
+  const handleCoachImport = async () => {
+    if (!coachCsvText.trim()) return;
+    setCoachImporting(true);
+    setCoachResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/coaches/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csvData: coachCsvText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCoachResult({ imported: 0, updated: 0, errors: [data.error ?? "Import failed."] });
+      } else {
+        setCoachResult(data);
+      }
+    } catch {
+      setCoachResult({ imported: 0, updated: 0, errors: ["Could not reach server. Try again."] });
+    } finally {
+      setCoachImporting(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}api/settings`)
+    fetch(`${API_BASE}/api/settings`)
       .then((r) => r.json())
       .then((data: Record<string, string>) => {
         if (data.sheetUrl) setSheetUrl(data.sheetUrl); else setSheetUrl(DEFAULT_SHEET_URL);
         if (data.sheetName) setSheetName(data.sheetName);
-        if (data.checkedInOnly) setCheckedInOnly(data.checkedInOnly === "true");
       })
       .catch(() => {})
       .finally(() => setSettingsLoaded(true));
   }, []);
 
-  // Save settings whenever URL/name/mode changes (debounced)
   useEffect(() => {
     if (!settingsLoaded) return;
     const t = setTimeout(() => {
-      fetch(`${import.meta.env.BASE_URL}api/settings`, {
+      fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheetUrl, sheetName, checkedInOnly: String(checkedInOnly) }),
+        body: JSON.stringify({ sheetUrl, sheetName }),
       }).catch(() => {});
     }, 800);
     return () => clearTimeout(t);
-  }, [sheetUrl, sheetName, checkedInOnly, settingsLoaded]);
+  }, [sheetUrl, sheetName, settingsLoaded]);
 
   const hasMultipleTabs = tabs && tabs.length > 1;
   const canSync = sheetUrl.trim() && !tabsLoading && (!hasMultipleTabs || sheetName.trim());
@@ -205,9 +263,9 @@ export default function Import() {
     if (!sheetUrl.trim()) return;
     setSheetsError(null);
     syncSheets.mutate(
-      { data: { sheetUrl: sheetUrl.trim(), ...(sheetName.trim() ? { sheetName: sheetName.trim() } : {}), ...(sheetGid ? { gid: sheetGid } : {}), ...(checkedInOnly ? { checkedInOnly: true } : {}) } },
+      { data: { sheetUrl: sheetUrl.trim(), ...(sheetName.trim() ? { sheetName: sheetName.trim() } : {}), ...(sheetGid ? { gid: sheetGid } : {}) } },
       {
-        onSuccess: (data) => { setSheetsResult(data); setLastSyncAt(new Date()); invalidateAll(); },
+        onSuccess: (data) => { setSheetsResult(data); invalidateAll(); },
         onError: (err: unknown) => {
           const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
             ?? "Sync failed. Check that the sheet is shared with your connected Google account.";
@@ -215,32 +273,22 @@ export default function Import() {
         },
       }
     );
-  }, [sheetUrl, sheetName, sheetGid, checkedInOnly, syncSheets]);
+  }, [sheetUrl, sheetName, sheetGid, syncSheets]);
 
-  // Auto-sync every 60s when tryout day mode is on
-  useEffect(() => {
-    if (autoSyncRef.current) clearInterval(autoSyncRef.current);
-    if (checkedInOnly && sheetUrl.trim()) {
-      autoSyncRef.current = setInterval(() => {
-        handleSheetsSync();
-      }, 60_000);
-    }
-    return () => { if (autoSyncRef.current) clearInterval(autoSyncRef.current); };
-  }, [checkedInOnly, sheetUrl, handleSheetsSync]);
 
   const lineCount = csvText.trim().split("\n").filter(Boolean).length;
   const dataRows = Math.max(0, lineCount - 1);
+  const coachLineCount = coachCsvText.trim().split("\n").filter(Boolean).length;
+  const coachDataRows = Math.max(0, coachLineCount - 1);
 
   return (
     <div className="flex flex-col h-full overflow-auto bg-background">
       <div className="flex-none p-6 pb-4 border-b">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">Import Players</h1>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Import</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Sync from Google Sheets or upload a CSV. Jersey number is the unique key — existing players are updated, not duplicated. Evaluation scores are never overwritten.
+              Load players and coaches from CSV templates or Google Sheets. Existing records are updated, not duplicated.
             </p>
           </div>
           <div className="flex-shrink-0">
@@ -257,12 +305,7 @@ export default function Import() {
             ) : (
               <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/40 bg-destructive/5">
                 <span className="text-sm font-semibold text-destructive">Delete all {playerStats?.totalPlayers ?? "..."} players and their eval scores?</span>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => clearAllPlayers.mutate()}
-                  disabled={clearAllPlayers.isPending}
-                >
+                <Button size="sm" variant="destructive" onClick={() => clearAllPlayers.mutate()} disabled={clearAllPlayers.isPending}>
                   {clearAllPlayers.isPending ? "Deleting…" : "Yes, delete all"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirmClear(false)}>Cancel</Button>
@@ -272,228 +315,270 @@ export default function Import() {
         </div>
       </div>
 
-      <div className="p-6 space-y-8 max-w-3xl">
+      <div className="p-6 space-y-10 max-w-3xl">
 
-        {/* ── Google Sheets Sync ── */}
-        <Card className="border-2 border-green-200 bg-green-50/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base font-bold">
-              <Sheet className="h-5 w-5 text-green-700" />
-              Google Sheets Sync
-              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-xs font-bold">Connected</Badge>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Paste your Google Sheet URL below, then click <strong>Sync Now</strong>.
-            </p>
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 mt-1">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
-              <span>
-                <strong>Required:</strong> In Google Sheets, click <strong>Share</strong> → set access to <strong>"Anyone with the link"</strong> (Viewer). The sync will not work without this setting.
-              </span>
+        {/* ── Players Section ── */}
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Players</h2>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Sheet URL or ID</label>
-              <div className="relative">
-                <Input
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  value={sheetUrl}
-                  onChange={(e) => { setSheetUrl(e.target.value); setSheetsError(null); setSheetsResult(null); }}
-                  className="font-mono text-sm pr-8"
-                />
-                {tabsLoading && (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground absolute right-2.5 top-2.5" />
-                )}
-              </div>
-            </div>
-            {extractSheetId(sheetUrl) && (
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">
-                  Tab / Sheet
-                  {hasMultipleTabs && <span className="text-destructive ml-1">*</span>}
-                  {!hasMultipleTabs && <span className="text-muted-foreground font-normal ml-1">(optional — defaults to first tab)</span>}
-                </label>
-                {tabsLoading ? (
-                  <div className="h-9 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading tabs…
-                  </div>
-                ) : tabs && tabs.length > 1 ? (
-                  <>
-                    <Select value={sheetName} onValueChange={setSheetName}>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Select a tab…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tabs.map((t) => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!sheetName && (
-                      <p className="text-xs text-destructive">Please select a tab to import from.</p>
-                    )}
-                  </>
-                ) : (
-                  <Input
-                    placeholder="e.g. Players"
-                    value={sheetName}
-                    onChange={(e) => setSheetName(e.target.value)}
-                    className="text-sm"
-                  />
-                )}
-              </div>
-            )}
-
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
-              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>Expected columns: <code className="font-mono bg-blue-100 px-1 rounded">jerseyNumber</code>, <code className="font-mono bg-blue-100 px-1 rounded">name</code>, <code className="font-mono bg-blue-100 px-1 rounded">position</code> (required) + <code className="font-mono bg-blue-100 px-1 rounded">checkedIn</code>, <code className="font-mono bg-blue-100 px-1 rounded">height</code>, <code className="font-mono bg-blue-100 px-1 rounded">standingReachInches</code>, <code className="font-mono bg-blue-100 px-1 rounded">verticalJump</code> (optional)</span>
-            </div>
-
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <div
-                role="checkbox"
-                aria-checked={checkedInOnly}
-                tabIndex={0}
-                onClick={() => setCheckedInOnly((v) => !v)}
-                onKeyDown={(e) => e.key === " " && setCheckedInOnly((v) => !v)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${checkedInOnly ? "bg-green-600" : "bg-gray-300"}`}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${checkedInOnly ? "translate-x-5" : ""}`} />
-              </div>
-              <span className="text-sm font-medium text-gray-700">
-                Tryout day mode — import checked-in players only
-              </span>
-            </label>
-
-            {checkedInOnly && sheetUrl.trim() && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-100 border border-green-200 text-xs text-green-800">
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                <span className="font-semibold">Auto-syncing every 60 seconds</span>
-                {lastSyncAt && (
-                  <span className="ml-auto flex items-center gap-1 text-green-700">
-                    <Clock className="h-3 w-3" />
-                    Last: {lastSyncAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                  </span>
-                )}
-              </div>
-            )}
-
             <Button
-              className="w-full h-11 font-bold bg-green-700 hover:bg-green-800 text-white"
-              disabled={!canSync || syncSheets.isPending}
-              onClick={handleSheetsSync}
+              variant="outline"
+              size="sm"
+              className="gap-2 font-semibold"
+              onClick={() => downloadCsv("players-template.csv", PLAYER_TEMPLATE)}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncSheets.isPending ? "animate-spin" : ""}`} />
-              {syncSheets.isPending ? "Syncing from Google Sheets..." : "Sync Now"}
+              <Download className="h-4 w-4" />
+              Download Template
             </Button>
-
-            {sheetsError && (
-              <div className="flex items-start gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-sm text-red-800">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                {sheetsError}
-              </div>
-            )}
-            {sheetsResult && <ResultCard result={sheetsResult} />}
-          </CardContent>
-        </Card>
-
-        {/* ── CSV Import ── */}
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-bold">CSV Import</h2>
-            <p className="text-sm text-muted-foreground">Paste CSV data or upload a file.</p>
           </div>
 
+          {/* Google Sheets Sync */}
+          <Card className="border-2 border-green-200 bg-green-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-bold">
+                <Sheet className="h-5 w-5 text-green-700" />
+                Google Sheets Sync
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-xs font-bold">Connected</Badge>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Paste your Google Sheet URL and click Sync Now.</p>
+              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 mt-1">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
+                <span><strong>Required:</strong> In Google Sheets, click <strong>Share</strong> → set access to <strong>"Anyone with the link"</strong> (Viewer).</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Sheet URL or ID</label>
+                <div className="relative">
+                  <Input
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    value={sheetUrl}
+                    onChange={(e) => { setSheetUrl(e.target.value); setSheetsError(null); setSheetsResult(null); }}
+                    className="font-mono text-sm pr-8"
+                  />
+                  {tabsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground absolute right-2.5 top-2.5" />}
+                </div>
+              </div>
+              {extractSheetId(sheetUrl) && (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">
+                    Tab / Sheet
+                    {hasMultipleTabs && <span className="text-destructive ml-1">*</span>}
+                    {!hasMultipleTabs && <span className="text-muted-foreground font-normal ml-1">(optional — defaults to first tab)</span>}
+                  </label>
+                  {tabsLoading ? (
+                    <div className="h-9 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading tabs…
+                    </div>
+                  ) : tabs && tabs.length > 1 ? (
+                    <>
+                      <Select value={sheetName} onValueChange={setSheetName}>
+                        <SelectTrigger className="text-sm"><SelectValue placeholder="Select a tab…" /></SelectTrigger>
+                        <SelectContent>
+                          {tabs.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {!sheetName && <p className="text-xs text-destructive">Please select a tab to import from.</p>}
+                    </>
+                  ) : (
+                    <Input placeholder="e.g. Players" value={sheetName} onChange={(e) => setSheetName(e.target.value)} className="text-sm" />
+                  )}
+                </div>
+              )}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-800">
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>Expected columns: <code className="font-mono bg-blue-100 px-1 rounded">jerseyNumber</code>, <code className="font-mono bg-blue-100 px-1 rounded">name</code>, <code className="font-mono bg-blue-100 px-1 rounded">position</code> (required) + <code className="font-mono bg-blue-100 px-1 rounded">age</code>, <code className="font-mono bg-blue-100 px-1 rounded">height</code>, <code className="font-mono bg-blue-100 px-1 rounded">standingReachInches</code>, <code className="font-mono bg-blue-100 px-1 rounded">verticalJump</code> (optional)</span>
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
+                <span>Sync before your tryout starts — not during. Re-syncing mid-tryout can overwrite player names and jersey numbers.</span>
+              </div>
+              <Button className="w-full h-11 font-bold bg-green-700 hover:bg-green-800 text-white" disabled={!canSync || syncSheets.isPending} onClick={handleSheetsSync}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncSheets.isPending ? "animate-spin" : ""}`} />
+                {syncSheets.isPending ? "Syncing from Google Sheets..." : "Sync Now"}
+              </Button>
+              {sheetsError && (
+                <div className="flex items-start gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-sm text-red-800">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />{sheetsError}
+                </div>
+              )}
+              {sheetsResult && <ResultCard result={sheetsResult} />}
+            </CardContent>
+          </Card>
+
+          {/* Player CSV Upload */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold">Expected Columns</CardTitle>
+              <CardTitle className="text-base font-bold">CSV Upload</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Upload the players template or any CSV with the required columns.
+              </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {[
                   { name: "jerseyNumber", required: true },
                   { name: "name", required: true },
                   { name: "position", required: true },
-                  { name: "checkedIn", required: false },
+                  { name: "age", required: false },
                   { name: "height", required: false },
                   { name: "standingReachInches", required: false },
                   { name: "verticalJump", required: false },
                 ].map((col) => (
                   <div key={col.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/60 border text-sm font-mono">
                     <span>{col.name}</span>
-                    {col.required ? (
-                      <Badge variant="default" className="text-xs px-1.5 py-0 h-4 bg-primary">required</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">optional</Badge>
-                    )}
+                    {col.required
+                      ? <Badge variant="default" className="text-xs px-1.5 py-0 h-4 bg-primary">required</Badge>
+                      : <Badge variant="outline" className="text-xs px-1.5 py-0 h-4">optional</Badge>}
                   </div>
                 ))}
               </div>
-              <div className="mt-3 text-xs text-muted-foreground space-y-1">
-                <div>Position values: <code className="bg-muted px-1 rounded">Setter</code>, <code className="bg-muted px-1 rounded">OutsideHitter</code>, <code className="bg-muted px-1 rounded">MiddleBlocker</code>, <code className="bg-muted px-1 rounded">Opposite</code>, <code className="bg-muted px-1 rounded">Libero</code></div>
-                <div>Also accepts: <code className="bg-muted px-1 rounded">OH</code>, <code className="bg-muted px-1 rounded">MB</code>, <code className="bg-muted px-1 rounded">OPP</code>, <code className="bg-muted px-1 rounded">S</code>, <code className="bg-muted px-1 rounded">L</code>, <code className="bg-muted px-1 rounded">DS</code></div>
+              <div className="text-xs text-muted-foreground">
+                Position values: <code className="bg-muted px-1 rounded">Setter</code>, <code className="bg-muted px-1 rounded">OutsideHitter</code>, <code className="bg-muted px-1 rounded">MiddleBlocker</code>, <code className="bg-muted px-1 rounded">Opposite</code>, <code className="bg-muted px-1 rounded">Libero</code> — also accepts <code className="bg-muted px-1 rounded">S</code>, <code className="bg-muted px-1 rounded">OH</code>, <code className="bg-muted px-1 rounded">MB</code>, <code className="bg-muted px-1 rounded">OPP</code>, <code className="bg-muted px-1 rounded">L</code>
               </div>
+
+              <div
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-semibold text-muted-foreground">Drop a CSV file here, or click to browse</p>
+                <p className="text-xs text-muted-foreground mt-1">Only .csv files</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold">Or paste CSV data directly</label>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7"
+                      onClick={() => setCsvText(PLAYER_TEMPLATE)}>
+                      <FileText className="h-3.5 w-3.5 mr-1" /> Load sample
+                    </Button>
+                    {csvText && (
+                      <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7"
+                        onClick={() => { setCsvText(""); setCsvResult(null); }}>
+                        <X className="h-3.5 w-3.5 mr-1" /> Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <Textarea
+                  value={csvText}
+                  onChange={(e) => { setCsvText(e.target.value); setCsvResult(null); }}
+                  placeholder={"jerseyNumber,name,position,age,height\n1,Jane Smith,Setter,16,68\n..."}
+                  className="font-mono text-sm min-h-[160px] resize-y"
+                />
+                {csvText && <p className="text-xs text-muted-foreground">{lineCount} lines — {dataRows} data row{dataRows !== 1 ? "s" : ""} detected</p>}
+              </div>
+
+              <Button className="w-full h-12 text-base font-bold" disabled={!csvText.trim() || importCsv.isPending} onClick={handleCsvImport}>
+                <Upload className={`h-5 w-5 mr-2 ${importCsv.isPending ? "animate-bounce" : ""}`} />
+                {importCsv.isPending ? "Importing..." : `Import ${dataRows > 0 ? `${dataRows} Player${dataRows !== 1 ? "s" : ""}` : "Players"}`}
+              </Button>
+
+              {csvResult && <ResultCard result={csvResult} />}
             </CardContent>
           </Card>
-
-          <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-              dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-            <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-            <p className="font-semibold text-muted-foreground">Drop a CSV file here, or click to browse</p>
-            <p className="text-xs text-muted-foreground mt-1">Only .csv files</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold">Or paste CSV data directly</label>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={() => setCsvText(SAMPLE_CSV)}>
-                  <FileText className="h-3.5 w-3.5 mr-1" /> Load sample
-                </Button>
-                {csvText && (
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={() => { setCsvText(""); setCsvResult(null); }}>
-                    <X className="h-3.5 w-3.5 mr-1" /> Clear
-                  </Button>
-                )}
-              </div>
-            </div>
-            <Textarea
-              value={csvText}
-              onChange={(e) => { setCsvText(e.target.value); setCsvResult(null); }}
-              placeholder={"jerseyNumber,name,position,checkedIn,height,standingReachInches,verticalJump\n1,Jane Smith,Setter,true,68,84,24\n..."}
-              className="font-mono text-sm min-h-[200px] resize-y"
-            />
-            {csvText && (
-              <p className="text-xs text-muted-foreground">{lineCount} lines — {dataRows} data row{dataRows !== 1 ? "s" : ""} detected</p>
-            )}
-          </div>
-
-          <Button
-            className="w-full h-12 text-base font-bold"
-            disabled={!csvText.trim() || importCsv.isPending}
-            onClick={handleCsvImport}
-          >
-            <Upload className={`h-5 w-5 mr-2 ${importCsv.isPending ? "animate-bounce" : ""}`} />
-            {importCsv.isPending ? "Importing..." : `Import ${dataRows > 0 ? `${dataRows} Row${dataRows !== 1 ? "s" : ""}` : "CSV"}`}
-          </Button>
-
-          {csvResult && <ResultCard result={csvResult} />}
         </div>
+
+        {/* ── Coaches Section ── */}
+        <div className="space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold">Coaches</h2>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 font-semibold"
+              onClick={() => downloadCsv("coaches-template.csv", COACH_TEMPLATE)}
+            >
+              <Download className="h-4 w-4" />
+              Download Template
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold">CSV Upload</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Upload the coaches template. Coaches are matched by name — re-importing updates their role.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { name: "name", required: true },
+                  { name: "teamName", required: true },
+                ].map((col) => (
+                  <div key={col.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted/60 border text-sm font-mono">
+                    <span>{col.name}</span>
+                    <Badge variant="default" className="text-xs px-1.5 py-0 h-4 bg-primary">required</Badge>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Role values: <code className="bg-muted px-1 rounded">Evaluator</code>, <code className="bg-muted px-1 rounded">Court Coach</code>, <code className="bg-muted px-1 rounded">Head Coach</code>, <code className="bg-muted px-1 rounded">Assistant Coach</code>, <code className="bg-muted px-1 rounded">Staff</code>
+              </div>
+
+              <div
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${coachDragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"}`}
+                onDragOver={(e) => { e.preventDefault(); setCoachDragOver(true); }}
+                onDragLeave={() => setCoachDragOver(false)}
+                onDrop={handleCoachDrop}
+                onClick={() => coachFileInputRef.current?.click()}
+              >
+                <input ref={coachFileInputRef} type="file" accept=".csv,text/csv" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoachFile(f); }} />
+                <Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-semibold text-muted-foreground">Drop a CSV file here, or click to browse</p>
+                <p className="text-xs text-muted-foreground mt-1">Only .csv files</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold">Or paste CSV data directly</label>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7"
+                      onClick={() => setCoachCsvText(COACH_TEMPLATE)}>
+                      <FileText className="h-3.5 w-3.5 mr-1" /> Load sample
+                    </Button>
+                    {coachCsvText && (
+                      <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7"
+                        onClick={() => { setCoachCsvText(""); setCoachResult(null); }}>
+                        <X className="h-3.5 w-3.5 mr-1" /> Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <Textarea
+                  value={coachCsvText}
+                  onChange={(e) => { setCoachCsvText(e.target.value); setCoachResult(null); }}
+                  placeholder={"name,teamName\nSarah Johnson,Evaluator\nMike Chen,Court Coach\n..."}
+                  className="font-mono text-sm min-h-[120px] resize-y"
+                />
+                {coachCsvText && <p className="text-xs text-muted-foreground">{coachLineCount} lines — {coachDataRows} data row{coachDataRows !== 1 ? "s" : ""} detected</p>}
+              </div>
+
+              <Button className="w-full h-12 text-base font-bold" disabled={!coachCsvText.trim() || coachImporting} onClick={handleCoachImport}>
+                <Upload className={`h-5 w-5 mr-2 ${coachImporting ? "animate-bounce" : ""}`} />
+                {coachImporting ? "Importing..." : `Import ${coachDataRows > 0 ? `${coachDataRows} Coach${coachDataRows !== 1 ? "es" : ""}` : "Coaches"}`}
+              </Button>
+
+              {coachResult && <ResultCard result={coachResult} noun="coach" />}
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
     </div>
   );

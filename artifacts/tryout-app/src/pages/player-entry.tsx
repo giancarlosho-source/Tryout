@@ -6,6 +6,12 @@ import { positionLabel, positionColor } from "@/lib/positions";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
+// Read club slug (or fallback clubId) from URL so self-registration goes to the right club
+const _urlParams = new URLSearchParams(window.location.search);
+const _urlClub = _urlParams.get("club");
+const _urlClubId = _urlParams.get("clubId");
+const registerUrl = `${API_BASE}/register${_urlClub ? `?club=${_urlClub}` : _urlClubId ? `?clubId=${_urlClubId}` : ""}`;
+
 type ActiveSession = { event: string; date: string } | null;
 type PlayerRow = {
   id: number;
@@ -69,7 +75,7 @@ export default function PlayerEntry() {
             const nameMatch =
               p.name.toLowerCase().includes(search.toLowerCase()) ||
               (p.jerseyNumber ?? "").includes(search);
-            const ageMatch = sessionAge ? (p.age ?? "") === sessionAge : true;
+            const ageMatch = sessionAge ? (p.age ?? "").replace(/U$/i, "") === sessionAge : true;
             return nameMatch && ageMatch;
           })
           .slice(0, 8)
@@ -216,7 +222,7 @@ export default function PlayerEntry() {
             <div className="text-center py-8 space-y-4">
               <p className="text-muted-foreground font-semibold">Not found in the system</p>
               <a
-                href="/register"
+                href={registerUrl}
                 className="inline-block px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors"
               >
                 Register as a new player →
@@ -227,7 +233,7 @@ export default function PlayerEntry() {
           {search.trim().length < 2 && (
             <p className="text-center text-xs text-muted-foreground pt-2">
               First time here?{" "}
-              <a href="/register" className="text-primary font-semibold underline">
+              <a href={registerUrl} className="text-primary font-semibold underline">
                 Register here
               </a>
             </p>

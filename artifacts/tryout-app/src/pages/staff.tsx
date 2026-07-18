@@ -28,6 +28,7 @@ const STATION_ROLES = [
   { value: "checkin", label: "Check-In station" },
   { value: "photo", label: "Photo station" },
   { value: "measurements", label: "Measurements station" },
+  { value: "video", label: "Video station" },
 ];
 
 type CoachEntry = {

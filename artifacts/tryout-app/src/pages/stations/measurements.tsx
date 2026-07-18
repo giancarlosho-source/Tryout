@@ -21,11 +21,11 @@ export default function MeasurementsStation() {
   const { data: allPlayers } = useListPlayers({});
 
   const players = sessionAge
-    ? (allPlayers ?? []).filter((p) => (p.age ?? "") === sessionAge)
+    ? (allPlayers ?? []).filter((p) => (p.age ?? "").replace(/U$/i, "") === sessionAge)
     : (allPlayers ?? []);
 
   const filtered = search.trim().length > 0
-    ? sessionPlayers.filter((p) =>
+    ? players.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.jerseyNumber ?? "").includes(search)
       )

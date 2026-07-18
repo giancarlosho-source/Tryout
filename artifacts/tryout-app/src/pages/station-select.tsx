@@ -98,6 +98,7 @@ export default function StationSelect() {
         photo: "/station/photo",
         checkin: "/station/checkin",
         measurements: "/station/measurements",
+        video: "/station/video",
       };
       navigate(roleRoutes[data.role] ?? "/station/evaluation");
     } catch {

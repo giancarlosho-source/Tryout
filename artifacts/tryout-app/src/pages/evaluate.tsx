@@ -14,7 +14,7 @@ const UNIVERSAL_SKILLS = [
 ];
 
 const POSITION_SKILLS: Record<string, string[]> = {
-  Setter: ["Hands", "Location", "Decision-making", "Tempo", "Leadership"],
+  Setter: ["Setting", "Location", "Decision-making", "Tempo", "Leadership"],
   OutsideHitter: ["Serve receive", "Attacking", "Defense", "Transition", "All-around value"],
   MiddleBlocker: ["Blocking", "Lateral movement", "Quick attack", "Footwork", "Court awareness"],
   Opposite: ["Attacking", "Blocking", "Serving", "Back-row value", "Physical upside"],
@@ -71,6 +71,7 @@ function SkillRow({
   onScore,
   saving,
   saved,
+  scale,
 }: {
   skill: string;
   category: "universal" | "position";
@@ -78,7 +79,9 @@ function SkillRow({
   onScore: (skill: string, category: "universal" | "position", score: number) => void;
   saving: boolean;
   saved: boolean;
+  scale: 5 | 10;
 }) {
+  const values = Array.from({ length: scale }, (_, i) => i + 1);
   return (
     <div className="py-4 border-b last:border-0">
       <div className="flex items-center justify-between mb-3">
@@ -90,12 +93,12 @@ function SkillRow({
         </div>
         {currentScore != null && (
           <Badge variant="outline" className="font-black text-base px-3 py-1 tabular-nums">
-            {currentScore}/10
+            {currentScore}/{scale}
           </Badge>
         )}
       </div>
-      <div className="grid grid-cols-10 gap-1.5">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
+      <div className="grid grid-cols-5 gap-1.5">
+        {values.map((v) => (
           <ScoreButton
             key={v}
             value={v}
@@ -139,6 +142,7 @@ export default function Evaluate() {
 
   const [scores, setScores] = useState<Record<string, number>>({});
   const [savedSkills, setSavedSkills] = useState<Set<string>>(new Set());
+  const [scale, setScale] = useState<5 | 10>(5);
 
   const queue = readQueue();
   const coachName = queue?.coachName ?? null;
@@ -326,21 +330,34 @@ export default function Evaluate() {
 
       <div className="flex-1 overflow-auto">
         <Tabs defaultValue="universal" className="h-full flex flex-col">
-          <div className="flex-none px-6 pt-4 border-b">
-            <TabsList className="bg-muted/50">
-              <TabsTrigger value="universal" className="px-6 py-2 font-semibold">
-                Universal Skills
-                {universalDone === UNIVERSAL_SKILLS.length && (
-                  <CheckCircle2 className="h-3.5 w-3.5 ml-2 text-green-500" />
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="position" className="px-6 py-2 font-semibold">
-                {POSITION_LABELS[primaryPosition] || primaryPosition || "Position"} Skills
-                {positionDone === positionSkills.length && positionSkills.length > 0 && (
-                  <CheckCircle2 className="h-3.5 w-3.5 ml-2 text-green-500" />
-                )}
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex-none px-6 pt-4 border-b space-y-3">
+            <div className="flex items-center justify-between">
+              <TabsList className="bg-muted/50">
+                <TabsTrigger value="universal" className="px-6 py-2 font-semibold">
+                  Universal Skills
+                  {universalDone === UNIVERSAL_SKILLS.length && (
+                    <CheckCircle2 className="h-3.5 w-3.5 ml-2 text-green-500" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="position" className="px-6 py-2 font-semibold">
+                  {POSITION_LABELS[primaryPosition] || primaryPosition || "Position"} Skills
+                  {positionDone === positionSkills.length && positionSkills.length > 0 && (
+                    <CheckCircle2 className="h-3.5 w-3.5 ml-2 text-green-500" />
+                  )}
+                </TabsTrigger>
+              </TabsList>
+              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                {([5, 10] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setScale(s)}
+                    className={`px-3 py-1 rounded-md text-sm font-bold transition-all ${scale === s ? "bg-white shadow-sm text-foreground" : "text-muted-foreground"}`}
+                  >
+                    1–{s}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <TabsContent value="universal" className="flex-1 overflow-auto mt-0 px-6">
@@ -354,6 +371,7 @@ export default function Evaluate() {
                   onScore={handleScore}
                   saving={upsert.isPending}
                   saved={savedSkills.has(`universal:${skill}`)}
+                  scale={scale}
                 />
               ))}
             </div>
@@ -373,6 +391,7 @@ export default function Evaluate() {
                     onScore={handleScore}
                     saving={upsert.isPending}
                     saved={savedSkills.has(`position:${skill}`)}
+                    scale={scale}
                   />
                 ))
               )}

@@ -14,14 +14,14 @@ export default function CheckInStation() {
   const queryClient = useQueryClient();
   const updatePlayer = useUpdatePlayer();
 
-  const { data: players } = useListPlayers({});
+  const { data: allPlayers } = useListPlayers({});
 
-  const sessionPlayers = sessionAge
-    ? (players ?? []).filter((p) => (p.age ?? "") === sessionAge)
-    : (players ?? []);
+  const players = sessionAge
+    ? (allPlayers ?? []).filter((p) => (p.age ?? "").replace(/U$/i, "") === sessionAge)
+    : (allPlayers ?? []);
 
   const filtered = search.trim().length > 0
-    ? sessionPlayers.filter((p) =>
+    ? players.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.jerseyNumber ?? "").includes(search)
       )

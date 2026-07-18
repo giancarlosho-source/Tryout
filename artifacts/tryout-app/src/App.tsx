@@ -28,6 +28,7 @@ import CheckInStation from "./pages/stations/checkin";
 import PhotoStation from "./pages/stations/photo";
 import MeasurementsStation from "./pages/stations/measurements";
 import EvaluationStation from "./pages/stations/evaluation";
+import VideoStation from "./pages/stations/video";
 import Compare from "./pages/compare";
 import Coverage from "./pages/coverage";
 import BulkCheckIn from "./pages/bulk-checkin";
@@ -317,6 +318,7 @@ function App() {
             <Route path="/station/photo" component={PhotoStation} />
             <Route path="/station/measurements" component={MeasurementsStation} />
             <Route path="/station/evaluation" component={EvaluationStation} />
+            <Route path="/station/video" component={VideoStation} />
             <Route path="/station/:slug" component={StationSelect} />
             <Route path="/station" component={StationSelect} />
             <Route path="/server" component={ServerView} />

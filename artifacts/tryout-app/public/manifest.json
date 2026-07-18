@@ -1,0 +1,18 @@
+{
+  "name": "TryoutDesk",
+  "short_name": "TryoutDesk",
+  "description": "Volleyball tryout management stations",
+  "start_url": "/station",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/tribe-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

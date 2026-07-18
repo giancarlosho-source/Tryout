@@ -7,7 +7,8 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "deploy": "vercel env pull --environment production --yes && vercel build --prod && vercel deploy --prebuilt --prod 2>&1 | tee /tmp/vdeploy.out && vercel alias set $(grep '\"url\"' /tmp/vdeploy.out | head -1 | sed 's/.*\"url\": \"https:\\/\\///' | sed 's/\".*//' ) app.tryoutdesk.com --scope tryout-desk"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

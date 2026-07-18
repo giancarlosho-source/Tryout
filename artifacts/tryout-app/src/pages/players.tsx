@@ -15,7 +15,7 @@ const HELP = {
     "Players marked as checked in show a green badge. Use this to verify attendance at a glance.",
   ],
 };
-import { useListPlayers, useCreatePlayer, getListPlayersQueryKey } from "@workspace/api-client-react";
+import { useListPlayers, useCreatePlayer, useUpdatePlayer, getListPlayersQueryKey } from "@workspace/api-client-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,6 +75,15 @@ export default function Players() {
   const [coachNameInput, setCoachNameInput] = useState("");
   const [pendingQueue, setPendingQueue] = useState<{ ids: number[]; label: string } | null>(null);
   const coachInputRef = useRef<HTMLInputElement>(null);
+
+  const updatePlayer = useUpdatePlayer();
+  const [editingPositionId, setEditingPositionId] = useState<number | null>(null);
+
+  const setPosition = async (playerId: number, position: string) => {
+    await updatePlayer.mutateAsync({ id: playerId, data: { position } });
+    queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey({}) });
+    setEditingPositionId(null);
+  };
 
   const { data: players, isLoading } = useListPlayers({
     position: positionFilter !== "All" ? positionFilter : undefined,
@@ -288,24 +297,41 @@ export default function Players() {
                         {player.name}
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        <Badge
-                          variant="secondary"
-                          className={`font-semibold border w-fit ${
-                            onRoster
-                              ? "bg-muted text-muted-foreground border-border"
-                              : positionColor(player.position)
-                          }`}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {editingPositionId === player.id ? (
+                        <select
+                          autoFocus
+                          className="text-xs border rounded px-1 py-0.5 bg-background"
+                          defaultValue={primaryPosition(player.position) ?? ""}
+                          onBlur={() => setEditingPositionId(null)}
+                          onChange={(e) => { if (e.target.value) setPosition(player.id, e.target.value); }}
                         >
-                          {positionLabel(player.position)}
-                        </Badge>
-                        {secondaryPosition(player.position) && (
-                          <span className="text-[10px] text-muted-foreground/60 font-medium pl-0.5">
-                            +{POSITION_LABELS[secondaryPosition(player.position)!] || secondaryPosition(player.position)}
-                          </span>
-                        )}
-                      </div>
+                          <option value="">— pick —</option>
+                          {Object.entries(POSITION_LABELS).map(([k, v]) => (
+                            <option key={k} value={k}>{v}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <Badge
+                            variant="secondary"
+                            title="Click to edit position"
+                            onClick={() => setEditingPositionId(player.id)}
+                            className={`font-semibold border w-fit cursor-pointer hover:opacity-80 ${
+                              onRoster
+                                ? "bg-muted text-muted-foreground border-border"
+                                : positionColor(player.position)
+                            }`}
+                          >
+                            {positionLabel(player.position)}
+                          </Badge>
+                          {secondaryPosition(player.position) && (
+                            <span className="text-[10px] text-muted-foreground/60 font-medium pl-0.5">
+                              +{POSITION_LABELS[secondaryPosition(player.position)!] || secondaryPosition(player.position)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-center text-sm font-medium tabular-nums text-muted-foreground">
                       {player.age ?? <span className="text-muted-foreground/30">—</span>}
@@ -397,7 +423,13 @@ export default function Players() {
               </div>
               <div className="flex-1">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Age Group</label>
-                <Input value={npAge} onChange={(e) => setNpAge(e.target.value)} placeholder="e.g. 16U" className="mt-1" />
+                <select value={npAge} onChange={(e) => setNpAge(e.target.value)}
+                  className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring">
+                  <option value="">— Select —</option>
+                  {["10U","11U","12U","13U","14U","15U","16U","17U","18U"].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div>

@@ -26,15 +26,17 @@ const FLAG_STYLES: Record<string, { color: string; icon: typeof Zap }> = {
 };
 
 function ScoreBar({ label, score }: { label: string; score: number }) {
-  const pct = (score / 10) * 100;
-  const color = score >= 8 ? "bg-green-500" : score >= 6 ? "bg-yellow-500" : "bg-red-500";
+  const max = score > 5 ? 10 : 5;
+  const pct = (score / max) * 100;
+  const pctNorm = pct;
+  const color = pctNorm >= 80 ? "bg-green-500" : pctNorm >= 60 ? "bg-yellow-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-3">
       <div className="w-36 text-sm font-medium shrink-0">{label}</div>
       <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <div className="w-10 text-right text-sm font-black tabular-nums">{score.toFixed(1)}</div>
+      <div className="w-14 text-right text-sm font-black tabular-nums">{score.toFixed(1)}/{max}</div>
     </div>
   );
 }
@@ -122,7 +124,7 @@ function CoachBreakdown({
                   {coachEvals.sort((a, b) => a.skill.localeCompare(b.skill)).map((e) => (
                     <div key={e.id} className="flex items-center gap-2">
                       <div className="flex-1 text-xs text-muted-foreground truncate">{e.skill}</div>
-                      <div className={`text-sm font-black tabular-nums w-6 text-right ${e.score >= 8 ? "text-green-600" : e.score >= 5 ? "text-yellow-600" : "text-red-500"}`}>
+                      <div className={`text-sm font-black tabular-nums w-6 text-right ${e.score >= 4 ? "text-green-600" : e.score >= 3 ? "text-yellow-600" : "text-red-500"}`}>
                         {e.score}
                       </div>
                     </div>
@@ -138,12 +140,12 @@ function CoachBreakdown({
 }
 
 function ConfidencePip({ score }: { score: number }) {
-  const level = score >= 7 ? "High" : score >= 4 ? "Medium" : "Low";
-  const color = score >= 7 ? "text-green-700 bg-green-50 border-green-200" : score >= 4 ? "text-yellow-700 bg-yellow-50 border-yellow-200" : "text-red-700 bg-red-50 border-red-200";
+  const level = score >= 4 ? "High" : score >= 2.5 ? "Medium" : "Low";
+  const color = score >= 4 ? "text-green-700 bg-green-50 border-green-200" : score >= 2.5 ? "text-yellow-700 bg-yellow-50 border-yellow-200" : "text-red-700 bg-red-50 border-red-200";
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold ${color}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${score >= 7 ? "bg-green-500" : score >= 4 ? "bg-yellow-500" : "bg-red-500"}`} />
-      {level} confidence ({score.toFixed(1)}/10)
+      <span className={`h-1.5 w-1.5 rounded-full ${score >= 4 ? "bg-green-500" : score >= 2.5 ? "bg-yellow-500" : "bg-red-500"}`} />
+      {level} confidence ({score.toFixed(1)}/5)
     </span>
   );
 }
@@ -183,8 +185,13 @@ export default function PlayerProfile() {
     setPhotoUploading(true);
     const form = new FormData();
     form.append("photo", file);
+    const token = localStorage.getItem("tryoutdesk_token") ?? "";
     try {
-      const res = await fetch(`${apiBase}/api/players/${playerId}/photo`, { method: "POST", body: form });
+      const res = await fetch(`${apiBase}/api/players/${playerId}/photo`, {
+        method: "POST",
+        body: form,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setPhotoUrl(json.photoUrl);
@@ -270,7 +277,11 @@ export default function PlayerProfile() {
 
   const handlePhotoDelete = async () => {
     if (!playerId) return;
-    await fetch(`${apiBase}/api/players/${playerId}/photo`, { method: "DELETE" });
+    const token = localStorage.getItem("tryoutdesk_token") ?? "";
+    await fetch(`${apiBase}/api/players/${playerId}/photo`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     setPhotoUrl(null);
     queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(playerId) });
     toast({ title: "Photo removed" });
@@ -318,8 +329,40 @@ export default function PlayerProfile() {
   }
   if (!player) return <div className="p-6 text-muted-foreground">Player not found.</div>;
 
-  const universalEvals = player.evaluations?.filter((e) => e.category === "universal") ?? [];
-  const positionEvals = player.evaluations?.filter((e) => e.category === "position") ?? [];
+  // Canonical skill name (normalise legacy "Hands" → "Setting")
+  function canonicalSkill(skill: string) { return skill === "Hands" ? "Setting" : skill; }
+
+  // Valid skills per position (must match scoring.ts POSITION_SKILL_LIST)
+  const POSITION_SKILLS: Record<string, string[]> = {
+    Setter:        ["Setting", "Location", "Decision-making", "Tempo", "Leadership"],
+    OutsideHitter: ["Serve receive", "Attacking", "Defense", "Transition", "All-around value"],
+    MiddleBlocker: ["Blocking", "Lateral movement", "Quick attack", "Footwork", "Court awareness"],
+    Opposite:      ["Attacking", "Blocking", "Serving", "Back-row value", "Physical upside"],
+    Libero:        ["Passing", "Defense", "Reading hitters", "Serve receive", "Communication"],
+  };
+  const playerPrimaryPosition = player.position?.split("/")[0] ?? "";
+  const validPositionSkills = new Set(POSITION_SKILLS[playerPrimaryPosition] ?? []);
+
+  // Average scores across all coaches for each skill
+  function avgBySkill(evals: typeof player.evaluations) {
+    const map = new Map<string, number[]>();
+    for (const e of evals ?? []) {
+      const key = canonicalSkill(e.skill);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(e.score);
+    }
+    return Array.from(map.entries()).map(([skill, scores]) => ({
+      skill,
+      score: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10,
+      category: (evals ?? []).find((e) => canonicalSkill(e.skill) === skill)?.category ?? "",
+    }));
+  }
+
+  const universalEvals = avgBySkill((player.evaluations ?? []).filter((e) => e.category === "universal"));
+  // Only show position skills that belong to the player's actual position
+  const positionEvals = avgBySkill(
+    (player.evaluations ?? []).filter((e) => e.category === "position" && validPositionSkills.has(canonicalSkill(e.skill)))
+  );
   const missingMeasurements = !player.heightInches || !player.standingReachInches || !player.verticalJumpInches;
   const flags = (player.flags as string[] | null) ?? [];
 
@@ -339,7 +382,7 @@ export default function PlayerProfile() {
             >
               {effectivePhotoUrl ? (
                 <img
-                  src={`${apiBase}${effectivePhotoUrl}`}
+                  src={effectivePhotoUrl.startsWith("data:") ? effectivePhotoUrl : `${apiBase}${effectivePhotoUrl}`}
                   alt={player.name}
                   className="w-full h-full object-cover"
                 />
@@ -592,9 +635,9 @@ export default function PlayerProfile() {
             <CardContent className="p-4">
               <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Score Breakdown</div>
               <div className="flex flex-wrap gap-4 text-sm">
-                <span>Overall = <strong>Universal (40%)</strong> + <strong>Position (40%)</strong> + <strong>Physical (20%)</strong></span>
+                <span>Overall = <strong>Universal (50%)</strong> + <strong>Position (50%)</strong></span>
                 {player.physicalScore != null && (
-                  <span className="text-muted-foreground">Physical score is percentile-ranked against all {(player.physicalScore).toFixed(1) >= "5" ? "above-median" : "below-median"} athletes in the pool</span>
+                  <span className="text-muted-foreground">Physical score is shown separately — percentile-ranked vs. the pool</span>
                 )}
               </div>
             </CardContent>

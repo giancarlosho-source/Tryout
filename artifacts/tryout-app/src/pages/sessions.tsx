@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, Calendar, Download, QrCode, Pencil, Wifi, Smartphone, Copy, Check } from "lucide-react";
+import { CheckCircle2, Calendar, Download, QrCode, Pencil, Smartphone, Copy, Check, Globe } from "lucide-react";
 
 const HELP = {
   title: "Session Management",
@@ -7,18 +7,23 @@ const HELP = {
   steps: [
     { step: 1, text: "Click New Session and fill in the event name, date, and age group." },
     { step: 2, text: "Click Activate on a session to make it the live session on the iPads." },
-    { step: 3, text: "The QR code for the active session can be printed and posted at the door for player self check-in (coming soon)." },
+    { step: 3, text: "The QR code for the active session can be printed and posted at the door for player self check-in." },
     { step: 4, text: "Only one session can be active at a time. Activating a new one deactivates the previous." },
   ],
   tips: [
     "Set the session before players arrive so the iPads show the correct event and age group.",
     "If no session is active, the check-in iPad will show a warning banner.",
     "You can have sessions for different age groups (e.g. U14, U16) — run them one at a time.",
+    "Staff devices work from any network — no shared WiFi needed.",
   ],
 };
 import { useSession } from "@/contexts/session-context";
+import { useAdminAuth } from "@/components/password-gate";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+
+// Always use the deployed Vercel URL — works from any network, no tunnel needed
+const APP_URL = window.location.origin;
 
 const EVENT_PRESETS = [
   "12U Tryouts",
@@ -40,6 +45,7 @@ function todayISO() {
 
 export default function Sessions() {
   const { setSession: setGlobalSession } = useSession();
+  const { club } = useAdminAuth();
   const [active, setActive] = useState<ActiveSession>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -49,20 +55,16 @@ export default function Sessions() {
   const [customEvent, setCustomEvent] = useState("");
   const [useCustom, setUseCustom] = useState(false);
   const [date, setDate] = useState(todayISO());
-
-  // Network URL for QR (editable so user can correct if needed)
-  const [baseUrl, setBaseUrl] = useState(window.location.origin);
-  const [editingUrl, setEditingUrl] = useState(false);
-  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
-  const [localUrl, setLocalUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [qrReady, setQrReady] = useState(false);
 
-  const checkinUrl = `${baseUrl}/player`;
+  const clubParam = club?.slug ? `?club=${club.slug}` : club?.id ? `?clubId=${club.id}` : "";
+  const checkinUrl = `${APP_URL}/player${clubParam}`;
+  const stationUrl = `${APP_URL}/station${clubParam}`;
 
-  // Load active session and detect local network IP on mount
+  // Load active session on mount
   useEffect(() => {
     fetch(`${API_BASE}/api/settings`)
       .then((r) => r.json())
@@ -72,25 +74,9 @@ export default function Sessions() {
         }
       })
       .catch(() => {});
-
-    fetch(`${API_BASE}/api/server-info`)
-      .then((r) => r.json())
-      .then((info: { ip: string; port: number; tunnelUrl?: string | null; localUrl?: string | null }) => {
-        if (info.tunnelUrl) {
-          setBaseUrl(info.tunnelUrl);
-          setTunnelUrl(info.tunnelUrl);
-        } else {
-          const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-          if (isLocalhost && info.ip && info.ip !== "localhost") {
-            setBaseUrl(`http://${info.ip}:${window.location.port || info.port}`);
-          }
-        }
-        if (info.localUrl) setLocalUrl(info.localUrl);
-      })
-      .catch(() => {});
   }, []);
 
-  // Render QR code onto canvas — lazy-load qrcode so Node.js internals don't crash the app bundle
+  // Render QR code onto canvas
   useEffect(() => {
     if (!canvasRef.current) return;
     setQrReady(false);
@@ -109,11 +95,20 @@ export default function Sessions() {
     if (!eventName || !date) return;
     setSaving(true);
     try {
-      await fetch(`${API_BASE}/api/settings`, {
+      const r = await fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ "session.event": eventName, "session.date": date }),
       });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        if (data.code === "TRIAL_EVENT_LIMIT") {
+          alert("Your free trial is limited to 1 event.\n\nSubscribe to TryoutDesk ($799/year) to run unlimited events.");
+          window.location.href = "/billing";
+          return;
+        }
+        throw new Error(data.error ?? "Failed to start session.");
+      }
       setActive({ event: eventName, date });
       setGlobalSession({ event: eventName, date });
       setSaved(true);
@@ -136,7 +131,6 @@ export default function Sessions() {
   const handleDownload = () => {
     if (!canvasRef.current || !active) return;
 
-    // Draw final printable image: QR + title + date
     const qrSize = 280;
     const padding = 24;
     const titleH = 44;
@@ -149,17 +143,14 @@ export default function Sessions() {
     out.height = totalH;
     const ctx = out.getContext("2d")!;
 
-    // Background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, out.width, out.height);
 
-    // Title
     ctx.fillStyle = "#0f172a";
     ctx.font = "bold 26px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(active.event, out.width / 2, padding + 30);
 
-    // Date
     const displayDate = new Date(active.date + "T12:00:00").toLocaleDateString("en-US", {
       weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
@@ -167,15 +158,12 @@ export default function Sessions() {
     ctx.font = "16px system-ui, sans-serif";
     ctx.fillText(displayDate, out.width / 2, padding + titleH + 18);
 
-    // QR
     ctx.drawImage(canvasRef.current, padding, padding + titleH + dateH, qrSize, qrSize);
 
-    // Footer URL
     ctx.fillStyle = "#94a3b8";
     ctx.font = "11px monospace";
     ctx.fillText(checkinUrl, out.width / 2, out.height - 10);
 
-    // Download
     const link = document.createElement("a");
     link.download = `${active.event.replace(/\s+/g, "-")}-checkin-qr.png`;
     link.href = out.toDataURL("image/png");
@@ -298,39 +286,11 @@ export default function Sessions() {
         <div className="bg-card border rounded-2xl p-6 flex flex-col items-center gap-4">
           <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Player Entry QR Code</div>
 
-          {/* Network URL row */}
-          <div className="w-full bg-muted/30 rounded-xl p-3 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                <Wifi className="h-3.5 w-3.5" /> QR points to
-              </span>
-              <button
-                onClick={() => setEditingUrl((v) => !v)}
-                className="text-xs text-primary font-semibold hover:underline"
-              >
-                {editingUrl ? "Done" : "Edit"}
-              </button>
+          <div className="w-full bg-green-50 border border-green-200 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-green-700 mb-1">
+              <Globe className="h-3.5 w-3.5" /> Works from any network
             </div>
-            {editingUrl ? (
-              <input
-                type="text"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value.trim())}
-                className="w-full px-2 py-1.5 rounded-lg border text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            ) : (
-              <div className="text-xs font-mono text-foreground break-all">{checkinUrl}</div>
-            )}
-            {(baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) && (
-              <p className="text-[11px] text-amber-600 font-semibold">
-                ⚠ This URL only works on this computer. Phones won't be able to scan it — restart the app to auto-detect the tunnel URL, or edit manually.
-              </p>
-            )}
-            {baseUrl.startsWith("https://") && (
-              <p className="text-[11px] text-green-600 font-semibold">
-                ✓ Tunnel URL — works from any network, not just local WiFi.
-              </p>
-            )}
+            <div className="text-xs font-mono text-foreground break-all">{checkinUrl}</div>
           </div>
 
           <div className="bg-white border-2 border-dashed border-muted rounded-xl p-4 flex flex-col items-center gap-3">
@@ -344,8 +304,7 @@ export default function Sessions() {
             <div className="text-[10px] text-muted-foreground font-mono break-all text-center">{checkinUrl}</div>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            This QR code never changes — players scan it to check in or register.
-            The event label is just for the printout.
+            Print this QR code and post it at the door. Players scan it to check in from their own phone — no app install needed.
           </p>
           <button
             onClick={handleDownload}
@@ -364,59 +323,41 @@ export default function Sessions() {
             <Smartphone className="h-5 w-5 text-primary" /> Staff Device Setup
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Share this URL with staff so their iPhones/iPads can connect to the server from any network.
+            Staff can connect from any network — no shared WiFi or hotspot required.
           </p>
         </div>
 
-        {tunnelUrl ? (
-          <div className="bg-card border rounded-2xl p-5 space-y-4">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="space-y-1 min-w-0">
-                <div className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" /> Tunnel active — works from any network
-                </div>
-                <div className="font-mono text-sm break-all text-foreground">{tunnelUrl}</div>
+        <div className="bg-card border rounded-2xl p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="space-y-1 min-w-0">
+              <div className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500" /> Cloud — works from any network
               </div>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(tunnelUrl);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold hover:bg-muted/40 transition-colors shrink-0"
-              >
-                {copied ? <><Check className="h-3.5 w-3.5 text-green-600" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy URL</>}
-              </button>
+              <div className="font-mono text-sm break-all text-foreground">{stationUrl}</div>
             </div>
-            <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-3">
-              <p className="font-semibold text-foreground">How to connect a staff device:</p>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Open the <strong>TryoutDesk</strong> app on the iPhone/iPad</li>
-                <li>On the "Connect to Server" screen, paste the URL above</li>
-                <li>Tap <strong>Connect</strong> — done! Works on any network.</li>
-              </ol>
-              <p className="text-xs text-muted-foreground pt-1">
-                💡 Share the URL via iMessage or AirDrop — staff only need to do this once per session (or when the server restarts).
-              </p>
-            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(stationUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold hover:bg-muted/40 transition-colors shrink-0"
+            >
+              {copied ? <><Check className="h-3.5 w-3.5 text-green-600" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy URL</>}
+            </button>
           </div>
-        ) : localUrl ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
-            <div className="text-xs font-bold text-amber-700 uppercase tracking-wider">
-              ⚠ Same network only (no tunnel running)
-            </div>
-            <div className="font-mono text-sm break-all text-foreground">{localUrl}</div>
-            <p className="text-sm text-amber-700">
-              All staff devices must be on the same WiFi or hotspot as this Mac.
-              To enable any-network access, install Cloudflare tunnel:{" "}
-              <code className="bg-amber-100 px-1.5 py-0.5 rounded text-xs font-mono">brew install cloudflare/cloudflare/cloudflared</code>
+          <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-3">
+            <p className="font-semibold text-foreground">How to connect a staff device:</p>
+            <ol className="list-decimal list-inside space-y-1 text-sm">
+              <li>Open Safari (or any browser) on the iPhone/iPad</li>
+              <li>Go to <strong>{stationUrl}</strong></li>
+              <li>Select your name and enter your PIN — done!</li>
+            </ol>
+            <p className="text-xs text-muted-foreground pt-1">
+              💡 Bookmark the URL or add it to the home screen for one-tap access at every tryout.
             </p>
           </div>
-        ) : (
-          <div className="bg-muted/30 border rounded-2xl p-5 text-sm text-muted-foreground">
-            Loading server info…
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
