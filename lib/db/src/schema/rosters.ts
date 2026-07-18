@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
@@ -17,7 +17,7 @@ export const rostersTable = pgTable("rosters", {
   liberoSlots: integer("libero_slots").notNull().default(2),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => [index("rosters_club_id_idx").on(t.clubId)]);
 
 export const rosterPlayersTable = pgTable("roster_players", {
   id: serial("id").primaryKey(),
@@ -27,7 +27,7 @@ export const rosterPlayersTable = pgTable("roster_players", {
   locked: boolean("locked").notNull().default(false),
   committed: boolean("committed").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("roster_players_roster_id_idx").on(t.rosterId)]);
 
 export const insertRosterSchema = createInsertSchema(rostersTable).omit({
   id: true,

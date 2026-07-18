@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
@@ -15,7 +15,7 @@ export const evaluationsTable = pgTable("evaluations", {
   coachName: text("coach_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => [index("evaluations_club_id_idx").on(t.clubId), index("evaluations_player_id_idx").on(t.playerId)]);
 
 export const insertEvaluationSchema = createInsertSchema(evaluationsTable).omit({
   id: true,

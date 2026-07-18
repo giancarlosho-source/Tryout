@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, real, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, real, integer, json, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clubsTable } from "./clubs";
@@ -27,7 +27,7 @@ export const playersTable = pgTable("players", {
   photoUrl: text("photo_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}, (t) => [index("players_club_id_idx").on(t.clubId)]);
 
 export const insertPlayerSchema = createInsertSchema(playersTable).omit({
   id: true,

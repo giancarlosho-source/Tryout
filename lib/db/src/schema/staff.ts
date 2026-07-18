@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { clubsTable } from "./clubs";
@@ -10,7 +10,7 @@ export const staffTable = pgTable("staff", {
   pin: text("pin").notNull(),
   role: text("role").notNull().default("evaluator"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("staff_club_id_idx").on(t.clubId)]);
 
 export const insertStaffSchema = createInsertSchema(staffTable).omit({
   id: true,

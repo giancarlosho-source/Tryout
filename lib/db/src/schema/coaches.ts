@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
@@ -13,21 +13,21 @@ export const coachesTable = pgTable("coaches", {
   pin: text("pin"),
   stationRole: text("station_role"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [index("coaches_club_id_idx").on(t.clubId)]);
 
 export const coachWishlistTable = pgTable("coach_wishlist", {
   id: serial("id").primaryKey(),
   coachId: integer("coach_id").notNull().references(() => coachesTable.id, { onDelete: "cascade" }),
   playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [unique().on(t.coachId, t.playerId)]);
+}, (t) => [unique().on(t.coachId, t.playerId), index("coach_wishlist_player_id_idx").on(t.playerId)]);
 
 export const coachMustHaveTable = pgTable("coach_must_have", {
   id: serial("id").primaryKey(),
   coachId: integer("coach_id").notNull().references(() => coachesTable.id, { onDelete: "cascade" }),
   playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [unique().on(t.coachId, t.playerId)]);
+}, (t) => [unique().on(t.coachId, t.playerId), index("coach_must_have_player_id_idx").on(t.playerId)]);
 
 export const insertCoachSchema = createInsertSchema(coachesTable).omit({
   id: true,
