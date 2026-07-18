@@ -16,17 +16,51 @@ export const POSITION_LABELS: Record<string, string> = {
   Libero: "Libero/DS",
 };
 
-export function primaryPosition(position: string): string {
-  return position.split("/")[0];
+const NORMALIZE: Record<string, string> = {
+  "outside hitter": "OutsideHitter",
+  "oh": "OutsideHitter",
+  "middle blocker": "MiddleBlocker",
+  "mb": "MiddleBlocker",
+  "middle": "MiddleBlocker",
+  "setter": "Setter",
+  "s": "Setter",
+  "opposite": "Opposite",
+  "opp": "Opposite",
+  "rs": "Opposite",
+  "right side": "Opposite",
+  "libero": "Libero",
+  "l": "Libero",
+  "defensive specialist": "Libero",
+  "ds": "Libero",
+  "libero/ds": "Libero",
+};
+
+export function primaryPosition(position: string | null | undefined): string {
+  if (!position) return "";
+  const raw = position.split("/")[0].trim();
+  return NORMALIZE[raw.toLowerCase()] ?? raw;
 }
 
-export function secondaryPosition(position: string): string | null {
+export function secondaryPosition(position: string | null | undefined): string | null {
+  if (!position) return null;
   const parts = position.split("/");
   return parts.length > 1 ? parts.slice(1).join("/") : null;
 }
 
+const POSITION_BAR_COLORS: Record<string, string> = {
+  Setter: "#ec4899",       // pink-500
+  OutsideHitter: "#a855f7", // purple-500
+  MiddleBlocker: "#ef4444", // red-500
+  Opposite: "#a855f7",      // purple-500
+  Libero: "#14b8a6",        // teal-500
+};
+
 export function positionColor(position: string): string {
   return POSITION_COLORS[primaryPosition(position)] ?? "bg-secondary/10 text-secondary-foreground border-secondary/20";
+}
+
+export function positionBarColor(position: string): string {
+  return POSITION_BAR_COLORS[primaryPosition(position)] ?? "#94a3b8";
 }
 
 export function positionLabel(position: string): string {
