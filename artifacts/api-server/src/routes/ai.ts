@@ -1,12 +1,20 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, playersTable, evaluationsTable, rosterPlayersTable, rostersTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
 import {
   GeneratePlayerSummaryParams,
   GenerateRosterExplanationParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
 
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter",
@@ -24,10 +32,11 @@ router.post("/ai/player-summary/:playerId", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const [player] = await db
     .select()
     .from(playersTable)
-    .where(eq(playersTable.id, params.data.playerId));
+    .where(and(eq(playersTable.id, params.data.playerId), eq(playersTable.clubId, clubId)));
 
   if (!player) {
     res.status(404).json({ error: "Player not found" });
@@ -37,11 +46,10 @@ router.post("/ai/player-summary/:playerId", async (req, res): Promise<void> => {
   const evals = await db
     .select()
     .from(evaluationsTable)
-    .where(eq(evaluationsTable.playerId, params.data.playerId));
+    .where(and(eq(evaluationsTable.playerId, params.data.playerId), eq(evaluationsTable.clubId, clubId)));
 
   const posLabel = POSITION_LABELS[player.position] || player.position;
 
-  // Build rule-based AI summary from eval data
   const topSkills = [...evals].sort((a, b) => b.score - a.score).slice(0, 3);
   const weakSkills = [...evals].sort((a, b) => a.score - b.score).slice(0, 3);
 
@@ -125,10 +133,11 @@ router.post("/ai/roster-explain/:rosterId", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const [roster] = await db
     .select()
     .from(rostersTable)
-    .where(eq(rostersTable.id, params.data.rosterId));
+    .where(and(eq(rostersTable.id, params.data.rosterId), eq(rostersTable.clubId, clubId)));
 
   if (!roster) {
     res.status(404).json({ error: "Roster not found" });
@@ -141,7 +150,7 @@ router.post("/ai/roster-explain/:rosterId", async (req, res): Promise<void> => {
     .where(eq(rosterPlayersTable.rosterId, params.data.rosterId));
 
   const playerIds = rosterPlayers.map((rp) => rp.playerId);
-  const allPlayers = await db.select().from(playersTable);
+  const allPlayers = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
   const playerMap: Record<number, typeof allPlayers[0]> = {};
   allPlayers.forEach((p) => {
     playerMap[p.id] = p;

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, evaluationsTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
 import {
   ListEvaluationsQueryParams,
   UpsertEvaluationBody,
@@ -12,6 +13,13 @@ import { broadcast } from "../events";
 
 const router: IRouter = Router();
 
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
+
 router.get("/evaluations", async (req, res): Promise<void> => {
   const params = ListEvaluationsQueryParams.safeParse(req.query);
   if (!params.success) {
@@ -19,9 +27,10 @@ router.get("/evaluations", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const evals = params.data.playerId
-    ? await db.select().from(evaluationsTable).where(eq(evaluationsTable.playerId, params.data.playerId))
-    : await db.select().from(evaluationsTable);
+    ? await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.clubId, clubId), eq(evaluationsTable.playerId, params.data.playerId)))
+    : await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
 
   res.json(evals);
 });
@@ -33,6 +42,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const coachName = parsed.data.coachName ?? null;
   const coachFilter = coachName
     ? eq(evaluationsTable.coachName, coachName)
@@ -43,6 +53,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     .from(evaluationsTable)
     .where(
       and(
+        eq(evaluationsTable.clubId, clubId),
         eq(evaluationsTable.playerId, parsed.data.playerId),
         eq(evaluationsTable.category, parsed.data.category),
         eq(evaluationsTable.skill, parsed.data.skill),
@@ -55,13 +66,14 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     const [updated] = await db
       .update(evaluationsTable)
       .set({ score: parsed.data.score, notes: parsed.data.notes ?? null })
-      .where(eq(evaluationsTable.id, existing[0].id))
+      .where(and(eq(evaluationsTable.id, existing[0].id), eq(evaluationsTable.clubId, clubId)))
       .returning();
     evalResult = updated;
   } else {
     const [created] = await db
       .insert(evaluationsTable)
       .values({
+        clubId,
         playerId: parsed.data.playerId,
         category: parsed.data.category,
         skill: parsed.data.skill,
@@ -73,7 +85,6 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     evalResult = created;
   }
 
-  // Recompute scores across all players (physical score is percentile-based — needs full pool)
   await recomputeAllScores();
   broadcast("scores:changed");
 
@@ -93,7 +104,8 @@ router.patch("/evaluations/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const existing = await db.select().from(evaluationsTable).where(eq(evaluationsTable.id, params.data.id));
+  const clubId = getClubId(req);
+  const existing = await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.id, params.data.id), eq(evaluationsTable.clubId, clubId)));
   if (existing.length === 0) {
     res.status(404).json({ error: "Evaluation not found" });
     return;
@@ -102,27 +114,28 @@ router.patch("/evaluations/:id", async (req, res): Promise<void> => {
   const [updated] = await db
     .update(evaluationsTable)
     .set(parsed.data)
-    .where(eq(evaluationsTable.id, params.data.id))
+    .where(and(eq(evaluationsTable.id, params.data.id), eq(evaluationsTable.clubId, clubId)))
     .returning();
 
   await recomputeAllScores();
+  broadcast("scores:changed");
 
   res.json(updated);
 });
 
-// Specific route must come before the generic /:id route
-// coachName param "__null__" means IS NULL (evaluations submitted without a coach)
+// coachName param "__null__" means IS NULL
 router.delete("/evaluations/coach/:playerId/:coachName", async (req, res): Promise<void> => {
   const playerId = parseInt(req.params.playerId);
   const coachName = req.params.coachName;
   if (isNaN(playerId)) { res.status(400).json({ error: "Invalid playerId" }); return; }
 
+  const clubId = getClubId(req);
   const coachFilter = coachName === "__null__"
     ? isNull(evaluationsTable.coachName)
     : eq(evaluationsTable.coachName, coachName);
 
   await db.delete(evaluationsTable).where(
-    and(eq(evaluationsTable.playerId, playerId), coachFilter)
+    and(eq(evaluationsTable.clubId, clubId), eq(evaluationsTable.playerId, playerId), coachFilter)
   );
   await recomputeAllScores();
   broadcast("scores:changed");
@@ -133,10 +146,11 @@ router.delete("/evaluations/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const existing = await db.select().from(evaluationsTable).where(eq(evaluationsTable.id, id));
+  const clubId = getClubId(req);
+  const existing = await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.id, id), eq(evaluationsTable.clubId, clubId)));
   if (existing.length === 0) { res.status(404).json({ error: "Evaluation not found" }); return; }
 
-  await db.delete(evaluationsTable).where(eq(evaluationsTable.id, id));
+  await db.delete(evaluationsTable).where(and(eq(evaluationsTable.id, id), eq(evaluationsTable.clubId, clubId)));
   await recomputeAllScores();
   broadcast("scores:changed");
   res.status(204).send();

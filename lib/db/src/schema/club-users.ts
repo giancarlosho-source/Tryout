@@ -1,13 +1,14 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { clubsTable } from "./clubs";
 
-export const syncLogsTable = pgTable("sync_logs", {
+export const clubUsersTable = pgTable("club_users", {
   id: serial("id").primaryKey(),
   clubId: integer("club_id").notNull().references(() => clubsTable.id),
-  status: text("status").notNull().default("success"),
-  playersUpdated: integer("players_updated").notNull().default(0),
-  message: text("message"),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  passwordHash: text("password_hash").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type SyncLog = typeof syncLogsTable.$inferSelect;
+export type ClubUser = typeof clubUsersTable.$inferSelect;
+export type NewClubUser = typeof clubUsersTable.$inferInsert;

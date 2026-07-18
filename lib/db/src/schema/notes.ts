@@ -2,9 +2,11 @@ import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
+import { clubsTable } from "./clubs";
 
 export const coachNotesTable = pgTable("coach_notes", {
   id: serial("id").primaryKey(),
+  clubId: integer("club_id").notNull().references(() => clubsTable.id),
   playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

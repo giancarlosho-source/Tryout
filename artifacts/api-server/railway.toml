@@ -1,0 +1,6 @@
+[build]
+dockerfilePath = "Dockerfile"
+buildCommand = ""
+
+[deploy]
+startCommand = "node migrate.mjs && node --enable-source-maps dist/index.mjs"

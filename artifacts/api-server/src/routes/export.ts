@@ -1,11 +1,20 @@
 import { Router, type IRouter } from "express";
 import { db, playersTable, evaluationsTable } from "@workspace/db";
-import { asc } from "drizzle-orm";
+import { asc, eq, and } from "drizzle-orm";
+import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
-router.get("/export/players", async (_req, res): Promise<void> => {
-  const players = await db.select().from(playersTable).orderBy(asc(playersTable.jerseyNumber));
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
+
+router.get("/export/players", async (req, res): Promise<void> => {
+  const clubId = getClubId(req);
+  const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).orderBy(asc(playersTable.jerseyNumber));
 
   const headers = [
     "Jersey", "Name", "Position", "Checked In",
@@ -41,9 +50,10 @@ router.get("/export/players", async (_req, res): Promise<void> => {
   res.send(csv);
 });
 
-router.get("/export/evaluations", async (_req, res): Promise<void> => {
-  const players = await db.select().from(playersTable).orderBy(asc(playersTable.jerseyNumber));
-  const evals = await db.select().from(evaluationsTable);
+router.get("/export/evaluations", async (req, res): Promise<void> => {
+  const clubId = getClubId(req);
+  const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).orderBy(asc(playersTable.jerseyNumber));
+  const evals = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
 

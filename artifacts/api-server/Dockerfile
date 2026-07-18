@@ -23,14 +23,16 @@ RUN node build.mjs
 # ── Runtime image ──────────────────────────────────────────────────────────────
 FROM node:22-alpine
 
+RUN apk add --no-cache postgresql-client
+
 WORKDIR /app
 
 COPY --from=builder /workspace/artifacts/api-server/dist/ ./dist/
 COPY --from=builder /workspace/artifacts/api-server/public/ ./dist/public/
-COPY artifacts/api-server/migrations/ ./migrations/
-COPY artifacts/api-server/migrate.mjs ./
+COPY --from=builder /workspace/artifacts/api-server/migrations/ ./migrations/
+COPY --from=builder /workspace/artifacts/api-server/migrate.mjs ./
 
-RUN npm install --ignore-scripts drizzle-orm pg
+RUN npm install --ignore-scripts drizzle-orm pg react react-dom
 
 EXPOSE 8080
 

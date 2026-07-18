@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
-import { db, playersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+import { db, playersTable, clubsTable } from "@workspace/db";
 import { broadcast } from "../events";
 import { recomputeAllScores } from "../scoring";
 
@@ -8,7 +10,19 @@ const router: IRouter = Router();
 const VALID_POSITIONS = ["Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"] as const;
 type Position = typeof VALID_POSITIONS[number];
 
-const REGISTRATION_HTML = `<!DOCTYPE html>
+const AGE_GROUPS = ["10U", "11U", "12U", "13U", "14U", "15U", "16U", "17U", "18U"];
+
+function normalizeAge(raw: unknown): string | null {
+  if (raw == null || raw === "") return null;
+  const s = String(raw).trim().toUpperCase().replace(/\s/g, "");
+  const num = s.endsWith("U") ? s.slice(0, -1) : s;
+  if (!/^\d+$/.test(num)) return null;
+  return `${num}U`;
+}
+
+function buildRegistrationHtml(opts: { clubName: string; primaryColor: string; logoUrl?: string | null; registrationToken: string }) {
+  const { clubName, primaryColor, logoUrl, registrationToken } = opts;
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -34,11 +48,11 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
       max-width: 440px;
     }
     .logo { text-align: center; margin-bottom: 20px; }
-    .logo h1 { font-size: 22px; font-weight: 900; color: #8B0000; letter-spacing: -0.5px; }
+    .logo h1 { font-size: 22px; font-weight: 900; color: ${primaryColor}; letter-spacing: -0.5px; }
     .logo p { font-size: 13px; color: #888; margin-top: 3px; }
     .divider { border: none; border-top: 1px solid #eee; margin: 18px 0; }
     label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 5px; }
-    .required { color: #8B0000; }
+    .required { color: ${primaryColor}; }
     input, select {
       width: 100%;
       padding: 11px 14px;
@@ -53,14 +67,14 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
       appearance: none;
       -webkit-appearance: none;
     }
-    input:focus, select:focus { border-color: #8B0000; background: #fff; }
+    input:focus, select:focus { border-color: ${primaryColor}; background: #fff; }
     .row { display: flex; gap: 12px; }
     .row > div { flex: 1; }
     .hint { font-size: 12px; color: #999; margin-top: -10px; margin-bottom: 14px; }
     button {
       width: 100%;
       padding: 14px;
-      background: #8B0000;
+      background: ${primaryColor};
       color: #fff;
       border: none;
       border-radius: 12px;
@@ -86,8 +100,9 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
 <body>
   <div class="card">
     <div class="logo">
-      <h1>🏐 TryoutDesk</h1>
-      <p>2026–2027 Tryout Registration</p>
+      ${logoUrl ? `<img src="${logoUrl}" alt="${clubName}" style="height:56px;object-fit:contain;margin-bottom:8px;" />` : ""}
+      <h1>${clubName}</h1>
+      <p>Tryout Registration</p>
     </div>
     <hr class="divider" />
 
@@ -110,8 +125,11 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
           <option value="Undecided">Undecided</option>
         </select>
 
-        <label>Age</label>
-        <input type="number" name="age" placeholder="e.g. 16" min="10" max="25" inputmode="numeric" />
+        <label>Age Group</label>
+        <select name="age">
+          <option value="">Select age group…</option>
+          ${AGE_GROUPS.map(g => `<option value="${g}">${g}</option>`).join("\n          ")}
+        </select>
 
         <div class="error-msg" id="error-msg"></div>
         <button type="submit" id="submit-btn">Register for Tryout</button>
@@ -138,7 +156,8 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
         name: this.name.value.trim(),
         jerseyNumber: this.jerseyNumber.value.trim(),
         position: this.position.value,
-        age: this.age.value ? parseInt(this.age.value) : undefined,
+        age: this.age.value || undefined,
+        registrationToken: ${JSON.stringify(registrationToken)},
       };
 
       try {
@@ -163,14 +182,60 @@ const REGISTRATION_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
-router.get("/register", (_req, res): void => {
+router.get("/register", async (req, res): Promise<void> => {
+  const slugParam = req.query["club"] ? String(req.query["club"]) : null;
+
+  if (!slugParam) {
+    res.status(400).send("<h2>Invalid registration link. Please scan your club's QR code.</h2>");
+    return;
+  }
+
+  const club = await db
+    .select()
+    .from(clubsTable)
+    .where(eq(clubsTable.slug, slugParam))
+    .limit(1)
+    .then((r) => r[0]);
+
+  if (!club) {
+    res.status(404).send("<h2>Club not found. Please scan your club's QR code.</h2>");
+    return;
+  }
+
+  // Issue a short-lived signed token so the POST handler can trust the clubId
+  const registrationToken = jwt.sign(
+    { clubId: club.id },
+    process.env["JWT_SECRET"]!,
+    { expiresIn: "4h" },
+  );
+
   res.setHeader("Content-Type", "text/html");
-  res.send(REGISTRATION_HTML);
+  res.send(buildRegistrationHtml({
+    clubName: club.name,
+    primaryColor: club.primaryColor ?? "#0f172a",
+    logoUrl: club.logoUrl ?? null,
+    registrationToken,
+  }));
 });
 
 router.post("/register", async (req, res): Promise<void> => {
-  const { jerseyNumber, name, position, age, heightInches, standingReachInches, verticalJumpInches } = req.body ?? {};
+  const { jerseyNumber, name, position, age, heightInches, standingReachInches, verticalJumpInches, registrationToken } = req.body ?? {};
+
+  if (!registrationToken) {
+    res.status(400).json({ error: "Invalid registration link. Please scan the QR code again." });
+    return;
+  }
+
+  let clubId: number;
+  try {
+    const payload = jwt.verify(registrationToken, process.env["JWT_SECRET"]!) as { clubId: number };
+    clubId = payload.clubId;
+  } catch {
+    res.status(400).json({ error: "Registration link has expired. Please scan the QR code again." });
+    return;
+  }
 
   if (!name || !VALID_POSITIONS.includes(position)) {
     res.status(400).json({ error: "Please fill in all required fields." });
@@ -178,11 +243,12 @@ router.post("/register", async (req, res): Promise<void> => {
   }
 
   await db.insert(playersTable).values({
+    clubId,
     jerseyNumber: jerseyNumber || null,
     name,
     position,
     checkedIn: false,
-    age: age ?? null,
+    age: normalizeAge(age),
     heightInches: heightInches ?? null,
     standingReachInches: standingReachInches ?? null,
     verticalJumpInches: verticalJumpInches ?? null,
@@ -191,7 +257,7 @@ router.post("/register", async (req, res): Promise<void> => {
   await recomputeAllScores();
   broadcast("players:changed");
 
-  res.json({ ok: true, name });
+  res.json({ ok: true, name, jerseyNumber: jerseyNumber || null });
 });
 
 export default router;

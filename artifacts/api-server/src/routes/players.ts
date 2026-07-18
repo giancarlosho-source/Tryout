@@ -174,11 +174,15 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
     });
 
     const jersey = row["jerseynumber"] || row["jersey"] || row["#"];
-    const name = row["playername"] || row["name"];
-    const position = row["position"] || row["pos"];
+    // Support "First Name" + "Last Name" columns as well as a single "name" column
+    const firstName = row["first name"] || row["firstname"] || "";
+    const lastName = row["last name"] || row["lastname"] || "";
+    const name = row["playername"] || row["name"] || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
+    // Support "Pos 1" / "Pos 2" as well as "position" / "pos"
+    const position = row["position"] || row["pos"] || row["pos 1"] || row["pos1"] || row["pos 2"] || row["pos2"];
 
-    if (!jersey || !name || !position) {
-      errors.push(`Row ${i + 1}: Missing required fields (jerseyNumber, name, position)`);
+    if (!jersey || !name) {
+      errors.push(`Row ${i + 1}: Missing required fields (jerseyNumber, name)`);
       continue;
     }
 
@@ -188,18 +192,18 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
       pin: "OutsideHitter", "pin/setter": "OutsideHitter", "pin/mb": "OutsideHitter", "pin/ds": "OutsideHitter",
       "middle blocker": "MiddleBlocker", mb: "MiddleBlocker", middle: "MiddleBlocker", "mb/pin": "MiddleBlocker",
       opposite: "Opposite", opp: "Opposite", rs: "Opposite",
-      libero: "Libero", l: "Libero", ds: "Libero", "libero/ds": "Libero",
-      "ds/setter": "Libero", "ds/pin": "Libero", "ds/l": "Libero",
+      libero: "Libero", l: "Libero", ds: "Libero", "ds/l": "Libero", "libero/ds": "Libero",
+      "ds/setter": "Libero", "ds/pin": "Libero",
       undecided: "Undecided", tbd: "Undecided", unknown: "Undecided",
     };
 
-    const mappedPosition = positionMap[position.toLowerCase()] || position;
+    const mappedPosition = position ? (positionMap[position.toLowerCase()] || position) : undefined;
 
     const playerData = {
       clubId,
       jerseyNumber: jersey,
       name,
-      position: mappedPosition,
+      position: mappedPosition ?? null,
       checkedIn: (row["checkedinstatus"] || row["checkedin"] || "").toLowerCase() === "true" || false,
       age: normalizeAge(row["age"]),
       heightInches: row["height"] ? parseFloat(row["height"]) || null : null,

@@ -1,0 +1,1 @@
+ALTER TABLE clubs ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;

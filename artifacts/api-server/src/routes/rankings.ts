@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, playersTable, evaluationsTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
 import {
   ListRankingsQueryParams,
   OverrideRankingParams,
@@ -9,6 +10,13 @@ import {
 
 const router: IRouter = Router();
 
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
+
 router.get("/rankings", async (req, res): Promise<void> => {
   const params = ListRankingsQueryParams.safeParse(req.query);
   if (!params.success) {
@@ -16,14 +24,14 @@ router.get("/rankings", async (req, res): Promise<void> => {
     return;
   }
 
-  let players = await db.select().from(playersTable);
+  const clubId = getClubId(req);
+  let players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
 
   if (params.data.position) {
     players = players.filter((p) => p.position === params.data.position);
   }
 
-  // Get evaluation counts
-  const evalCounts = await db.select().from(evaluationsTable);
+  const evalCounts = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
   const countByPlayer: Record<number, number> = {};
   evalCounts.forEach((e) => {
     countByPlayer[e.playerId] = (countByPlayer[e.playerId] || 0) + 1;
@@ -95,13 +103,14 @@ router.patch("/rankings/:playerId/override", async (req, res): Promise<void> => 
     return;
   }
 
+  const clubId = getClubId(req);
   const [player] = await db
     .update(playersTable)
     .set({
       rankOverridePosition: parsed.data.rankOverridePosition ?? null,
       rankLocked: parsed.data.rankLocked ?? false,
     })
-    .where(eq(playersTable.id, params.data.playerId))
+    .where(and(eq(playersTable.id, params.data.playerId), eq(playersTable.clubId, clubId)))
     .returning();
 
   if (!player) {
@@ -109,7 +118,7 @@ router.patch("/rankings/:playerId/override", async (req, res): Promise<void> => 
     return;
   }
 
-  const evalCounts = await db.select().from(evaluationsTable);
+  const evalCounts = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
   const countByPlayer: Record<number, number> = {};
   evalCounts.forEach((e) => {
     countByPlayer[e.playerId] = (countByPlayer[e.playerId] || 0) + 1;

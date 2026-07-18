@@ -3,9 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
 import { coachesTable } from "./coaches";
+import { clubsTable } from "./clubs";
 
 export const rostersTable = pgTable("rosters", {
   id: serial("id").primaryKey(),
+  clubId: integer("club_id").notNull().references(() => clubsTable.id),
   name: text("name").notNull(),
   coachId: integer("coach_id").references(() => coachesTable.id, { onDelete: "set null" }),
   setterSlots: integer("setter_slots").notNull().default(2),

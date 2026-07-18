@@ -1,9 +1,11 @@
 import { pgTable, text, serial, timestamp, boolean, real, integer, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { clubsTable } from "./clubs";
 
 export const playersTable = pgTable("players", {
   id: serial("id").primaryKey(),
+  clubId: integer("club_id").notNull().references(() => clubsTable.id),
   jerseyNumber: text("jersey_number"),
   name: text("name").notNull(),
   position: text("position"),

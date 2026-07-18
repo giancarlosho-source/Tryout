@@ -3,9 +3,13 @@ import jwt from "jsonwebtoken";
 
 // Routes that don't require a JWT (paths are relative to /api mount point)
 const PUBLIC_PATHS = new Set([
-  "/auth/signup",
   "/auth/login",
   "/auth/status",
+  "/auth/logo",
+  "/auth/club",
+  "/auth/forgot-password",
+  "/auth/verify-email",
+  "/auth/admin-login",
   "/healthz",
   "/server-info",
   "/events",
@@ -18,12 +22,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  const secret = process.env["JWT_SECRET"];
-  if (!secret) {
-    // JWT_SECRET not configured — running locally without auth (dev mode)
-    next();
-    return;
-  }
+  const secret = process.env["JWT_SECRET"]!;
 
   const header = req.headers["authorization"];
   if (!header?.startsWith("Bearer ")) {

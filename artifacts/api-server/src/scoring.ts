@@ -19,7 +19,7 @@ export const UNIVERSAL_WEIGHTS: Record<string, number> = {
 export const POSITION_WEIGHTS: Record<string, Record<string, number>> = {
   Setter: {
     "Decision-making": 0.25,
-    "Hands": 0.20,
+    "Setting": 0.20,
     "Location": 0.20,
     "Tempo": 0.15,
     "Leadership": 0.10,
@@ -57,14 +57,14 @@ export const POSITION_WEIGHTS: Record<string, Record<string, number>> = {
 };
 
 export const POSITION_SKILL_LIST: Record<string, string[]> = {
-  Setter: ["Hands", "Location", "Decision-making", "Tempo", "Leadership"],
+  Setter: ["Setting", "Location", "Decision-making", "Tempo", "Leadership"],
   OutsideHitter: ["Serve receive", "Attacking", "Defense", "Transition", "All-around value"],
   MiddleBlocker: ["Blocking", "Lateral movement", "Quick attack", "Footwork", "Court awareness"],
   Opposite: ["Attacking", "Blocking", "Serving", "Back-row value", "Physical upside"],
   Libero: ["Passing", "Defense", "Reading hitters", "Serve receive", "Communication"],
 };
 
-export const OVERALL_WEIGHTS = { universal: 0.40, position: 0.40, physical: 0.20 };
+export const OVERALL_WEIGHTS = { universal: 0.50, position: 0.50 };
 export const POTENTIAL_WEIGHTS = { physical: 0.45, coachability: 0.20, competitiveness: 0.15, volleyballIQ: 0.10, bonus: 0.10 };
 
 // ============================================================
@@ -138,12 +138,10 @@ export function computePositionScore(evals: { skill: string; score: number }[], 
 export function computeOverallScore(
   universalScore: number | null,
   positionScore: number | null,
-  physicalScore: number | null
 ): number | null {
   let sum = 0, weight = 0;
   if (universalScore != null) { sum += universalScore * OVERALL_WEIGHTS.universal; weight += OVERALL_WEIGHTS.universal; }
   if (positionScore != null) { sum += positionScore * OVERALL_WEIGHTS.position; weight += OVERALL_WEIGHTS.position; }
-  if (physicalScore != null) { sum += physicalScore * OVERALL_WEIGHTS.physical; weight += OVERALL_WEIGHTS.physical; }
   return weight === 0 ? null : r1(clamp(sum / weight, 1, 10));
 }
 
@@ -269,7 +267,7 @@ export async function recomputeAllScores(): Promise<void> {
     const physicalScore = computePhysicalScore(player, allPlayers);
     const universalScore = computeUniversalScore(evals);
     const positionScore = computePositionScore(evals, player.position);
-    const overallScore = computeOverallScore(universalScore, positionScore, physicalScore);
+    const overallScore = computeOverallScore(universalScore, positionScore);
     const potentialScore = computePotentialScore(physicalScore, positionScore, evals);
     const confidenceScore = computeConfidenceScore(player, evals, player.position);
     const flags = computeFlags(player, { overallScore, positionScore, physicalScore, potentialScore, confidenceScore }, evals);

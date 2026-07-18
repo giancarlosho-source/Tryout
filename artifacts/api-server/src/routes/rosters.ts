@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, playersTable, rostersTable, rosterPlayersTable, evaluationsTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
+import { broadcast } from "../events";
 import {
   GetRosterParams,
   UpdateRosterParams,
@@ -13,18 +15,25 @@ import {
 
 const router: IRouter = Router();
 
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
+
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter", OutsideHitter: "Outside Hitter",
   MiddleBlocker: "Middle Blocker", Opposite: "Opposite", Libero: "Libero/DS",
 };
 
-async function getRosterDetail(rosterId: number) {
-  const [roster] = await db.select().from(rostersTable).where(eq(rostersTable.id, rosterId));
+async function getRosterDetail(rosterId: number, clubId: number) {
+  const [roster] = await db.select().from(rostersTable).where(and(eq(rostersTable.id, rosterId), eq(rostersTable.clubId, clubId)));
   if (!roster) return null;
 
   const rosterPlayers = await db.select().from(rosterPlayersTable).where(eq(rosterPlayersTable.rosterId, rosterId));
   const playerIds = rosterPlayers.map((rp) => rp.playerId);
-  const players = playerIds.length > 0 ? await db.select().from(playersTable) : [];
+  const players = playerIds.length > 0 ? await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)) : [];
 
   const playerMap: Record<number, typeof players[0]> = {};
   players.forEach((p) => { playerMap[p.id] = p; });
@@ -50,7 +59,7 @@ async function getRosterDetail(rosterId: number) {
     for (let i = 0; i < needed - filled; i++) missingPositions.push(pos);
   });
 
-  const allPlayers = await db.select().from(playersTable).orderBy(playersTable.overallScore);
+  const allPlayers = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).orderBy(playersTable.overallScore);
   const rosterPlayerIdSet = new Set(playerIds);
   const bubblePlayers = allPlayers
     .filter((p) => !rosterPlayerIdSet.has(p.id) && p.overallScore != null)
@@ -60,8 +69,9 @@ async function getRosterDetail(rosterId: number) {
   return { ...roster, players: slots, bubblePlayers, missingPositions };
 }
 
-router.get("/rosters", async (_req, res): Promise<void> => {
-  const rosters = await db.select().from(rostersTable).orderBy(rostersTable.createdAt);
+router.get("/rosters", async (req, res): Promise<void> => {
+  const clubId = getClubId(req);
+  const rosters = await db.select().from(rostersTable).where(eq(rostersTable.clubId, clubId)).orderBy(rostersTable.createdAt);
   res.json(rosters);
 });
 
@@ -71,17 +81,20 @@ router.post("/rosters", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [roster] = await db.insert(rostersTable).values(parsed.data).returning();
+  const clubId = getClubId(req);
+  const [roster] = await db.insert(rostersTable).values({ ...parsed.data, clubId }).returning();
+  broadcast("players:changed");
   res.status(201).json(roster);
 });
 
-router.get("/rosters/suggest", async (_req, res): Promise<void> => {
+router.get("/rosters/suggest", async (req, res): Promise<void> => {
   const ROSTER_CONFIG: Record<string, number> = {
     Setter: 2, OutsideHitter: 3, MiddleBlocker: 3, Opposite: 2, Libero: 2,
   };
 
-  const players = await db.select().from(playersTable);
-  const allEvals = await db.select().from(evaluationsTable);
+  const clubId = getClubId(req);
+  const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
+  const allEvals = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
 
   const evalsByPlayer: Record<number, typeof allEvals> = {};
   allEvals.forEach((e) => {
@@ -108,7 +121,6 @@ router.get("/rosters/suggest", async (_req, res): Promise<void> => {
       const p = eligible[i];
       if (!p) { missingPositions.push(position); continue; }
 
-      // Build selection reason
       const flags = (p.flags as string[] | null) ?? [];
       const posLabel = POSITION_LABELS[position];
       const scoreStr = p.positionScore != null ? `position score ${p.positionScore}/10` : `overall score ${p.overallScore ?? "unscored"}/10`;
@@ -123,7 +135,6 @@ router.get("/rosters/suggest", async (_req, res): Promise<void> => {
     }
   }
 
-  // Bubble players: within 5% of the weakest selected player per position
   const weakestByPosition: Record<string, number> = {};
   slots.forEach((s) => {
     const score = s.player.positionScore ?? s.player.overallScore ?? 0;
@@ -142,7 +153,6 @@ router.get("/rosters/suggest", async (_req, res): Promise<void> => {
     .sort((a, b) => (b.positionScore ?? b.overallScore ?? 0) - (a.positionScore ?? a.overallScore ?? 0))
     .slice(0, 6);
 
-  // Build explanation
   const positionSummaries = Object.entries(ROSTER_CONFIG)
     .map(([pos, n]) => {
       const filled = slots.filter((s) => s.position === pos).length;
@@ -161,7 +171,8 @@ router.get("/rosters/:id", async (req, res): Promise<void> => {
   const params = GetRosterParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const detail = await getRosterDetail(params.data.id);
+  const clubId = getClubId(req);
+  const detail = await getRosterDetail(params.data.id, clubId);
   if (!detail) { res.status(404).json({ error: "Roster not found" }); return; }
   res.json(detail);
 });
@@ -173,8 +184,10 @@ router.patch("/rosters/:id", async (req, res): Promise<void> => {
   const parsed = UpdateRosterBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [roster] = await db.update(rostersTable).set(parsed.data).where(eq(rostersTable.id, params.data.id)).returning();
+  const clubId = getClubId(req);
+  const [roster] = await db.update(rostersTable).set(parsed.data).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId))).returning();
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
+  broadcast("players:changed");
   res.json(roster);
 });
 
@@ -185,7 +198,8 @@ router.post("/rosters/:id/players", async (req, res): Promise<void> => {
   const parsed = AddPlayerToRosterBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [roster] = await db.select().from(rostersTable).where(eq(rostersTable.id, params.data.id));
+  const clubId = getClubId(req);
+  const [roster] = await db.select().from(rostersTable).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId)));
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
 
   await db.insert(rosterPlayersTable).values({
@@ -195,7 +209,8 @@ router.post("/rosters/:id/players", async (req, res): Promise<void> => {
     locked: parsed.data.locked ?? false,
   });
 
-  const detail = await getRosterDetail(params.data.id);
+  const detail = await getRosterDetail(params.data.id, clubId);
+  broadcast("players:changed");
   res.status(201).json(detail);
 });
 
@@ -207,6 +222,7 @@ router.delete("/rosters/:id/players/:playerId", async (req, res): Promise<void> 
     and(eq(rosterPlayersTable.rosterId, params.data.id), eq(rosterPlayersTable.playerId, params.data.playerId))
   );
 
+  broadcast("players:changed");
   res.sendStatus(204);
 });
 

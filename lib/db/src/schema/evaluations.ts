@@ -2,9 +2,11 @@ import { pgTable, text, serial, timestamp, integer, real } from "drizzle-orm/pg-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { playersTable } from "./players";
+import { clubsTable } from "./clubs";
 
 export const evaluationsTable = pgTable("evaluations", {
   id: serial("id").primaryKey(),
+  clubId: integer("club_id").notNull().references(() => clubsTable.id),
   playerId: integer("player_id").notNull().references(() => playersTable.id, { onDelete: "cascade" }),
   category: text("category").notNull(),
   skill: text("skill").notNull(),

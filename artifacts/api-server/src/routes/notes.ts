@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, coachNotesTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
+import { broadcast } from "../events";
 import {
   ListNotesQueryParams,
   CreateNoteBody,
@@ -11,6 +13,13 @@ import {
 
 const router: IRouter = Router();
 
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
+
 router.get("/notes", async (req, res): Promise<void> => {
   const params = ListNotesQueryParams.safeParse(req.query);
   if (!params.success) {
@@ -18,15 +27,16 @@ router.get("/notes", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   let notes;
   if (params.data.playerId) {
     notes = await db
       .select()
       .from(coachNotesTable)
-      .where(eq(coachNotesTable.playerId, params.data.playerId))
+      .where(and(eq(coachNotesTable.clubId, clubId), eq(coachNotesTable.playerId, params.data.playerId)))
       .orderBy(coachNotesTable.createdAt);
   } else {
-    notes = await db.select().from(coachNotesTable).orderBy(coachNotesTable.createdAt);
+    notes = await db.select().from(coachNotesTable).where(eq(coachNotesTable.clubId, clubId)).orderBy(coachNotesTable.createdAt);
   }
 
   res.json(notes);
@@ -39,7 +49,9 @@ router.post("/notes", async (req, res): Promise<void> => {
     return;
   }
 
-  const [note] = await db.insert(coachNotesTable).values(parsed.data).returning();
+  const clubId = getClubId(req);
+  const [note] = await db.insert(coachNotesTable).values({ ...parsed.data, clubId }).returning();
+  broadcast("players:changed");
   res.status(201).json(note);
 });
 
@@ -56,10 +68,11 @@ router.patch("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const [note] = await db
     .update(coachNotesTable)
     .set(parsed.data)
-    .where(eq(coachNotesTable.id, params.data.id))
+    .where(and(eq(coachNotesTable.id, params.data.id), eq(coachNotesTable.clubId, clubId)))
     .returning();
 
   if (!note) {
@@ -67,6 +80,7 @@ router.patch("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  broadcast("players:changed");
   res.json(note);
 });
 
@@ -77,9 +91,10 @@ router.delete("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const [note] = await db
     .delete(coachNotesTable)
-    .where(eq(coachNotesTable.id, params.data.id))
+    .where(and(eq(coachNotesTable.id, params.data.id), eq(coachNotesTable.clubId, clubId)))
     .returning();
 
   if (!note) {
@@ -87,6 +102,7 @@ router.delete("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  broadcast("players:changed");
   res.sendStatus(204);
 });
 

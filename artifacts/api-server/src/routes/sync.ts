@@ -1,8 +1,16 @@
 import { Router, type IRouter } from "express";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { db, syncLogsTable, playersTable } from "@workspace/db";
 import { TriggerSyncBody } from "@workspace/api-zod";
 import { recomputeAllScores } from "../scoring";
+import jwt from "jsonwebtoken";
+
+function getClubId(req: { headers: { authorization?: string } }): number {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) throw new Error("No token");
+  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
+  return payload.clubId;
+}
 
 // Extract spreadsheet ID from various Google Sheets URL formats
 function extractSheetId(input: string): string | null {
@@ -30,10 +38,12 @@ const POSITION_MAP: Record<string, string> = {
 
 const router: IRouter = Router();
 
-router.get("/sync/status", async (_req, res): Promise<void> => {
+router.get("/sync/status", async (req, res): Promise<void> => {
+  const clubId = getClubId(req);
   const [latest] = await db
     .select()
     .from(syncLogsTable)
+    .where(eq(syncLogsTable.clubId, clubId))
     .orderBy(desc(syncLogsTable.createdAt))
     .limit(1);
 
@@ -62,9 +72,11 @@ router.post("/sync/trigger", async (req, res): Promise<void> => {
     return;
   }
 
+  const clubId = getClubId(req);
   const [log] = await db
     .insert(syncLogsTable)
     .values({
+      clubId,
       status: "success",
       playersUpdated: 0,
       message: `Manual sync triggered by coach at ${new Date().toLocaleTimeString()}`,
@@ -167,6 +179,7 @@ router.get("/sync/sheets/tabs", async (req, res): Promise<void> => {
 
 router.post("/sync/sheets", async (req, res): Promise<void> => {
   const { sheetUrl, sheetName, gid: bodyGid, checkedInOnly } = req.body as { sheetUrl?: string; sheetName?: string; gid?: string; checkedInOnly?: boolean };
+  const clubId = getClubId(req);
 
   if (!sheetUrl) {
     res.status(400).json({ error: "sheetUrl is required" });
@@ -214,7 +227,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
   const KNOWN_HEADERS = new Set([
     "#", "number", "jersey", "jerseynumber",
     "name", "playername", "firstname", "first", "lastname", "last", "fname", "lname",
-    "position", "pos", "postition",
+    "position", "pos", "pos1", "pos2", "postition",
     "checkedin", "checkedinstatus", "bc",
     "height", "standingreachinches", "standingreach", "reach",
     "verticaljump", "vertical", "approach", "approachjump",
@@ -248,7 +261,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
       row["playername"] ||
       row["name"] ||
       (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName);
-    const rawPosition = row["position"] || row["position1"] || row["pos"] || row["postition"] || null;
+    const rawPosition = row["position"] || row["pos1"] || row["pos"] || row["position1"] || row["postition"] || null;
     const mappedPosition = rawPosition
       ? (POSITION_MAP[rawPosition.trim().toLowerCase()] ??
          rawPosition.split("/").map((part) => POSITION_MAP[part.trim().toLowerCase()] ?? part.trim()).join("/"))
@@ -263,6 +276,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
     if (checkedInOnly && !isCheckedIn) continue;
 
     const playerData = {
+      clubId,
       jerseyNumber: jersey,
       name,
       position: mappedPosition,
@@ -275,8 +289,8 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
 
     try {
       const existing = jersey
-        ? await db.select().from(playersTable).where(eq(playersTable.jerseyNumber, jersey))
-        : await db.select().from(playersTable).where(eq(playersTable.name, name));
+        ? await db.select().from(playersTable).where(and(eq(playersTable.clubId, clubId), eq(playersTable.jerseyNumber, jersey)))
+        : await db.select().from(playersTable).where(and(eq(playersTable.clubId, clubId), eq(playersTable.name, name)));
       if (existing.length > 0) {
         await db.update(playersTable).set({
           name: playerData.name,
@@ -287,7 +301,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
           heightInches: playerData.heightInches,
           standingReachInches: playerData.standingReachInches,
           verticalJumpInches: playerData.verticalJumpInches,
-        }).where(eq(playersTable.id, existing[0].id));
+        }).where(and(eq(playersTable.id, existing[0].id), eq(playersTable.clubId, clubId)));
         updated++;
       } else {
         await db.insert(playersTable).values(playerData);
@@ -303,6 +317,7 @@ router.post("/sync/sheets", async (req, res): Promise<void> => {
   }
 
   await db.insert(syncLogsTable).values({
+    clubId,
     status: errors.length > 0 && imported === 0 && updated === 0 ? "error" : "success",
     playersUpdated: imported + updated,
     message: `Google Sheets sync: ${imported} imported, ${updated} updated${errors.length > 0 ? `, ${errors.length} errors` : ""}`,

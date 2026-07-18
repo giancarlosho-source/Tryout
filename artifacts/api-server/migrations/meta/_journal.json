@@ -9,5 +9,47 @@
       "tag": "0000_brown_tarot",
       "breakpoints": true
     }
+    ,{
+      "idx": 1,
+      "version": "7",
+      "when": 1750460000000,
+      "tag": "0001_add_club_logo",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 2,
+      "version": "7",
+      "when": 1750460060000,
+      "tag": "0002_fix_logo_url",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 3,
+      "version": "7",
+      "when": 1750470000000,
+      "tag": "0003_multi_tenant",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 4,
+      "version": "7",
+      "when": 1750480000000,
+      "tag": "0004_club_slug",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 5,
+      "version": "7",
+      "when": 1751500000000,
+      "tag": "0005_terms_agreed_at",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 6,
+      "version": "7",
+      "when": 1751600000000,
+      "tag": "0006_email_verified_at",
+      "breakpoints": true
+    }
   ]
 }

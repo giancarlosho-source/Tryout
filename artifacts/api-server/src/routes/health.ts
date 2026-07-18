@@ -3,10 +3,18 @@ import { networkInterfaces } from "os";
 import { readFileSync } from "fs";
 import { execFileSync } from "child_process";
 import { HealthCheckResponse } from "@workspace/api-zod";
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-router.get("/healthz", (_req, res) => {
+router.get("/healthz", async (_req, res) => {
+  try {
+    await db.execute(sql`SELECT 1`);
+  } catch {
+    res.status(503).json({ status: "error", reason: "db_unreachable" });
+    return;
+  }
   const data = HealthCheckResponse.parse({ status: "ok" });
   res.json(data);
 });

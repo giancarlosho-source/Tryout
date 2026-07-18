@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+artifacts/tryout-app
+artifacts/tryout-app-ios
+artifacts/api-server/dist
+lib/db/dist
+lib/api-zod/dist
+.git
+**/.git
+.claude
+*.log
+**/*.map

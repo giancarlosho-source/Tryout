@@ -7,4 +7,4 @@ export * from "./sync";
 export * from "./coaches";
 export * from "./settings";
 export * from "./staff";
-
+export * from "./club-users";
