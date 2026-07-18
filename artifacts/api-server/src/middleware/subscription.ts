@@ -9,18 +9,32 @@ function jwtSecret(): string {
   return s;
 }
 
+// Independently re-parses the Authorization header (rather than trusting
+// req.clubId) because a few auth.ts routes — /auth/logo, /auth/club — are
+// exempt from requireAuth's JWT check internally but still need subscription
+// gating enforced here. Genuinely public/pre-auth routes (login, status,
+// forgot-password, ...) reach this middleware with no Authorization header
+// at all, so a missing header intentionally passes through — but a header
+// that IS present and fails to verify must reject, not silently proceed.
 export async function requireActiveSubscription(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const header = req.headers["authorization"];
+  if (!header?.startsWith("Bearer ")) { next(); return; }
+
+  let clubId: number;
   try {
-    const header = req.headers["authorization"];
-    if (!header?.startsWith("Bearer ")) { next(); return; }
-    const secret = process.env["JWT_SECRET"];
-    if (!secret) { next(); return; }
     const payload = jwt.verify(header.slice(7), jwtSecret()) as { clubId: number };
+    clubId = payload.clubId;
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token." });
+    return;
+  }
+
+  try {
     const [club] = await db.select({
       status: clubsTable.status,
       trialEndsAt: clubsTable.trialEndsAt,
-    }).from(clubsTable).where(eq(clubsTable.id, payload.clubId));
-    if (!club) { next(); return; }
+    }).from(clubsTable).where(eq(clubsTable.id, clubId));
+    if (!club) { res.status(401).json({ error: "Club not found." }); return; }
     if (club.status === "active") { next(); return; }
     if (club.status === "trial") {
       const trialEnd = club.trialEndsAt ? new Date(club.trialEndsAt) : null;
@@ -38,6 +52,6 @@ export async function requireActiveSubscription(req: Request, res: Response, nex
     }
     next();
   } catch {
-    next();
+    res.status(500).json({ error: "Failed to verify subscription status." });
   }
 }
