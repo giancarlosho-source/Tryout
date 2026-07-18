@@ -21,7 +21,7 @@ type Screen = "pick" | "pin";
 export default function StationSelect() {
   const [, navigate] = useLocation();
   const params = useParams<{ slug?: string }>();
-  const slug = params.slug ?? null;
+  const slug = params.slug ?? new URLSearchParams(window.location.search).get("club");
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [screen, setScreen] = useState<Screen>("pick");
   const [selected, setSelected] = useState<StaffMember | null>(null);
