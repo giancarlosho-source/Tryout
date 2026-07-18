@@ -21,7 +21,10 @@ type Screen = "pick" | "pin";
 export default function StationSelect() {
   const [, navigate] = useLocation();
   const params = useParams<{ slug?: string }>();
-  const slug = params.slug ?? new URLSearchParams(window.location.search).get("club");
+  const slugFromUrl = params.slug ?? new URLSearchParams(window.location.search).get("club");
+  // Persist slug so PWA home screen shortcut (which ignores query params) still works
+  if (slugFromUrl) localStorage.setItem("tryoutdesk_club_slug", slugFromUrl);
+  const slug = slugFromUrl ?? localStorage.getItem("tryoutdesk_club_slug");
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [screen, setScreen] = useState<Screen>("pick");
   const [selected, setSelected] = useState<StaffMember | null>(null);
