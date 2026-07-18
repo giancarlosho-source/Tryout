@@ -1,6 +1,16 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
-import { Delete, LayoutDashboard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
+import { Delete, LayoutDashboard, Share } from "lucide-react";
+
+// Detect if running as installed PWA (standalone) or in browser
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true;
+}
+
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
@@ -10,6 +20,8 @@ type Screen = "pick" | "pin";
 
 export default function StationSelect() {
   const [, navigate] = useLocation();
+  const params = useParams<{ slug?: string }>();
+  const slug = params.slug ?? null;
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [screen, setScreen] = useState<Screen>("pick");
   const [selected, setSelected] = useState<StaffMember | null>(null);
@@ -18,11 +30,23 @@ export default function StationSelect() {
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/staff`)
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setStaff(data); })
-      .catch(() => {});
-  }, []);
+    if (slug) {
+      // Slug-based: no token needed, works with any bookmarked URL
+      fetch(`${API_BASE}/api/staff/public/${slug}`)
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setStaff(data); })
+        .catch(() => {});
+    } else {
+      // Fallback: token-based for backwards compat with /station
+      const token = localStorage.getItem("tryoutdesk_token") ?? "";
+      fetch(`${API_BASE}/api/staff`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((r) => r.json())
+        .then((data) => { if (Array.isArray(data)) setStaff(data); })
+        .catch(() => {});
+    }
+  }, [slug]);
 
   const selectPerson = (member: StaffMember) => {
     setSelected(member);
@@ -44,9 +68,13 @@ export default function StationSelect() {
     setChecking(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/api/staff/auth`, {
+      const authUrl = slug
+        ? `${API_BASE}/api/staff/public/${slug}/auth`
+        : `${API_BASE}/api/staff/auth`;
+      const token = localStorage.getItem("tryoutdesk_token") ?? "";
+      const res = await fetch(authUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(!slug && token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ id: selected.id, pin }),
       });
       const data = await res.json();
@@ -58,7 +86,13 @@ export default function StationSelect() {
       // Store session in localStorage
       localStorage.setItem("tryoutdesk_staff", JSON.stringify({ id: data.id, name: data.name, role: data.role }));
       localStorage.setItem("tryoutdesk_station_mode", data.role);
-      navigate("/station/evaluation");
+      const roleRoutes: Record<string, string> = {
+        evaluation: "/station/evaluation",
+        photo: "/station/photo",
+        checkin: "/station/checkin",
+        measurements: "/station/measurements",
+      };
+      navigate(roleRoutes[data.role] ?? "/station/evaluation");
     } catch {
       setError("Could not connect. Try again.");
     } finally {
@@ -66,10 +100,6 @@ export default function StationSelect() {
     }
   };
 
-  // Auto-submit when 4 digits entered
-  useEffect(() => {
-    if (pin.length === 4) submit();
-  }, [pin]);
 
   const goAdmin = () => {
     localStorage.removeItem("tryoutdesk_staff");
@@ -106,29 +136,48 @@ export default function StationSelect() {
 
           {/* Numpad */}
           <div className="grid grid-cols-3 gap-3">
-            {pad.map((key, i) => {
-              if (key === "") return <div key={i} />;
-              if (key === "⌫") return (
-                <button
-                  key={i}
-                  onClick={deleteDigit}
-                  className="flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-                >
-                  <Delete className="h-5 w-5" />
-                </button>
-              );
-              return (
-                <button
-                  key={i}
-                  onClick={() => appendDigit(key)}
-                  disabled={checking}
-                  className="flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-2xl font-bold text-gray-900 hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-40"
-                >
-                  {key}
-                </button>
-              );
-            })}
+            {["1","2","3","4","5","6","7","8","9"].map((key) => (
+              <button
+                key={key}
+                onClick={() => appendDigit(key)}
+                disabled={checking}
+                className="touch-manipulation flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-2xl font-bold text-gray-900 hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-40"
+              >
+                {key}
+              </button>
+            ))}
+            {/* Bottom row: clear · 0 · backspace */}
+            <button
+              onClick={() => setPin("")}
+              disabled={checking || pin.length === 0}
+              className="touch-manipulation flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-30"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => appendDigit("0")}
+              disabled={checking}
+              className="touch-manipulation flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-2xl font-bold text-gray-900 hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-40"
+            >
+              0
+            </button>
+            <button
+              onClick={deleteDigit}
+              disabled={checking || pin.length === 0}
+              className="touch-manipulation flex items-center justify-center h-16 rounded-2xl bg-white border-2 border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-30"
+            >
+              <Delete className="h-5 w-5" />
+            </button>
           </div>
+
+          {/* Confirm */}
+          <button
+            onClick={submit}
+            disabled={pin.length !== 4 || checking}
+            className="touch-manipulation w-full h-14 rounded-2xl bg-primary text-primary-foreground text-lg font-bold active:scale-95 transition-all shadow-md disabled:opacity-40"
+          >
+            {checking ? "Checking…" : "Confirm"}
+          </button>
 
           <button
             onClick={() => { setScreen("pick"); setPin(""); setError(""); }}
@@ -142,8 +191,19 @@ export default function StationSelect() {
   }
 
   // ── Name picker screen ──────────────────────────────────────────────────────
+  const showInstallPrompt = isIOS() && !isStandalone();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col items-center justify-center p-6">
+      {showInstallPrompt && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white px-5 py-4 flex items-start gap-3 shadow-2xl z-50">
+          <Share className="h-5 w-5 mt-0.5 shrink-0 text-blue-400" />
+          <div className="text-sm">
+            <p className="font-bold mb-0.5">Add to Home Screen for the best experience</p>
+            <p className="text-gray-400">Tap <strong className="text-white">Share</strong> → <strong className="text-white">Add to Home Screen</strong> — opens full screen like a native app.</p>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <img
@@ -166,7 +226,7 @@ export default function StationSelect() {
               <button
                 key={m.id}
                 onClick={() => selectPerson(m)}
-                className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-gray-200 hover:border-primary hover:shadow-md active:scale-[0.98] transition-all font-bold text-lg text-gray-900"
+                className="w-full text-left px-5 py-4 rounded-2xl bg-white border-2 border-gray-200 hover:border-primary hover:shadow-md active:scale-[0.98] transition-all font-bold text-lg text-gray-900 touch-manipulation"
               >
                 {m.name}
               </button>
