@@ -167,7 +167,6 @@ export default function EvaluationStation() {
             ...prev.slice(0, 9),
           ]);
           setFlash({ score, name: player.name });
-          setTimeout(() => setFlash(null), 1200);
           setSelectedPlayer(null);
           setSearch("");
           queryClient.invalidateQueries({ queryKey: getListRankingsQueryKey({}) });
@@ -282,7 +281,7 @@ export default function EvaluationStation() {
                   {filteredPlayers.map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => { setSelectedPlayer(p); setSearch(""); }}
+                      onClick={() => { setSelectedPlayer(p); setSearch(""); setFlash(null); }}
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-purple-50 text-left transition-colors"
                     >
                       <span className="font-black text-purple-600 w-8 text-center">#{p.jerseyNumber ?? "?"}</span>
@@ -352,11 +351,15 @@ export default function EvaluationStation() {
           )}
         </div>
 
-        {/* Flash confirmation */}
+        {/* Last score confirmation — stays visible until next player is selected */}
         {flash && (
-          <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 animate-in fade-in">
-            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-            <span className="font-bold text-green-800">{flash.name} — scored <strong>{flash.score}</strong></span>
+          <div className="flex items-center gap-4 bg-green-50 border-2 border-green-200 rounded-2xl px-5 py-4 animate-in fade-in">
+            <CheckCircle2 className="h-6 w-6 text-green-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-green-600 mb-0.5">Score saved</p>
+              <p className="font-bold text-green-900 truncate">{flash.name}</p>
+            </div>
+            <div className="text-4xl font-black text-green-600 tabular-nums">{flash.score}</div>
           </div>
         )}
 
