@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle2, Calendar, Download, QrCode, Pencil, Smartphone, Copy, Check, Globe } from "lucide-react";
+import { CheckCircle2, Calendar, Download, QrCode, Pencil, Smartphone, Copy, Check, Globe, AlertTriangle } from "lucide-react";
 
 const HELP = {
   title: "Session Management",
@@ -49,6 +49,9 @@ export default function Sessions() {
   const [active, setActive] = useState<ActiveSession>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [activateError, setActivateError] = useState("");
+  const [clearError, setClearError] = useState(false);
 
   // Form state
   const [selectedEvent, setSelectedEvent] = useState(EVENT_PRESETS[4]); // 16U default
@@ -65,16 +68,18 @@ export default function Sessions() {
   const stationUrl = `${APP_URL}/station${clubParam}`;
 
   // Load active session on mount
-  useEffect(() => {
-    fetch(`${API_BASE}/api/settings`)
-      .then((r) => r.json())
+  const loadActiveSession = () => {
+    setLoadError(false);
+    return fetch(`${API_BASE}/api/settings`)
+      .then((r) => { if (!r.ok) throw new Error(`Failed to load settings (${r.status})`); return r.json(); })
       .then((s: Record<string, string>) => {
         if (s["session.event"] && s["session.date"]) {
           setActive({ event: s["session.event"], date: s["session.date"] });
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setLoadError(true));
+  };
+  useEffect(() => { loadActiveSession(); }, []);
 
   // Render QR code onto canvas
   useEffect(() => {
@@ -94,6 +99,7 @@ export default function Sessions() {
     const eventName = useCustom ? customEvent.trim() : selectedEvent;
     if (!eventName || !date) return;
     setSaving(true);
+    setActivateError("");
     try {
       const r = await fetch(`${API_BASE}/api/settings`, {
         method: "PUT",
@@ -113,19 +119,27 @@ export default function Sessions() {
       setGlobalSession({ event: eventName, date });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setActivateError(err instanceof Error ? err.message : "Failed to start session.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleClearSession = async () => {
-    await fetch(`${API_BASE}/api/settings`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ "session.event": "", "session.date": "" }),
-    });
-    setActive(null);
-    setGlobalSession(null);
+    setClearError(false);
+    try {
+      const r = await fetch(`${API_BASE}/api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "session.event": "", "session.date": "" }),
+      });
+      if (!r.ok) throw new Error(`Failed to clear session (${r.status})`);
+      setActive(null);
+      setGlobalSession(null);
+    } catch {
+      setClearError(true);
+    }
   };
 
   const handleDownload = () => {
@@ -186,6 +200,13 @@ export default function Sessions() {
         <p className="text-sm text-muted-foreground mt-1">
           Set the active tryout session — the check-in station will show this when players scan in.
         </p>
+        {loadError && (
+          <div className="mt-3 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-700 font-semibold max-w-lg">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">Couldn't check for an active session. The status below may be out of date.</span>
+            <button onClick={() => loadActiveSession()} className="underline shrink-0">Retry</button>
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 items-start">
@@ -258,6 +279,11 @@ export default function Sessions() {
                 "Activate Session"
               )}
             </button>
+            {activateError && (
+              <p className="text-sm text-red-600 flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {activateError}
+              </p>
+            )}
           </div>
 
           {/* Active session status */}
@@ -274,6 +300,11 @@ export default function Sessions() {
               </div>
               <div className="font-black text-lg text-green-800">{active.event}</div>
               <div className="text-sm text-green-700">{formatDate(active.date)}</div>
+              {clearError && (
+                <p className="text-xs text-red-600 flex items-center gap-1 pt-1">
+                  <AlertTriangle className="h-3 w-3 shrink-0" /> Couldn't clear the session. Try again.
+                </p>
+              )}
             </div>
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShieldCheck, KeyRound, X, Lock, LockOpen } from "lucide-react";
+import { ShieldCheck, KeyRound, X, Lock, LockOpen, AlertTriangle } from "lucide-react";
 
 const HELP = {
   title: "Staff & Roles",
@@ -49,33 +49,44 @@ export default function Staff() {
   const [error, setError] = useState("");
   const [requirePin, setRequirePin] = useState(true);
   const [togglingPin, setTogglingPin] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [toggleError, setToggleError] = useState(false);
 
-  const load = () =>
-    fetch(`${API_BASE}/api/staff/all`)
-      .then((r) => r.json())
+  const load = () => {
+    setLoadError(false);
+    return fetch(`${API_BASE}/api/staff/all`)
+      .then((r) => { if (!r.ok) throw new Error(`Failed to load staff (${r.status})`); return r.json(); })
       .then((d) => { if (Array.isArray(d)) setCoaches(d); })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  };
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/settings`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(`Failed to load settings (${r.status})`); return r.json(); })
       .then((d) => setRequirePin(d.requirePin !== "false"))
-      .catch(() => {});
+      .catch(() => setToggleError(true));
   }, []);
 
   const toggleRequirePin = async () => {
     setTogglingPin(true);
+    setToggleError(false);
     const next = !requirePin;
-    await fetch(`${API_BASE}/api/settings`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requirePin: String(next) }),
-    });
-    setRequirePin(next);
-    setTogglingPin(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirePin: String(next) }),
+      });
+      if (!res.ok) throw new Error(`Failed to save (${res.status})`);
+      setRequirePin(next);
+    } catch {
+      setToggleError(true);
+    } finally {
+      setTogglingPin(false);
+    }
   };
 
   const startEdit = (coach: CoachEntry) => {
@@ -152,10 +163,20 @@ export default function Staff() {
               ${requirePin ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
+        {toggleError && (
+          <p className="mt-2 text-sm text-red-600 flex items-center gap-1.5 max-w-lg">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> Couldn't save this setting. Try again.
+          </p>
+        )}
       </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : loadError ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-sm text-red-700 max-w-md space-y-2">
+          <p className="font-semibold flex items-center justify-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Couldn't load staff.</p>
+          <button onClick={() => { setLoading(true); load(); }} className="underline font-semibold">Retry</button>
+        </div>
       ) : coaches.length === 0 ? (
         <div className="bg-muted/30 border rounded-xl p-6 text-center text-sm text-muted-foreground max-w-md">
           No coaches yet. Add staff in the <strong>Coaches</strong> tab first, then assign PINs here.

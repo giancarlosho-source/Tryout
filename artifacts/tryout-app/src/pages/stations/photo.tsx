@@ -3,7 +3,7 @@ import { useListPlayers, getGetPlayerQueryKey } from "@workspace/api-client-reac
 import { useQueryClient } from "@tanstack/react-query";
 import { StationShell } from "@/components/station-shell";
 import { Input } from "@/components/ui/input";
-import { Search, Camera, CheckCircle2, X, Upload } from "lucide-react";
+import { Search, Camera, CheckCircle2, X, Upload, AlertTriangle } from "lucide-react";
 import { positionLabel } from "@/lib/positions";
 import { useActiveSession } from "@/hooks/use-active-session";
 
@@ -24,7 +24,7 @@ export default function PhotoStation() {
   const { sessionAge } = useActiveSession();
   const queryClient = useQueryClient();
 
-  const { data: allPlayers } = useListPlayers({});
+  const { data: allPlayers, isError, refetch } = useListPlayers({});
   const players = sessionAge
     ? (allPlayers ?? []).filter((p) => (p.age ?? "").replace(/U$/i, "") === sessionAge)
     : (allPlayers ?? []);
@@ -120,6 +120,14 @@ export default function PhotoStation() {
   return (
     <StationShell title="Photo" color="bg-blue-600">
       <div className="max-w-lg mx-auto p-6 space-y-6">
+        {isError && (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 font-bold">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <span className="flex-1">Couldn't load players. Check your connection.</span>
+            <button onClick={() => refetch()} className="underline text-sm font-semibold shrink-0">Retry</button>
+          </div>
+        )}
+
         {!selectedId ? (
           <>
             <div className="relative">
@@ -175,7 +183,7 @@ export default function PhotoStation() {
                 <div className="font-bold text-xl">{selected?.name}</div>
                 <div className="text-sm text-muted-foreground">{positionLabel(selected?.position ?? "")}</div>
               </div>
-              <button onClick={() => { stopCamera(); setSelectedId(null); setPhotoPreview(null); }} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => { stopCamera(); setSelectedId(null); setPhotoPreview(null); }} aria-label="Cancel and return to search" className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>

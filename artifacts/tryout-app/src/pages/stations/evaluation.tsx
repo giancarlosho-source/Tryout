@@ -3,7 +3,7 @@ import { useListPlayers, useListCoaches, useUpsertEvaluation, getListRankingsQue
 import { useActiveSession } from "@/hooks/use-active-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { StationShell } from "@/components/station-shell";
-import { Mic, MicOff, CheckCircle2, User, ChevronDown, Search } from "lucide-react";
+import { Mic, MicOff, CheckCircle2, User, ChevronDown, Search, AlertTriangle } from "lucide-react";
 import { positionLabel } from "@/lib/positions";
 
 // ── Skills ─────────────────────────────────────────────────────────────────────
@@ -139,17 +139,19 @@ export default function EvaluationStation() {
 
   const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
   const [publicPlayers, setPublicPlayers] = useState<{ id: number; name: string; jerseyNumber?: string | null; position?: string | null; age?: string | null; checkedIn?: boolean | null }[] | null>(null);
+  const [publicPlayersError, setPublicPlayersError] = useState(false);
   useEffect(() => {
     const slug = localStorage.getItem("tryoutdesk_club_slug");
     if (!slug) return;
     fetch(`${API_BASE}/api/players/public/${slug}`)
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setPublicPlayers(data); })
-      .catch(() => {});
+      .then((data) => { if (Array.isArray(data)) setPublicPlayers(data); else setPublicPlayersError(true); })
+      .catch(() => setPublicPlayersError(true));
   }, [API_BASE]);
 
-  const { data: authedPlayers } = useListPlayers({}, { query: { enabled: publicPlayers === null } });
+  const { data: authedPlayers, isError: authedPlayersError, refetch: refetchPlayers } = useListPlayers({}, { query: { enabled: publicPlayers === null } });
   const allPlayers = publicPlayers ?? authedPlayers ?? [];
+  const playersLoadFailed = publicPlayers === null && publicPlayersError && authedPlayersError;
   const players = sessionAge
     ? allPlayers.filter((p) => !p.age || (p.age ?? "").replace(/U$/i, "") === sessionAge)
     : allPlayers;
@@ -195,6 +197,14 @@ export default function EvaluationStation() {
   return (
     <StationShell title="Evaluation" color="bg-purple-600">
       <div className="max-w-lg mx-auto p-4 space-y-4">
+
+        {playersLoadFailed && (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 font-bold">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <span className="flex-1">Couldn't load players. Check your connection.</span>
+            <button onClick={() => refetchPlayers()} className="underline text-sm font-semibold shrink-0">Retry</button>
+          </div>
+        )}
 
         {/* Coach selector */}
         <button

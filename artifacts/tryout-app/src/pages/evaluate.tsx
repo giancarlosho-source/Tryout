@@ -134,7 +134,7 @@ export default function Evaluate() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  const { data: playerDetail, isLoading } = useGetPlayer(playerId!, {
+  const { data: playerDetail, isLoading, isError, refetch } = useGetPlayer(playerId!, {
     query: { enabled: !!playerId, queryKey: getGetPlayerQueryKey(playerId!) },
   });
 
@@ -205,6 +205,15 @@ export default function Evaluate() {
           <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
           <p className="text-muted-foreground">Loading player...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-red-600 font-semibold">Couldn't load this player. Check your connection.</p>
+        <button onClick={() => refetch()} className="underline text-sm font-semibold text-muted-foreground">Retry</button>
       </div>
     );
   }

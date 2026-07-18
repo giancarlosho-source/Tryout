@@ -60,7 +60,7 @@ function SubInOverlay({ allPlayers, courtPlayers, onAdd, onRemove, onClose }: {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-4 py-3 rounded-2xl bg-gray-800 text-white placeholder-gray-500 text-sm focus:outline-none"
         />
-        <button onClick={onClose} className="p-3 rounded-2xl bg-gray-800 text-white">
+        <button onClick={onClose} aria-label="Close" className="p-3 rounded-2xl bg-gray-800 text-white">
           <X className="h-5 w-5" />
         </button>
       </div>
