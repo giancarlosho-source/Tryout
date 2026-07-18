@@ -290,7 +290,9 @@ const isNativeApp =
 
 const basePath = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 if (isNativeApp && window.location.pathname !== basePath + "/station") {
-  window.location.replace(basePath + "/station");
+  // Preserve ?club= query param so bookmarked station URLs keep their club context
+  const club = new URLSearchParams(window.location.search).get("club");
+  window.location.replace(basePath + "/station" + (club ? `?club=${club}` : ""));
 }
 
 function AutoSync() {
