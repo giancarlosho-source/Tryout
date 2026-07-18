@@ -2,6 +2,16 @@ import { Router, type IRouter } from "express";
 import { eq, isNotNull, and, ne, inArray } from "drizzle-orm";
 import { db, coachesTable, rostersTable, rosterPlayersTable, playersTable, coachWishlistTable, coachMustHaveTable } from "@workspace/db";
 import { broadcast } from "../events";
+import {
+  GetCoachWishlistParams,
+  AddToWishlistParams,
+  AddToWishlistBody,
+  RemoveFromWishlistParams,
+  GetCoachMustHaveParams,
+  AddToMustHaveParams,
+  AddToMustHaveBody,
+  RemoveFromMustHaveParams,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -263,8 +273,9 @@ router.get("/coaches/wishlist/all", async (req, res): Promise<void> => {
 
 // Get a coach's wishlist
 router.get("/coaches/:id/wishlist", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const params = GetCoachWishlistParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const coachId = params.data.id;
 
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
@@ -275,25 +286,25 @@ router.get("/coaches/:id/wishlist", async (req, res): Promise<void> => {
 
 // Add to wishlist
 router.post("/coaches/:id/wishlist", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
-
-  const { playerId } = req.body as { playerId?: number };
-  if (!playerId) { res.status(400).json({ error: "playerId is required" }); return; }
+  const params = AddToWishlistParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const body = AddToWishlistBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  const coachId = params.data.id;
 
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
 
-  await db.insert(coachWishlistTable).values({ coachId, playerId }).onConflictDoNothing();
+  await db.insert(coachWishlistTable).values({ coachId, playerId: body.data.playerId }).onConflictDoNothing();
   broadcast("players:changed");
   res.status(201).json({ ok: true });
 });
 
 // Remove from wishlist
 router.delete("/coaches/:id/wishlist/:playerId", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  const playerId = parseInt(req.params.playerId);
-  if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const params = RemoveFromWishlistParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const { id: coachId, playerId } = params.data;
 
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
@@ -322,8 +333,9 @@ router.get("/coaches/musthave/all", async (req, res): Promise<void> => {
 
 // Get a coach's must-have list
 router.get("/coaches/:id/musthave", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const params = GetCoachMustHaveParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const coachId = params.data.id;
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   const entries = await db.select().from(coachMustHaveTable).where(eq(coachMustHaveTable.coachId, coachId));
@@ -332,22 +344,23 @@ router.get("/coaches/:id/musthave", async (req, res): Promise<void> => {
 
 // Add to must-have
 router.post("/coaches/:id/musthave", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  if (isNaN(coachId)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const { playerId } = req.body as { playerId?: number };
-  if (!playerId) { res.status(400).json({ error: "playerId is required" }); return; }
+  const params = AddToMustHaveParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const body = AddToMustHaveBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  const coachId = params.data.id;
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
-  await db.insert(coachMustHaveTable).values({ coachId, playerId }).onConflictDoNothing();
+  await db.insert(coachMustHaveTable).values({ coachId, playerId: body.data.playerId }).onConflictDoNothing();
   broadcast("players:changed");
   res.status(201).json({ ok: true });
 });
 
 // Remove from must-have
 router.delete("/coaches/:id/musthave/:playerId", async (req, res): Promise<void> => {
-  const coachId = parseInt(req.params.id);
-  const playerId = parseInt(req.params.playerId);
-  if (isNaN(coachId) || isNaN(playerId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const params = RemoveFromMustHaveParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const { id: coachId, playerId } = params.data;
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   await db.delete(coachMustHaveTable)

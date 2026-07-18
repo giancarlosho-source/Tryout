@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { timingSafeEqual } from "crypto";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { Resend } from "resend";
 import { db, clubsTable } from "@workspace/db";
@@ -15,11 +16,18 @@ function cronSecret() {
   return process.env["CRON_SECRET"] ?? "";
 }
 
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 // POST /api/cron/trial-reminders — called daily by Railway cron
 // Protected by a shared secret so only Railway can trigger it
 router.post("/cron/trial-reminders", async (req, res) => {
   const secret = req.headers["x-cron-secret"];
-  if (!secret || secret !== cronSecret()) {
+  if (typeof secret !== "string" || !secretsMatch(secret, cronSecret())) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

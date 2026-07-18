@@ -786,6 +786,50 @@ export const RemoveFromWishlistParams = zod.object({
 
 
 /**
+ * @summary Get all must-have picks across all coaches
+ */
+export const GetAllMustHavePicksResponseItem = zod.object({
+  "playerId": zod.number(),
+  "coachId": zod.number(),
+  "coachName": zod.string(),
+  "teamName": zod.string()
+})
+export const GetAllMustHavePicksResponse = zod.array(GetAllMustHavePicksResponseItem)
+
+
+/**
+ * @summary Get a coach's must-have list
+ */
+export const GetCoachMustHaveParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetCoachMustHaveResponseItem = zod.number()
+export const GetCoachMustHaveResponse = zod.array(GetCoachMustHaveResponseItem)
+
+
+/**
+ * @summary Add a player to a coach's must-have list
+ */
+export const AddToMustHaveParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AddToMustHaveBody = zod.object({
+  "playerId": zod.number()
+})
+
+
+/**
+ * @summary Remove a player from a coach's must-have list
+ */
+export const RemoveFromMustHaveParams = zod.object({
+  "id": zod.coerce.number(),
+  "playerId": zod.coerce.number()
+})
+
+
+/**
  * @summary Update a coach note
  */
 export const UpdateNoteParams = zod.object({

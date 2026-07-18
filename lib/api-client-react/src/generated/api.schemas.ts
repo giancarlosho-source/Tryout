@@ -309,8 +309,6 @@ export interface DraftPick {
   coachName: string;
   teamName: string;
   position: string;
-  committed?: boolean;
-  locked?: boolean;
 }
 
 export interface WishlistPick {
@@ -325,6 +323,17 @@ export interface PlayerLockInput {
 }
 
 export interface WishlistInput {
+  playerId: number;
+}
+
+export interface MustHavePick {
+  playerId: number;
+  coachId: number;
+  coachName: string;
+  teamName: string;
+}
+
+export interface MustHaveInput {
   playerId: number;
 }
 

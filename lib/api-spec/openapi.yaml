@@ -723,6 +723,81 @@ paths:
         "204":
           description: Removed
 
+  /coaches/musthave/all:
+    get:
+      operationId: getAllMustHavePicks
+      tags: [coaches]
+      summary: Get all must-have picks across all coaches
+      responses:
+        "200":
+          description: All must-have picks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MustHavePick"
+
+  /coaches/{id}/musthave:
+    get:
+      operationId: getCoachMustHave
+      tags: [coaches]
+      summary: Get a coach's must-have list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Must-have player IDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+    post:
+      operationId: addToMustHave
+      tags: [coaches]
+      summary: Add a player to a coach's must-have list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MustHaveInput"
+      responses:
+        "201":
+          description: Added
+
+  /coaches/{id}/musthave/{playerId}:
+    delete:
+      operationId: removeFromMustHave
+      tags: [coaches]
+      summary: Remove a player from a coach's must-have list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
   /notes/{id}:
     patch:
       operationId: updateNote
@@ -1294,6 +1369,26 @@ components:
           type: boolean
 
     WishlistInput:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: integer
+
+    MustHavePick:
+      type: object
+      required: [playerId, coachId, coachName, teamName]
+      properties:
+        playerId:
+          type: integer
+        coachId:
+          type: integer
+        coachName:
+          type: string
+        teamName:
+          type: string
+
+    MustHaveInput:
       type: object
       required: [playerId]
       properties:
