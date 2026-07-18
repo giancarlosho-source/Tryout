@@ -3,27 +3,27 @@ import { useListPlayers, useListCoaches, useUpsertEvaluation, getListRankingsQue
 import { useActiveSession } from "@/hooks/use-active-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { StationShell } from "@/components/station-shell";
-import { Mic, MicOff, CheckCircle2, User, ChevronDown } from "lucide-react";
+import { Mic, MicOff, CheckCircle2, User, ChevronDown, Search } from "lucide-react";
 import { positionLabel } from "@/lib/positions";
 
 // ── Skills ─────────────────────────────────────────────────────────────────────
 const SKILLS: { label: string; skill: string; category: "universal" | "position"; mandatory?: boolean }[] = [
-  { label: "Serving",     skill: "Serving",      category: "universal", mandatory: true },
-  { label: "Defense",     skill: "Defense",       category: "universal", mandatory: true },
-  { label: "Attacking",   skill: "Attacking",     category: "position",  mandatory: true },
-  { label: "Srv Receive", skill: "Serve receive", category: "position",  mandatory: true },
-  { label: "Setting",     skill: "Hands",         category: "position",  mandatory: true },
-  { label: "Passing",     skill: "Passing",       category: "universal" },
-  { label: "IQ",          skill: "Volleyball IQ", category: "universal" },
-  { label: "Comms",       skill: "Communication", category: "universal" },
-  { label: "Coachability",skill: "Coachability",  category: "universal" },
-  { label: "Competitive", skill: "Competitiveness",category: "universal" },
-  { label: "Consistency", skill: "Consistency",   category: "universal" },
-  { label: "Blocking",    skill: "Blocking",      category: "position" },
-  { label: "Transition",  skill: "Transition",    category: "position" },
-  { label: "Footwork",    skill: "Footwork",      category: "position" },
-  { label: "Leadership",  skill: "Leadership",    category: "position" },
-  { label: "Physical",    skill: "Physical upside",category: "position" },
+  { label: "Serving",      skill: "Serving",          category: "universal", mandatory: true },
+  { label: "Defense",      skill: "Defense",           category: "universal", mandatory: true },
+  { label: "Attacking",    skill: "Attacking",         category: "position",  mandatory: true },
+  { label: "Srv Receive",  skill: "Serve receive",     category: "position",  mandatory: true },
+  { label: "Setting",      skill: "Setting",             category: "position",  mandatory: true },
+  { label: "Passing",      skill: "Passing",           category: "universal" },
+  { label: "IQ",           skill: "Volleyball IQ",     category: "universal" },
+  { label: "Comms",        skill: "Communication",     category: "universal" },
+  { label: "Coachability", skill: "Coachability",      category: "universal" },
+  { label: "Competitive",  skill: "Competitiveness",   category: "universal" },
+  { label: "Consistency",  skill: "Consistency",       category: "universal" },
+  { label: "Blocking",     skill: "Blocking",          category: "position" },
+  { label: "Transition",   skill: "Transition",        category: "position" },
+  { label: "Footwork",     skill: "Footwork",          category: "position" },
+  { label: "Leadership",   skill: "Leadership",        category: "position" },
+  { label: "Physical",     skill: "Physical upside",   category: "position" },
 ];
 
 const NUMBER_WORDS: Record<string, number> = {
@@ -114,21 +114,53 @@ interface LogEntry { id: number; jersey: string; name: string; score: number; sk
 
 export default function EvaluationStation() {
   const queryClient = useQueryClient();
-  const [coachName, setCoachName] = useState("");
+  const [coachName, setCoachName] = useState(() => {
+    try {
+      const staff = localStorage.getItem("tryoutdesk_staff");
+      return staff ? (JSON.parse(staff).name ?? "") : "";
+    } catch { return ""; }
+  });
   const [showCoachPicker, setShowCoachPicker] = useState(false);
   const [currentSkill, setCurrentSkill] = useState(SKILLS[0]);
   const [showSecondary, setShowSecondary] = useState(false);
+  const [scoreScale, setScoreScale] = useState<5 | 10>(5);
   const [log, setLog] = useState<LogEntry[]>([]);
+  const [search, setSearch] = useState("");
+  const [selectedPlayer, setSelectedPlayer] = useState<{ id: number; name: string; jerseyNumber?: string | null } | null>(null);
+  const [flash, setFlash] = useState<{ score: number; name: string } | null>(null);
+
+  // Voice
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [lastHeard, setLastHeard] = useState<string | null>(null);
   const markSubmittedRef = useRef<() => void>(() => {});
+
   const upsert = useUpsertEvaluation();
   const { sessionAge } = useActiveSession();
   const { data: allPlayers } = useListPlayers({});
   const players = sessionAge
-    ? (allPlayers ?? []).filter((p) => (p.age ?? "") === sessionAge)
+    ? (allPlayers ?? []).filter((p) => !p.age || (p.age ?? "").replace(/U$/i, "") === sessionAge)
     : (allPlayers ?? []);
   const { data: coaches } = useListCoaches();
   const evaluators = coaches?.filter((c) => c.teamName === "Evaluator") ?? [];
+
+  const submitScore = useCallback((player: { id: number; name: string; jerseyNumber?: string | null }, score: number) => {
+    upsert.mutate(
+      { data: { playerId: player.id, coachName, skill: currentSkill.skill, category: currentSkill.category, score } },
+      {
+        onSuccess: () => {
+          setLog((prev) => [
+            { id: Date.now(), jersey: player.jerseyNumber ?? "?", name: player.name, score, skill: currentSkill.skill },
+            ...prev.slice(0, 9),
+          ]);
+          setFlash({ score, name: player.name });
+          setTimeout(() => setFlash(null), 1200);
+          setSelectedPlayer(null);
+          setSearch("");
+          queryClient.invalidateQueries({ queryKey: getListRankingsQueryKey({}) });
+        },
+      }
+    );
+  }, [coachName, currentSkill, upsert, queryClient]);
 
   const processTranscript = useCallback((transcript: string) => {
     setLastHeard(transcript);
@@ -137,28 +169,23 @@ export default function EvaluationStation() {
     const player = players.find((p) => p.jerseyNumber === parsed.jersey);
     if (!player) return;
     markSubmittedRef.current();
-    upsert.mutate(
-      { data: { playerId: player.id, coachName, skill: currentSkill.skill, category: currentSkill.category, score: parsed.score } },
-      {
-        onSuccess: () => {
-          setLog((prev) => [{ id: Date.now(), jersey: parsed.jersey, name: player.name, score: parsed.score, skill: currentSkill.skill }, ...prev.slice(0, 9)]);
-          queryClient.invalidateQueries({ queryKey: getListRankingsQueryKey({}) });
-        },
-      }
-    );
-  }, [players, coachName, currentSkill, upsert, queryClient]);
+    submitScore(player, parsed.score);
+  }, [players, submitScore]);
 
   const { active, start, stop, markSubmitted, supported } = useBrowserSpeech(processTranscript);
   markSubmittedRef.current = markSubmitted;
 
-  const startSession = () => {
-    if (!coachName) { setShowCoachPicker(true); return; }
-    start();
-  };
+  const filteredPlayers = search.trim().length >= 1
+    ? players.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.jerseyNumber ?? "").includes(search)
+      ).slice(0, 6)
+    : [];
 
   return (
     <StationShell title="Evaluation" color="bg-purple-600">
       <div className="max-w-lg mx-auto p-4 space-y-4">
+
         {/* Coach selector */}
         <button
           onClick={() => setShowCoachPicker(!showCoachPicker)}
@@ -174,7 +201,7 @@ export default function EvaluationStation() {
         {showCoachPicker && (
           <div className="bg-white border-2 border-purple-100 rounded-xl shadow-lg p-3 space-y-1.5">
             {evaluators.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-2">No evaluators found. Add them in the console under Coaches.</p>
+              <p className="text-sm text-muted-foreground text-center py-2">No evaluators found. Add them under Coaches.</p>
             )}
             {evaluators.map((c) => (
               <button
@@ -195,7 +222,8 @@ export default function EvaluationStation() {
             {SKILLS.filter((s) => s.mandatory).map((s) => (
               <button key={s.skill} onClick={() => setCurrentSkill(s)}
                 className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all
-                  ${currentSkill.skill === s.skill ? "bg-primary text-primary-foreground border-primary"
+                  ${currentSkill.skill === s.skill
+                    ? "bg-primary text-primary-foreground border-primary"
                     : "bg-amber-50 text-amber-800 border-amber-300 hover:border-amber-500"}`}>
                 {s.label}
               </button>
@@ -206,7 +234,8 @@ export default function EvaluationStation() {
             {showSecondary && SKILLS.filter((s) => !s.mandatory).map((s) => (
               <button key={s.skill} onClick={() => setCurrentSkill(s)}
                 className={`px-3 py-1 rounded-full text-sm font-semibold border transition-all
-                  ${currentSkill.skill === s.skill ? "bg-primary text-primary-foreground border-primary"
+                  ${currentSkill.skill === s.skill
+                    ? "bg-primary text-primary-foreground border-primary"
                     : "bg-muted/40 text-muted-foreground border-transparent hover:border-border"}`}>
                 {s.label}
               </button>
@@ -218,34 +247,152 @@ export default function EvaluationStation() {
           </div>
         </div>
 
-        {/* Mic */}
-        <div className="flex flex-col items-center py-6 gap-3">
-          <button
-            onClick={active ? stop : startSession}
-            className={`relative flex items-center justify-center w-28 h-28 rounded-full border-4 transition-all shadow-lg active:scale-95
-              ${active ? "bg-red-500 border-red-600 text-white shadow-red-200" : "bg-purple-600 border-purple-700 text-white shadow-purple-200"}`}
-          >
-            {active && <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />}
-            {active ? <MicOff className="h-10 w-10 relative z-10" /> : <Mic className="h-10 w-10 relative z-10" />}
-          </button>
-          <div className="text-center">
-            {!supported ? (
-              <p className="text-sm text-red-500 font-semibold">Voice not supported in this browser. Use Chrome or Safari.</p>
-            ) : active ? (
-              <p className="text-red-500 font-bold text-sm">Listening… say jersey + score</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Tap · say <strong className="text-foreground">"21 seven"</strong> · tap again</p>
-            )}
-            {lastHeard && <p className="text-xs text-muted-foreground/60 mt-1 truncate max-w-xs">Heard: <em>"{lastHeard}"</em></p>}
+        {/* ── Tap UI ── */}
+        <div className="bg-white border-2 border-purple-100 rounded-2xl p-4 space-y-3">
+          {/* Player search */}
+          {!selectedPlayer ? (
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Player</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Name or jersey #…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
+                />
+              </div>
+              {filteredPlayers.length > 0 && (
+                <div className="space-y-1">
+                  {filteredPlayers.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setSelectedPlayer(p); setSearch(""); }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-purple-50 text-left transition-colors"
+                    >
+                      <span className="font-black text-purple-600 w-8 text-center">#{p.jerseyNumber ?? "?"}</span>
+                      <span className="font-semibold text-sm">{p.name}</span>
+                      {p.position && <span className="text-xs text-muted-foreground ml-auto">{positionLabel(p.position)}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {search.trim().length >= 1 && filteredPlayers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">No players found</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-2xl text-purple-600">#{selectedPlayer.jerseyNumber ?? "?"}</span>
+                  <span className="font-bold">{selectedPlayer.name}</span>
+                </div>
+                <button onClick={() => setSelectedPlayer(null)} className="text-xs text-muted-foreground hover:text-foreground underline">
+                  Change
+                </button>
+              </div>
+
+              {/* Score buttons */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Score — {currentSkill.label}
+                  </label>
+                  <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-0.5">
+                    {([5, 10] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setScoreScale(s)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all
+                          ${scoreScale === s ? "bg-white text-foreground shadow-sm" : "text-muted-foreground"}`}
+                      >
+                        1–{s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={`grid gap-2 ${scoreScale === 5 ? "grid-cols-5" : "grid-cols-5"}`}>
+                  {Array.from({ length: scoreScale }, (_, i) => i + 1).map((score) => {
+                    const pct = score / scoreScale;
+                    const color = pct >= 0.7
+                      ? "bg-green-100 text-green-700 hover:bg-green-200 border-2 border-green-200"
+                      : pct >= 0.4
+                      ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border-2 border-yellow-200"
+                      : "bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-200";
+                    return (
+                      <button
+                        key={score}
+                        onClick={() => submitScore(selectedPlayer, score)}
+                        disabled={upsert.isPending}
+                        className={`py-3 rounded-xl font-black text-lg transition-all active:scale-95 disabled:opacity-50 ${color}`}
+                      >
+                        {score}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Flash confirmation */}
+        {flash && (
+          <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 animate-in fade-in">
+            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+            <span className="font-bold text-green-800">{flash.name} — scored <strong>{flash.score}</strong></span>
           </div>
+        )}
+
+        {/* ── Voice toggle ── */}
+        <div className="border-t pt-3">
+          <button
+            onClick={() => { setVoiceEnabled((v) => !v); if (active) stop(); }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Mic className="h-4 w-4" />
+            {voiceEnabled ? "Disable voice input" : "Enable voice input (experimental)"}
+          </button>
+
+          {voiceEnabled && (
+            <div className="mt-3 flex flex-col items-center gap-3 py-4">
+              {!supported ? (
+                <p className="text-sm text-red-500 font-semibold">Voice not supported. Use Chrome or Safari.</p>
+              ) : (
+                <>
+                  <button
+                    onClick={active ? stop : start}
+                    disabled={!coachName}
+                    className={`relative flex items-center justify-center w-20 h-20 rounded-full border-4 transition-all shadow-lg active:scale-95 disabled:opacity-40
+                      ${active ? "bg-red-500 border-red-600 text-white" : "bg-purple-600 border-purple-700 text-white"}`}
+                  >
+                    {active && <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />}
+                    {active ? <MicOff className="h-7 w-7 relative z-10" /> : <Mic className="h-7 w-7 relative z-10" />}
+                  </button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {active ? <span className="text-red-500 font-bold">Listening… say jersey + score</span>
+                      : 'Tap · say "21 seven" · tap again'}
+                  </p>
+                  {lastHeard && <p className="text-xs text-muted-foreground/60 truncate max-w-xs">Heard: <em>"{lastHeard}"</em></p>}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Log */}
         {log.length > 0 && (
           <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Recent</p>
             {log.map((entry, idx) => (
-              <div key={entry.id}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-opacity
+              <button key={entry.id}
+                onClick={() => {
+                  const p = (allPlayers ?? []).find(p => p.jerseyNumber === entry.jersey);
+                  if (p) { setSelectedPlayer({ id: p.id, name: p.name, jerseyNumber: p.jerseyNumber }); setSearch(""); }
+                }}
+                className={`touch-manipulation w-full flex items-center gap-3 p-3 rounded-xl border transition-opacity text-left active:scale-95
                   ${idx === 0 ? "bg-white border-border" : "bg-transparent border-transparent opacity-40"}`}>
                 <span className="font-black text-xl text-purple-600 tabular-nums w-8 text-center">#{entry.jersey}</span>
                 <div className="flex-1 min-w-0">
@@ -256,10 +403,11 @@ export default function EvaluationStation() {
                   {entry.score}
                 </span>
                 {idx === 0 && <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />}
-              </div>
+              </button>
             ))}
           </div>
         )}
+
       </div>
     </StationShell>
   );
