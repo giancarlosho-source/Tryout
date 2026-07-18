@@ -88,6 +88,32 @@ vercel alias set [paste-url-here] app.tryoutdesk.com
 
 **Important:** The `vercel alias set` step is required every time. Without it, the domain still points to the old version.
 
+### Running the API tests before deploying
+
+The `artifacts/api-server` test suite (`src/__tests__/`) covers cross-tenant
+data isolation — it's the regression suite for a real bug class that's bitten
+this app before, so it's worth running before deploying backend changes.
+
+```bash
+cd /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/api-server
+pnpm test
+```
+
+This spins up a throwaway Postgres via `docker-compose.test.yml`, runs the
+real `migrate.mjs` against it (same migration path as production), runs the
+suite, then tears the DB down. Requires Docker.
+
+**No Docker available?** Use a local Postgres instead — e.g. via Homebrew:
+```bash
+brew install postgresql@16
+/opt/homebrew/opt/postgresql@16/bin/initdb -D /tmp/tryoutdesk-pgdata -U test -A trust
+/opt/homebrew/opt/postgresql@16/bin/pg_ctl -D /tmp/tryoutdesk-pgdata -l /tmp/pg-test.log -o "-p 5433 -k /tmp" start
+/opt/homebrew/opt/postgresql@16/bin/createdb -h /tmp -p 5433 -U test tryoutdesk_test
+pnpm run test:local-pg
+```
+Re-run `dropdb`/`createdb` between runs if you hit a duplicate-key error from
+leftover test data — the suite doesn't currently clean up after itself.
+
 ---
 
 ## 3. How to Read Logs
@@ -168,6 +194,22 @@ railway logs --tail 2000 2>&1 | grep -A 15 "Webhook handler error"
 **Cause:** The club account was manually activated (no Stripe customer attached), so there's no portal to open.
 
 **Fix:** This is expected behavior for manually-activated accounts. The button should say "Subscribe" instead of "Manage Subscription" — if it doesn't, there may be a frontend bug.
+
+---
+
+### What is the `pending_signups` table?
+
+Holds the name/email/password hash for a trial signup between the moment
+someone submits the signup form and the moment Stripe confirms the checkout
+(`checkout.session.completed` webhook) — the club row only gets created once
+payment is confirmed. Only the row's id travels through Stripe metadata, not
+the password hash itself.
+
+**If you see rows sitting here for a long time:** it means someone started
+signing up but never completed Stripe checkout (closed the tab, card
+declined, etc.) — not a bug. There's currently no automatic cleanup job for
+abandoned rows; if the table grows large, it's safe to manually delete rows
+older than a few days that don't have a matching `clubs.email`.
 
 ---
 
