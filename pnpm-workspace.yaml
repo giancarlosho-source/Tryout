@@ -158,6 +158,8 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # qs DoS fix (GHSA-q8mj-m7cp-5q26): express>body-parser>qs pulls a vulnerable version
+  qs: "^6.15.2"
 
 allowBuilds:
   # esbuild's postinstall downloads its own platform binary — required for it
