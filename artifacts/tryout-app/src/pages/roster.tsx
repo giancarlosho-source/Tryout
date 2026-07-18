@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { useSuggestRoster, useCreateRoster, useAddPlayerToRoster, getListRostersQueryKey } from "@workspace/api-client-react";
+import { useSuggestRoster, useCreateRoster, useAddPlayerToRoster, getListRostersQueryKey, getSuggestRosterQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, AlertCircle, User, Lock, ClipboardList } from "lucide-react";
+import { Sparkles, RefreshCw, AlertCircle, User, Lock, ClipboardList, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoster } from "@/contexts/roster-context";
 
@@ -28,7 +28,7 @@ function ScorePill({ score }: { score: number | null | undefined }) {
 export default function Roster() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { setRoster } = useRoster();
+  const { setRoster, clearRoster } = useRoster();
 
   const { data: suggestion, isLoading: suggestLoading, isFetching: suggestFetching, refetch: refetchSuggestion } = useSuggestRoster({ query: { enabled: false } });
   const createRoster = useCreateRoster();
@@ -57,6 +57,12 @@ export default function Roster() {
     toast({ title: "Roster saved", description: "Roster has been saved successfully." });
   };
 
+  const handleDiscard = () => {
+    queryClient.removeQueries({ queryKey: getSuggestRosterQueryKey() });
+    clearRoster();
+    toast({ title: "Suggestion discarded" });
+  };
+
   const grouped = POSITION_ORDER.map((pos) => ({
     position: pos,
     label: POSITION_LABELS[pos],
@@ -73,10 +79,21 @@ export default function Roster() {
           </div>
           <div className="flex gap-3">
             {suggestion && (
-              <Button variant="outline" onClick={() => refetchSuggestion()} disabled={suggestFetching}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${suggestFetching ? "animate-spin" : ""}`} />
-                Regenerate
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleDiscard}
+                  disabled={suggestFetching || createRoster.isPending || addPlayer.isPending}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Discard
+                </Button>
+                <Button variant="outline" onClick={() => refetchSuggestion()} disabled={suggestFetching}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${suggestFetching ? "animate-spin" : ""}`} />
+                  Regenerate
+                </Button>
+              </>
             )}
             {suggestion ? (
               <Button
