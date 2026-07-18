@@ -137,20 +137,20 @@ export default function EvaluationStation() {
   const upsert = useUpsertEvaluation();
   const { sessionAge } = useActiveSession();
 
-  // Use public endpoint when on a station tablet (no admin token)
-  const clubSlug = localStorage.getItem("tryoutdesk_club_slug");
   const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
-  const [publicPlayers, setPublicPlayers] = useState<{ id: number; name: string; jerseyNumber?: string | null; position?: string | null; age?: string | null; checkedIn?: boolean | null }[]>([]);
+  const [publicPlayers, setPublicPlayers] = useState<{ id: number; name: string; jerseyNumber?: string | null; position?: string | null; age?: string | null; checkedIn?: boolean | null }[] | null>(null);
+
   useEffect(() => {
-    if (!clubSlug) return;
-    fetch(`${API_BASE}/api/players/public/${clubSlug}`)
+    const slug = localStorage.getItem("tryoutdesk_club_slug");
+    if (!slug) return;
+    fetch(`${API_BASE}/api/players/public/${slug}`)
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setPublicPlayers(data); })
       .catch(() => {});
-  }, [clubSlug, API_BASE]);
+  }, [API_BASE]);
 
-  const { data: authedPlayers } = useListPlayers({}, { query: { enabled: !clubSlug } });
-  const allPlayers = clubSlug ? publicPlayers : (authedPlayers ?? []);
+  const { data: authedPlayers } = useListPlayers({}, { query: { enabled: publicPlayers === null } });
+  const allPlayers = publicPlayers ?? authedPlayers ?? [];
   const players = sessionAge
     ? allPlayers.filter((p) => !p.age || (p.age ?? "").replace(/U$/i, "") === sessionAge)
     : allPlayers;
@@ -406,7 +406,7 @@ export default function EvaluationStation() {
             {log.map((entry, idx) => (
               <button key={entry.id}
                 onClick={() => {
-                  const p = (allPlayers ?? []).find(p => p.jerseyNumber === entry.jersey);
+                  const p = allPlayers.find(p => p.jerseyNumber === entry.jersey);
                   if (p) { setSelectedPlayer({ id: p.id, name: p.name, jerseyNumber: p.jerseyNumber }); setSearch(""); }
                 }}
                 className={`touch-manipulation w-full flex items-center gap-3 p-3 rounded-xl border transition-opacity text-left active:scale-95
