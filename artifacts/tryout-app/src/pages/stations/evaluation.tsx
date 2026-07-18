@@ -157,20 +157,18 @@ export default function EvaluationStation() {
   const evaluators = coaches?.filter((c) => c.teamName === "Evaluator") ?? [];
 
   const submitScore = useCallback((player: { id: number; name: string; jerseyNumber?: string | null }, score: number) => {
+    // Show feedback immediately — don't wait for API response
+    setFlash({ score, name: player.name });
+    setLog((prev) => [
+      { id: Date.now(), jersey: player.jerseyNumber ?? "?", name: player.name, score, skill: currentSkill.skill },
+      ...prev.slice(0, 9),
+    ]);
+    setSelectedPlayer(null);
+    setSearch("");
+
     upsert.mutate(
       { data: { playerId: player.id, coachName, skill: currentSkill.skill, category: currentSkill.category, score } },
-      {
-        onSuccess: () => {
-          setLog((prev) => [
-            { id: Date.now(), jersey: player.jerseyNumber ?? "?", name: player.name, score, skill: currentSkill.skill },
-            ...prev.slice(0, 9),
-          ]);
-          setFlash({ score, name: player.name });
-          setSelectedPlayer(null);
-          setSearch("");
-          queryClient.invalidateQueries({ queryKey: getListRankingsQueryKey({}) });
-        },
-      }
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListRankingsQueryKey({}) }) }
     );
   }, [coachName, currentSkill, upsert, queryClient]);
 
