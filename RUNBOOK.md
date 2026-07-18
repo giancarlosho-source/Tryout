@@ -15,8 +15,9 @@ Keep this file. You don't need Claude to fix most of these.
 6. [Frontend Issues](#6-frontend-issues)
 7. [Database Issues](#7-database-issues)
 8. [Email Issues](#8-email-issues)
-9. [iOS App Issues](#9-ios-app-issues)
-10. [Nuclear Options](#10-nuclear-options)
+9. [Backups & Restore](#9-backups--restore)
+10. [Monitoring & Alerting](#10-monitoring--alerting)
+11. [Nuclear Options](#11-nuclear-options)
 
 ---
 
@@ -36,6 +37,16 @@ Keep this file. You don't need Claude to fix most of these.
 ```
 /Users/gian/Downloads/tribe-tryouts-export-new
 ```
+
+### Known limitations (not bugs, but worth knowing before you hit them)
+
+- **Rate limiting is in-memory** (`artifacts/api-server/src/app.ts`) — it
+  tracks attempts per-IP in a `Map` inside the running process. This works
+  fine on Railway's current single-instance setup, but resets on every
+  deploy/restart and would silently stop being effective (each instance
+  would have its own separate counter) if the API server is ever scaled to
+  multiple instances. If you scale out, this needs to move to a shared
+  store (e.g. Redis) first.
 
 ---
 
@@ -326,29 +337,81 @@ railway logs --tail 500 2>&1 | grep -i "trial reminder\|scheduler\|cron"
 
 ---
 
-## 9. iOS App Issues
+## 9. Backups & Restore
 
-### App can't connect to the API
+### What's backed up, and how
 
-The iOS app uses a runtime server URL set via the staff PIN screen. If the Railway URL changed:
-1. Open the app
-2. Go to the staff PIN screen
-3. There should be a server URL field — update it to the new Railway URL
+A daily job dumps the production Postgres database (`pg_dump`), gzips it, and
+emails it via Resend at **02:00 UTC**. There is no separate off-site backup
+storage beyond that emailed archive — the email *is* the backup.
+
+**Where to find backups:** search the inbox that receives `noreply@tryoutdesk.com`
+(or whichever address the backup job sends to) for the daily backup subject
+line, or check Railway logs around 02:00 UTC for the backup job's output to
+confirm it ran and succeeded.
+
+### How to restore from a backup
+
+1. Download the `.sql.gz` attachment from the relevant day's backup email.
+2. Unzip it: `gunzip backup-YYYY-MM-DD.sql.gz`
+3. Get a connection string for the target database (Railway → Postgres
+   service → Variables → `DATABASE_URL` — you'll need Railway's Postgres
+   proxy/public URL, not the private one, since your laptop can't reach the
+   private network directly; see §7 for why).
+4. Restore:
+   ```bash
+   psql "<connection-string>" < backup-YYYY-MM-DD.sql
+   ```
+5. **Before restoring over a live database**, take a fresh backup first
+   (`pg_dump "<connection-string>" | gzip > pre-restore-safety.sql.gz`) so a
+   bad restore is itself reversible.
+
+### If the daily backup job stops running
+
+Check Railway logs for the scheduled job around 02:00 UTC
+(`artifacts/api-server/src/lib/scheduler.ts` registers it via `node-cron`).
+If it's silently failing, the most likely causes are `RESEND_API_KEY` being
+invalid/expired or the Postgres connection being unreachable at job time.
+
+### Known gap
+
+There is currently no *tested* restore drill — the process above is
+inferred from how the backup is produced, not exercised end-to-end. Before
+you need it in a real emergency, it's worth doing one practice restore into
+a scratch Railway Postgres instance to confirm the steps actually work.
 
 ---
 
-### iOS build fails
+## 10. Monitoring & Alerting
 
-```bash
-cd /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app-ios
-npm run build
-npx cap sync ios
-# Then open Xcode and build from there
-```
+### What exists today
+
+- **Sentry** is wired up (`SENTRY_DSN` env var) and captures unhandled
+  exceptions and Express error-handler catches from the API server. Check
+  the Sentry dashboard for the TryoutDesk project for recent errors.
+- **Health check:** `GET /api/healthz` checks DB connectivity and is used by
+  Railway to detect a broken deploy.
+- **CI:** GitHub Actions runs the tenant-isolation test suite on every push
+  and PR to `main` (`.github/workflows/ci.yml`).
+
+### What does NOT exist today
+
+- **No alert routing.** Sentry capturing an error does not page or notify
+  anyone by default — you have to go look at the dashboard. If you want to
+  be notified proactively (e.g. of a spike in 500s, or the backup job
+  failing), set up Sentry alert rules → email/Slack notification.
+- **No uptime monitoring.** Nothing external pings `app.tryoutdesk.com` or
+  the API `/healthz` endpoint on a schedule to alert you if the app goes
+  down while you're not looking. A free tier of an uptime checker (e.g.
+  UptimeRobot, Better Stack) pointed at `/api/healthz` would close this gap
+  cheaply.
+- **No structured alerting on the trial-reminder or backup cron jobs** —
+  if either silently stops running, the only way to notice today is to
+  manually check Railway logs (see §8 and §9 above).
 
 ---
 
-## 10. Nuclear Options
+## 11. Nuclear Options
 
 ### Restart the API server
 
@@ -403,5 +466,5 @@ The system requires a real credit card to start a trial, which limits abuse. But
 
 ---
 
-*Last updated: June 2026*
+*Last updated: July 2026*
 *Built with: Node/Express + Railway + React/Vite + Vercel + Stripe + Resend*
