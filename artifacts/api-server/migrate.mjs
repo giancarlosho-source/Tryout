@@ -15,7 +15,9 @@ try {
   await migrate(db, { migrationsFolder: path.join(__dirname, "migrations") });
   console.log("Drizzle migrations complete.");
 } catch (err) {
-  console.warn("Drizzle migrate warning (continuing):", err.message);
+  console.error("Drizzle migration failed:", err.message);
+  await pool.end();
+  process.exit(1);
 }
 
 // Safety net: ensure every column exists regardless of migration tracker state.
