@@ -6,12 +6,8 @@ on:
   pull_request:
 
 jobs:
-  # Reports pre-existing typecheck debt without blocking merges. Flip
-  # continue-on-error to false once the backlog of implicit-any / stale
-  # errors is cleared and this can gate merges for real.
   typecheck:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
