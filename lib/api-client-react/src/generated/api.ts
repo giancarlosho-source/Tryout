@@ -2391,6 +2391,78 @@ export const useTogglePlayerLock = <TError = ErrorType<unknown>,
       return useMutation(getTogglePlayerLockMutationOptions(options));
     }
 
+export const getCommitDraftPlayerUrl = (id: number,
+    playerId: number,) => {
+
+
+
+
+  return `/api/coaches/${id}/draft/players/${playerId}/commit`
+}
+
+/**
+ * @summary Mark a player as committed to a coach's draft
+ */
+export const commitDraftPlayer = async (id: number,
+    playerId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getCommitDraftPlayerUrl(id,playerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCommitDraftPlayerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError,{id: number;playerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError,{id: number;playerId: number}, TContext> => {
+
+const mutationKey = ['commitDraftPlayer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof commitDraftPlayer>>, {id: number;playerId: number}> = (props) => {
+          const {id,playerId} = props ?? {};
+
+          return  commitDraftPlayer(id,playerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CommitDraftPlayerMutationResult = NonNullable<Awaited<ReturnType<typeof commitDraftPlayer>>>
+
+    export type CommitDraftPlayerMutationError = ErrorType<void>
+
+    /**
+ * @summary Mark a player as committed to a coach's draft
+ */
+export const useCommitDraftPlayer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof commitDraftPlayer>>, TError,{id: number;playerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof commitDraftPlayer>>,
+        TError,
+        {id: number;playerId: number},
+        TContext
+      > => {
+      return useMutation(getCommitDraftPlayerMutationOptions(options));
+    }
+
 export const getGetAllWishlistPicksUrl = () => {
 
 

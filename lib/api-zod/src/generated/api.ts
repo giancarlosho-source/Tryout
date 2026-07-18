@@ -742,6 +742,15 @@ export const TogglePlayerLockBody = zod.object({
 
 
 /**
+ * @summary Mark a player as committed to a coach's draft
+ */
+export const CommitDraftPlayerParams = zod.object({
+  "id": zod.coerce.number(),
+  "playerId": zod.coerce.number()
+})
+
+
+/**
  * @summary Get all wishlist picks across all coaches
  */
 export const GetAllWishlistPicksResponseItem = zod.object({

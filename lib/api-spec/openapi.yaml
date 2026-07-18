@@ -648,6 +648,28 @@ paths:
         "200":
           description: Updated
 
+  /coaches/{id}/draft/players/{playerId}/commit:
+    post:
+      operationId: commitDraftPlayer
+      tags: [coaches]
+      summary: Mark a player as committed to a coach's draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Committed
+        "404":
+          description: No draft found for this coach
+
   /coaches/wishlist/all:
     get:
       operationId: getAllWishlistPicks
