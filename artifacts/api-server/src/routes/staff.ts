@@ -95,7 +95,9 @@ router.post("/staff/public/:slug/auth", async (req, res): Promise<void> => {
       res.status(401).json({ error: "Incorrect PIN." });
       return;
     }
-    res.json({ ok: true, id: member.id, name: member.name, role: member.stationRole ?? "evaluator" });
+    // Issue a club-scoped JWT so station tablets can submit evaluations
+    const clubToken = jwt.sign({ clubId: club.id }, process.env["JWT_SECRET"]!, { expiresIn: "24h" });
+    res.json({ ok: true, id: member.id, name: member.name, role: member.stationRole ?? "evaluator", clubToken });
   } catch {
     res.status(500).json({ error: "Server error." });
   }

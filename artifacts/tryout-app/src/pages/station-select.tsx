@@ -91,6 +91,8 @@ export default function StationSelect() {
       // Store session in localStorage
       localStorage.setItem("tryoutdesk_staff", JSON.stringify({ id: data.id, name: data.name, role: data.role }));
       localStorage.setItem("tryoutdesk_station_mode", data.role);
+      // Store club token so station pages can make authenticated API calls (e.g. submit evaluations)
+      if (data.clubToken) localStorage.setItem("tryoutdesk_token", data.clubToken);
       const roleRoutes: Record<string, string> = {
         evaluation: "/station/evaluation",
         photo: "/station/photo",
