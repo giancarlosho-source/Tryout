@@ -160,5 +160,12 @@ overrides:
   esbuild: "0.27.3"
 
 allowBuilds:
-  esbuild: set this to true or false
-  puppeteer: set this to true or false
+  # esbuild's postinstall downloads its own platform binary — required for it
+  # to function at all (used by build.mjs, vite, drizzle-kit).
+  esbuild: true
+  # puppeteer's postinstall downloads a full Chromium binary. Nothing in this
+  # repo currently imports puppeteer directly (it's an unused root
+  # dependency), so skip the heavy download rather than block CI on it. If a
+  # script starts using puppeteer.launch() with the bundled browser, flip
+  # this to true.
+  puppeteer: false
