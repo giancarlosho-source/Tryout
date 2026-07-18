@@ -54,9 +54,9 @@ export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
  * @summary Create a player
  */
 export const CreatePlayerBody = zod.object({
-  "jerseyNumber": zod.string(),
+  "jerseyNumber": zod.string().optional(),
   "name": zod.string(),
-  "position": zod.enum(['Setter', 'OutsideHitter', 'MiddleBlocker', 'Opposite', 'Libero', 'Undecided']),
+  "position": zod.enum(['Setter', 'OutsideHitter', 'MiddleBlocker', 'Opposite', 'Libero', 'Undecided']).optional(),
   "checkedIn": zod.boolean().optional(),
   "age": zod.string().nullish().describe('Age group (e.g. 10U, 11U, 12U)'),
   "heightInches": zod.number().nullish(),
@@ -648,7 +648,9 @@ export const GetAllDraftPicksResponseItem = zod.object({
   "coachId": zod.number(),
   "coachName": zod.string(),
   "teamName": zod.string(),
-  "position": zod.string()
+  "position": zod.string(),
+  "committed": zod.boolean().optional(),
+  "locked": zod.boolean().optional()
 })
 export const GetAllDraftPicksResponse = zod.array(GetAllDraftPicksResponseItem)
 

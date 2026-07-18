@@ -120,9 +120,9 @@ export const PlayerInputPosition = {
 } as const;
 
 export interface PlayerInput {
-  jerseyNumber: string;
+  jerseyNumber?: string;
   name: string;
-  position: PlayerInputPosition;
+  position?: PlayerInputPosition;
   checkedIn?: boolean;
   /**
      * Age group (e.g. 10U, 11U, 12U)
@@ -309,6 +309,8 @@ export interface DraftPick {
   coachName: string;
   teamName: string;
   position: string;
+  committed?: boolean;
+  locked?: boolean;
 }
 
 export interface WishlistPick {

@@ -8,9 +8,9 @@
 import type { PlayerInputPosition } from './playerInputPosition';
 
 export interface PlayerInput {
-  jerseyNumber: string;
+  jerseyNumber?: string;
   name: string;
-  position: PlayerInputPosition;
+  position?: PlayerInputPosition;
   checkedIn?: boolean;
   /**
      * Age group (e.g. 10U, 11U, 12U)
