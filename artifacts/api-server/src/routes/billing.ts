@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { Resend } from "resend";
-import { db, clubsTable } from "@workspace/db";
+import { db, clubsTable, pendingSignupsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 function resendClient() {
@@ -32,12 +32,6 @@ function jwtSecret(): string {
   return s;
 }
 
-function getClubId(req: Request): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), jwtSecret()) as { clubId: number };
-  return payload.clubId;
-}
 
 function appUrl(): string {
   return process.env["APP_URL"] ?? "https://app.tryoutdesk.com";
@@ -79,6 +73,16 @@ router.post("/billing/signup-trial", async (req: Request, res: Response): Promis
     const passwordHash = await bcrypt.hash(password, 12);
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+    // Password hash goes in our own DB, not Stripe metadata — only the row id
+    // is passed through Stripe, resolved back by the webhook once paid.
+    const [pending] = await db.insert(pendingSignupsTable).values({
+      name,
+      email: email.toLowerCase(),
+      slug,
+      passwordHash,
+      agreedAt: agreedAt ? new Date(agreedAt) : new Date(),
+    }).returning();
+
     const s = stripe();
     const customer = await s.customers.create({ email: email.toLowerCase(), name });
 
@@ -88,7 +92,7 @@ router.post("/billing/signup-trial", async (req: Request, res: Response): Promis
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days: 30,
-        metadata: { signup: "1", name, email: email.toLowerCase(), passwordHash, slug, agreedAt: agreedAt ?? new Date().toISOString() },
+        metadata: { signup: "1", pendingSignupId: String(pending.id) },
       },
       payment_method_collection: "always",
       success_url: `${appUrl()}/?trial_started=1`,
@@ -105,7 +109,7 @@ router.post("/billing/signup-trial", async (req: Request, res: Response): Promis
 // POST /api/billing/checkout — create a Stripe Checkout session
 router.post("/billing/checkout", async (req: Request, res: Response): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const [club] = await db.select().from(clubsTable).where(eq(clubsTable.id, clubId));
     if (!club) { res.status(404).json({ error: "Club not found." }); return; }
 
@@ -148,7 +152,7 @@ router.post("/billing/checkout", async (req: Request, res: Response): Promise<vo
 // POST /api/billing/portal — open Stripe Customer Portal
 router.post("/billing/portal", async (req: Request, res: Response): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const [club] = await db.select().from(clubsTable).where(eq(clubsTable.id, clubId));
     if (!club) { res.status(404).json({ error: "Club not found." }); return; }
     if (!club.stripeCustomerId) {
@@ -171,7 +175,7 @@ router.post("/billing/portal", async (req: Request, res: Response): Promise<void
 // GET /api/billing/status — return current billing info
 router.get("/billing/status", async (req: Request, res: Response): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const [club] = await db.select({
       status: clubsTable.status,
       plan: clubsTable.plan,
@@ -225,25 +229,30 @@ router.post("/billing/webhook", async (req: Request, res: Response): Promise<voi
         const subMeta = sub.metadata ?? {};
 
         // New trial signup — create the club account now
-        if (subMeta.signup === "1" && subMeta.passwordHash && subMeta.email) {
+        if (subMeta.signup === "1" && subMeta.pendingSignupId) {
+          const [pending] = await db.select().from(pendingSignupsTable)
+            .where(eq(pendingSignupsTable.id, parseInt(subMeta.pendingSignupId)));
+          if (!pending) break;
+
           const trialEndsAt = sub.trial_end
             ? new Date(sub.trial_end * 1000)
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
           const endsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
           const [club] = await db.insert(clubsTable).values({
-            name: subMeta.name ?? "New Club",
-            slug: subMeta.slug ?? subMeta.email.split("@")[0],
-            email: subMeta.email,
-            passwordHash: subMeta.passwordHash,
+            name: pending.name,
+            slug: pending.slug || pending.email.split("@")[0],
+            email: pending.email,
+            passwordHash: pending.passwordHash,
             status: "trial",
             plan: "club",
             trialEndsAt,
             stripeCustomerId: session.customer as string,
             stripeSubscriptionId: session.subscription as string,
             subscriptionEndsAt: endsAt,
-            termsAgreedAt: subMeta.agreedAt ? new Date(subMeta.agreedAt) : new Date(),
+            termsAgreedAt: pending.agreedAt,
           }).returning();
-          console.log(`New trial club created: ${club.id} (${subMeta.email})`);
+          await db.delete(pendingSignupsTable).where(eq(pendingSignupsTable.id, pending.id));
+          console.log(`New trial club created: ${club.id} (${pending.email})`);
           try {
             await resendClient().emails.send({
               from: "TryoutDesk <noreply@tryoutdesk.com>",

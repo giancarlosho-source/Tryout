@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, playersTable, evaluationsTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import {
   ListRankingsQueryParams,
   OverrideRankingParams,
@@ -10,12 +9,6 @@ import {
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 router.get("/rankings", async (req, res): Promise<void> => {
   const params = ListRankingsQueryParams.safeParse(req.query);
@@ -24,7 +17,7 @@ router.get("/rankings", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   let players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
 
   if (params.data.position) {
@@ -103,7 +96,7 @@ router.patch("/rankings/:playerId/override", async (req, res): Promise<void> => 
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [player] = await db
     .update(playersTable)
     .set({

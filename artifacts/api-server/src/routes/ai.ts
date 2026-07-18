@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, playersTable, evaluationsTable, rosterPlayersTable, rostersTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import {
   GeneratePlayerSummaryParams,
   GenerateRosterExplanationParams,
@@ -9,12 +8,6 @@ import {
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter",
@@ -32,7 +25,7 @@ router.post("/ai/player-summary/:playerId", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [player] = await db
     .select()
     .from(playersTable)
@@ -133,7 +126,7 @@ router.post("/ai/roster-explain/:rosterId", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [roster] = await db
     .select()
     .from(rostersTable)

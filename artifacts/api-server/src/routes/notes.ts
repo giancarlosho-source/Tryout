@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, coachNotesTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import { broadcast } from "../events";
 import {
   ListNotesQueryParams,
@@ -13,12 +12,6 @@ import {
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 router.get("/notes", async (req, res): Promise<void> => {
   const params = ListNotesQueryParams.safeParse(req.query);
@@ -27,7 +20,7 @@ router.get("/notes", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   let notes;
   if (params.data.playerId) {
     notes = await db
@@ -49,7 +42,7 @@ router.post("/notes", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [note] = await db.insert(coachNotesTable).values({ ...parsed.data, clubId }).returning();
   broadcast("players:changed");
   res.status(201).json(note);
@@ -68,7 +61,7 @@ router.patch("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [note] = await db
     .update(coachNotesTable)
     .set(parsed.data)
@@ -91,7 +84,7 @@ router.delete("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [note] = await db
     .delete(coachNotesTable)
     .where(and(eq(coachNotesTable.id, params.data.id), eq(coachNotesTable.clubId, clubId)))

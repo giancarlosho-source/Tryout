@@ -6,12 +6,6 @@ import { broadcast } from "../events";
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 // Public endpoint — fetch staff by club slug (no auth needed, safe for bookmarked station URLs)
 router.get("/staff/public/:slug", async (req, res): Promise<void> => {
@@ -32,7 +26,7 @@ router.get("/staff/public/:slug", async (req, res): Promise<void> => {
 // List all coaches that have a PIN set (for iPad login)
 router.get("/staff", async (req, res): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const rows = await db
       .select({ id: coachesTable.id, name: coachesTable.name, role: coachesTable.stationRole, createdAt: coachesTable.createdAt })
       .from(coachesTable)
@@ -47,7 +41,7 @@ router.get("/staff", async (req, res): Promise<void> => {
 // List all coaches (for Staff & Roles page — shows everyone with pin status)
 router.get("/staff/all", async (req, res): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const rows = await db
       .select({ id: coachesTable.id, name: coachesTable.name, teamName: coachesTable.teamName, hasPin: coachesTable.pin, stationRole: coachesTable.stationRole })
       .from(coachesTable)
@@ -64,7 +58,7 @@ router.patch("/staff/:id/pin", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id." }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const { pin, stationRole } = req.body ?? {};
 
   if (pin !== null && pin !== undefined && !/^\d{4}$/.test(String(pin))) {
@@ -108,7 +102,7 @@ router.post("/staff/auth", async (req, res): Promise<void> => {
   const { id, pin } = req.body ?? {};
   if (!id || !pin) { res.status(400).json({ error: "Missing id or pin." }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [member] = await db
     .select()
     .from(coachesTable)

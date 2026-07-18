@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull, or, sql, inArray } from "drizzle-orm";
 import { db, playersTable, evaluationsTable, coachNotesTable, clubsTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import {
   ListPlayersQueryParams,
   CreatePlayerBody,
@@ -24,12 +23,6 @@ function normalizeAge(raw: unknown): string | null {
   return `${num}U`;
 }
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 function calcOverallScore(evals: { category: string; skill: string; score: number }[]): number | null {
   if (evals.length === 0) return null;
@@ -82,7 +75,7 @@ router.get("/players", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   let query = db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).$dynamic();
 
   if (params.data.position) {
@@ -119,7 +112,7 @@ router.post("/players/bulk-checkin", async (req, res): Promise<void> => {
     res.status(400).json({ error: "jerseyNumbers must be a non-empty array" });
     return;
   }
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const nums = jerseyNumbers.map(String).filter(Boolean);
   const updated = await db
     .update(playersTable)
@@ -141,7 +134,7 @@ router.post("/players", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [player] = await db.insert(playersTable).values({ ...parsed.data, age: normalizeAge(parsed.data.age), clubId }).returning();
   broadcast("players:changed");
   res.status(201).json(player);
@@ -154,7 +147,7 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const lines = parsed.data.csvData.trim().split("\n");
   if (lines.length < 2) {
     res.json({ imported: 0, updated: 0, errors: ["CSV must have a header row and at least one data row"] });
@@ -249,7 +242,7 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
 });
 
 router.get("/players/stats", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
   const total = players.length;
   const checkedIn = players.filter((p) => p.checkedIn).length;
@@ -282,7 +275,7 @@ router.get("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [player] = await db
     .select()
     .from(playersTable)
@@ -320,7 +313,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const updateData = parsed.data.age !== undefined
     ? { ...parsed.data, age: normalizeAge(parsed.data.age) }
     : parsed.data;
@@ -341,7 +334,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
 
 // DELETE /players/all — wipe all players, evaluations, notes, roster data (must be before /:id)
 router.delete("/players/all", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   await db.delete(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
   await db.delete(coachNotesTable).where(eq(coachNotesTable.clubId, clubId));
   await db.delete(playersTable).where(eq(playersTable.clubId, clubId));
@@ -357,7 +350,7 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [player] = await db
     .delete(playersTable)
     .where(and(eq(playersTable.id, params.data.id), eq(playersTable.clubId, clubId)))

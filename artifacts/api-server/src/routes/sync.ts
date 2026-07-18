@@ -3,14 +3,7 @@ import { desc, eq, and } from "drizzle-orm";
 import { db, syncLogsTable, playersTable } from "@workspace/db";
 import { TriggerSyncBody } from "@workspace/api-zod";
 import { recomputeAllScores } from "../scoring";
-import jwt from "jsonwebtoken";
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 // Extract spreadsheet ID from various Google Sheets URL formats
 function extractSheetId(input: string): string | null {
@@ -39,7 +32,7 @@ const POSITION_MAP: Record<string, string> = {
 const router: IRouter = Router();
 
 router.get("/sync/status", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [latest] = await db
     .select()
     .from(syncLogsTable)
@@ -72,7 +65,7 @@ router.post("/sync/trigger", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [log] = await db
     .insert(syncLogsTable)
     .values({
@@ -179,7 +172,7 @@ router.get("/sync/sheets/tabs", async (req, res): Promise<void> => {
 
 router.post("/sync/sheets", async (req, res): Promise<void> => {
   const { sheetUrl, sheetName, gid: bodyGid, checkedInOnly } = req.body as { sheetUrl?: string; sheetName?: string; gid?: string; checkedInOnly?: boolean };
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
 
   if (!sheetUrl) {
     res.status(400).json({ error: "sheetUrl is required" });

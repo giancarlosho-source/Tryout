@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, isNull } from "drizzle-orm";
 import { db, evaluationsTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import {
   ListEvaluationsQueryParams,
   UpsertEvaluationBody,
@@ -13,12 +12,6 @@ import { broadcast } from "../events";
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 router.get("/evaluations", async (req, res): Promise<void> => {
   const params = ListEvaluationsQueryParams.safeParse(req.query);
@@ -27,7 +20,7 @@ router.get("/evaluations", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const evals = params.data.playerId
     ? await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.clubId, clubId), eq(evaluationsTable.playerId, params.data.playerId)))
     : await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
@@ -42,7 +35,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const coachName = parsed.data.coachName ?? null;
   const coachFilter = coachName
     ? eq(evaluationsTable.coachName, coachName)
@@ -104,7 +97,7 @@ router.patch("/evaluations/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const existing = await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.id, params.data.id), eq(evaluationsTable.clubId, clubId)));
   if (existing.length === 0) {
     res.status(404).json({ error: "Evaluation not found" });
@@ -129,7 +122,7 @@ router.delete("/evaluations/coach/:playerId/:coachName", async (req, res): Promi
   const coachName = req.params.coachName;
   if (isNaN(playerId)) { res.status(400).json({ error: "Invalid playerId" }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const coachFilter = coachName === "__null__"
     ? isNull(evaluationsTable.coachName)
     : eq(evaluationsTable.coachName, coachName);
@@ -146,7 +139,7 @@ router.delete("/evaluations/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const existing = await db.select().from(evaluationsTable).where(and(eq(evaluationsTable.id, id), eq(evaluationsTable.clubId, clubId)));
   if (existing.length === 0) { res.status(404).json({ error: "Evaluation not found" }); return; }
 

@@ -1,19 +1,12 @@
 import { Router, type IRouter } from "express";
 import { db, playersTable, evaluationsTable } from "@workspace/db";
 import { asc, eq, and } from "drizzle-orm";
-import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 router.get("/export/players", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).orderBy(asc(playersTable.jerseyNumber));
 
   const headers = [
@@ -51,7 +44,7 @@ router.get("/export/players", async (req, res): Promise<void> => {
 });
 
 router.get("/export/evaluations", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId)).orderBy(asc(playersTable.jerseyNumber));
   const evals = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
 

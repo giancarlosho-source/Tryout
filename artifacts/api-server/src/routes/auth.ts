@@ -79,6 +79,9 @@ async function sendVerificationEmail(club: { id: number; name: string; email: st
   });
 }
 
+// /auth/logo and /auth/club are in app.ts's PUBLIC_PATHS (they bypass requireAuth
+// so account deletion/logo changes work even with an expired subscription), so
+// they authenticate themselves manually here rather than relying on req.clubId.
 function getClubId(req: { headers: { authorization?: string } }): number {
   const header = req.headers["authorization"];
   if (!header?.startsWith("Bearer ")) throw new Error("No token");
@@ -111,7 +114,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       const token = jwt.sign({ clubId: club.id, email: club.email }, jwtSecret(), { expiresIn: "30d" });
       const [forceSetting] = await db.select().from(settingsTable)
         .where(and(eq(settingsTable.clubId, club.id), eq(settingsTable.key, "password.force_change")));
-      console.log(`Login: club=${club.id} forceSetting=${JSON.stringify(forceSetting)} forcePasswordChange=${!!forceSetting}`);
       res.json({ token, club: clubPayload(club), forcePasswordChange: !!forceSetting });
       return;
     }
@@ -263,7 +265,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
 // PUT /api/auth/password — change own password
 router.put("/auth/password", async (req, res): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const { currentPassword, newPassword } = req.body ?? {};
     if (!currentPassword || !newPassword) {
       res.status(400).json({ error: "currentPassword and newPassword are required." });
@@ -307,7 +309,7 @@ router.get("/auth/verify-email", async (req, res): Promise<void> => {
 // POST /api/auth/resend-verification — send a fresh verification email (requires auth)
 router.post("/auth/resend-verification", async (req, res): Promise<void> => {
   try {
-    const clubId = getClubId(req);
+    const clubId = req.clubId;
     const [club] = await db.select().from(clubsTable).where(eq(clubsTable.id, clubId));
     if (!club) { res.status(404).json({ error: "Club not found." }); return; }
     if (club.emailVerifiedAt) { res.json({ ok: true, alreadyVerified: true }); return; }

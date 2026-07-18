@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, playersTable, rostersTable, rosterPlayersTable, evaluationsTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 import { broadcast } from "../events";
 import {
   GetRosterParams,
@@ -15,12 +14,6 @@ import {
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 const POSITION_LABELS: Record<string, string> = {
   Setter: "Setter", OutsideHitter: "Outside Hitter",
@@ -70,7 +63,7 @@ async function getRosterDetail(rosterId: number, clubId: number) {
 }
 
 router.get("/rosters", async (req, res): Promise<void> => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const rosters = await db.select().from(rostersTable).where(eq(rostersTable.clubId, clubId)).orderBy(rostersTable.createdAt);
   res.json(rosters);
 });
@@ -81,7 +74,7 @@ router.post("/rosters", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [roster] = await db.insert(rostersTable).values({ ...parsed.data, clubId }).returning();
   broadcast("players:changed");
   res.status(201).json(roster);
@@ -92,7 +85,7 @@ router.get("/rosters/suggest", async (req, res): Promise<void> => {
     Setter: 2, OutsideHitter: 3, MiddleBlocker: 3, Opposite: 2, Libero: 2,
   };
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const players = await db.select().from(playersTable).where(eq(playersTable.clubId, clubId));
   const allEvals = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
 
@@ -171,7 +164,7 @@ router.get("/rosters/:id", async (req, res): Promise<void> => {
   const params = GetRosterParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const detail = await getRosterDetail(params.data.id, clubId);
   if (!detail) { res.status(404).json({ error: "Roster not found" }); return; }
   res.json(detail);
@@ -184,7 +177,7 @@ router.patch("/rosters/:id", async (req, res): Promise<void> => {
   const parsed = UpdateRosterBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [roster] = await db.update(rostersTable).set(parsed.data).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId))).returning();
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
   broadcast("players:changed");
@@ -198,7 +191,7 @@ router.post("/rosters/:id/players", async (req, res): Promise<void> => {
   const parsed = AddPlayerToRosterBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [roster] = await db.select().from(rostersTable).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId)));
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
 
@@ -218,7 +211,7 @@ router.delete("/rosters/:id/players/:playerId", async (req, res): Promise<void> 
   const params = RemovePlayerFromRosterParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const [roster] = await db.select().from(rostersTable).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId)));
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
 

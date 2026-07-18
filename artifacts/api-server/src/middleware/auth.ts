@@ -32,7 +32,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   try {
     const payload = jwt.verify(header.slice(7), secret) as { clubId: number };
-    (req as Request & { clubId: number }).clubId = payload.clubId;
+    req.clubId = payload.clubId;
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token." });

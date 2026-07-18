@@ -1,16 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, settingsTable, clubsTable } from "@workspace/db";
-import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
-function getClubId(req: { headers: { authorization?: string } }): number {
-  const header = req.headers["authorization"];
-  if (!header?.startsWith("Bearer ")) throw new Error("No token");
-  const payload = jwt.verify(header.slice(7), process.env["JWT_SECRET"]!) as { clubId: number };
-  return payload.clubId;
-}
 
 async function upsertSetting(clubId: number, key: string, value: string) {
   await db
@@ -20,7 +13,7 @@ async function upsertSetting(clubId: number, key: string, value: string) {
 }
 
 router.get("/settings", async (req, res) => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const rows = await db.select().from(settingsTable).where(eq(settingsTable.clubId, clubId));
   const settings: Record<string, string> = {};
   for (const row of rows) {
@@ -30,7 +23,7 @@ router.get("/settings", async (req, res) => {
 });
 
 router.put("/settings", async (req, res) => {
-  const clubId = getClubId(req);
+  const clubId = req.clubId;
   const updates = req.body as Record<string, string>;
 
   // Trial limit: 1 event. Enforce when session.event is being set.
