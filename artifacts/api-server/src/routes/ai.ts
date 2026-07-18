@@ -41,7 +41,7 @@ router.post("/ai/player-summary/:playerId", async (req, res): Promise<void> => {
     .from(evaluationsTable)
     .where(and(eq(evaluationsTable.playerId, params.data.playerId), eq(evaluationsTable.clubId, clubId)));
 
-  const posLabel = POSITION_LABELS[player.position] || player.position;
+  const posLabel = (player.position && POSITION_LABELS[player.position]) || player.position || "Unknown";
 
   const topSkills = [...evals].sort((a, b) => b.score - a.score).slice(0, 3);
   const weakSkills = [...evals].sort((a, b) => a.score - b.score).slice(0, 3);
@@ -172,7 +172,7 @@ router.post("/ai/roster-explain/:rosterId", async (req, res): Promise<void> => {
         playerName: p.name,
         decision: "bubble" as const,
         reason: `Narrowly missed the roster — overall ${p.overallScore}/10 as ${
-          POSITION_LABELS[p.position] || p.position
+          (p.position && POSITION_LABELS[p.position]) || p.position || "Unknown"
         }`,
       })),
   ];

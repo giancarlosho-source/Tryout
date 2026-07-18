@@ -26,6 +26,13 @@ function stripe(): Stripe {
   return new Stripe(key);
 }
 
+// Stripe moved current_period_end off the top-level Subscription object and
+// onto each subscription item in this API version — read it from there.
+function subscriptionPeriodEnd(sub: Stripe.Subscription): Date | null {
+  const periodEnd = sub.items.data[0]?.current_period_end;
+  return periodEnd ? new Date(periodEnd * 1000) : null;
+}
+
 function jwtSecret(): string {
   const s = process.env["JWT_SECRET"];
   if (!s) throw new Error("JWT_SECRET not set");
@@ -237,7 +244,7 @@ router.post("/billing/webhook", async (req: Request, res: Response): Promise<voi
           const trialEndsAt = sub.trial_end
             ? new Date(sub.trial_end * 1000)
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-          const endsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+          const endsAt = subscriptionPeriodEnd(sub);
           const [club] = await db.insert(clubsTable).values({
             name: pending.name,
             slug: pending.slug || pending.email.split("@")[0],
@@ -323,7 +330,7 @@ router.post("/billing/webhook", async (req: Request, res: Response): Promise<voi
         // Existing club upgrading to paid
         const clubId = parseInt(subMeta.clubId ?? session.metadata?.clubId ?? "0");
         if (!clubId) break;
-        const endsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+        const endsAt = subscriptionPeriodEnd(sub);
         await db.update(clubsTable).set({
           status: "active",
           plan: "club",
@@ -342,7 +349,7 @@ router.post("/billing/webhook", async (req: Request, res: Response): Promise<voi
         const sub = await stripe().subscriptions.retrieve(subId);
         const clubId = await resolveClubId(sub.metadata ?? {});
         if (!clubId) break;
-        const endsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+        const endsAt = subscriptionPeriodEnd(sub);
         await db.update(clubsTable).set({ status: "active", subscriptionEndsAt: endsAt }).where(eq(clubsTable.id, clubId));
         break;
       }
@@ -464,7 +471,7 @@ router.post("/billing/webhook", async (req: Request, res: Response): Promise<voi
         const sub = event.data.object as Stripe.Subscription;
         const clubId = await resolveClubId(sub.metadata ?? {});
         if (!clubId) break;
-        const endsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+        const endsAt = subscriptionPeriodEnd(sub);
         const newStatus = sub.status === "active" ? "active" : sub.status === "past_due" ? "past_due" : undefined;
         if (newStatus) {
           await db.update(clubsTable).set({ status: newStatus, subscriptionEndsAt: endsAt }).where(eq(clubsTable.id, clubId));

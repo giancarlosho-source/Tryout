@@ -139,7 +139,7 @@ router.get("/rosters/suggest", async (req, res): Promise<void> => {
   const bubblePlayers = players
     .filter((p) => !usedIds.has(p.id) && p.overallScore != null)
     .filter((p) => {
-      const threshold = (weakestByPosition[p.position] ?? 0) * 0.95;
+      const threshold = (weakestByPosition[p.position ?? "Unknown"] ?? 0) * 0.95;
       const score = p.positionScore ?? p.overallScore ?? 0;
       return score >= threshold;
     })

@@ -18,7 +18,7 @@ const upload = multer({
 const router: IRouter = Router();
 
 router.post("/players/:id/photo", upload.single("photo"), async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
 
@@ -31,7 +31,7 @@ router.post("/players/:id/photo", upload.single("photo"), async (req, res): Prom
 });
 
 router.delete("/players/:id/photo", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const clubId = req.clubId;

@@ -256,7 +256,8 @@ router.get("/players/stats", async (req, res): Promise<void> => {
 
   const byPosition: Record<string, number> = {};
   players.forEach((p) => {
-    byPosition[p.position] = (byPosition[p.position] || 0) + 1;
+    const pos = p.position ?? "Unknown";
+    byPosition[pos] = (byPosition[pos] || 0) + 1;
   });
 
   res.json({

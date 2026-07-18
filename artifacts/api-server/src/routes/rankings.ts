@@ -63,8 +63,8 @@ router.get("/rankings", async (req, res): Promise<void> => {
         bVal = b.verticalJumpInches ?? -1;
         break;
       case "jerseyNumber":
-        aVal = parseInt(a.jerseyNumber) || 0;
-        bVal = parseInt(b.jerseyNumber) || 0;
+        aVal = parseInt(a.jerseyNumber ?? "") || 0;
+        bVal = parseInt(b.jerseyNumber ?? "") || 0;
         break;
     }
 

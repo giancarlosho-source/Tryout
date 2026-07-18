@@ -101,7 +101,7 @@ router.get("/coaches/draft/all", async (req, res): Promise<void> => {
 
   if (!allRosters.length) { res.json([]); return; }
 
-  const picks: { playerId: number; coachId: number; coachName: string; teamName: string; position: string }[] = [];
+  const picks: { playerId: number; coachId: number; coachName: string; teamName: string; position: string; committed: boolean; locked: boolean }[] = [];
   for (const roster of allRosters) {
     const coach = allCoaches.find((c) => c.id === roster.coachId);
     if (!coach) continue;

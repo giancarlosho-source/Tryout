@@ -264,13 +264,14 @@ export async function recomputeAllScores(): Promise<void> {
   for (const player of allPlayers) {
     const evals = evalsByPlayer[player.id] ?? [];
 
+    const position = player.position ?? "Unknown";
     const physicalScore = computePhysicalScore(player, allPlayers);
     const universalScore = computeUniversalScore(evals);
-    const positionScore = computePositionScore(evals, player.position);
+    const positionScore = computePositionScore(evals, position);
     const overallScore = computeOverallScore(universalScore, positionScore);
     const potentialScore = computePotentialScore(physicalScore, positionScore, evals);
-    const confidenceScore = computeConfidenceScore(player, evals, player.position);
-    const flags = computeFlags(player, { overallScore, positionScore, physicalScore, potentialScore, confidenceScore }, evals);
+    const confidenceScore = computeConfidenceScore(player, evals, position);
+    const flags = computeFlags({ ...player, position }, { overallScore, positionScore, physicalScore, potentialScore, confidenceScore }, evals);
 
     await db
       .update(playersTable)
