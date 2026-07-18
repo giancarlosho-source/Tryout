@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2HGN67HN6V"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-2HGN67HN6V');
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="TryoutDesk — Volleyball tryout management software. From player check-in to final roster, all in one platform. Start your 30-day free trial.">
+<title>TryoutDesk — Volleyball Tryout Management Software</title>
+<style>
+  :root {
+    --navy:     #0c1a2e;
+    --navy-mid: #152338;
+    --red:      #c8102e;
+    --red-dark: #a00d24;
+    --chalk:    #f4f5f3;
+    --steel:    #7a8a9a;
+    --ice:      #e2e7ec;
+    --text:     #111827;
+    --text-mid: #374151;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--chalk);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 56px;
+    height: 62px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .logo {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .logo-desk { color: var(--red); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .nav-signin {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .nav-signin:hover { color: #fff; }
+
+  .btn {
+    display: inline-block;
+    text-decoration: none;
+    font-weight: 700;
+    border-radius: 3px;
+    transition: background 0.15s, transform 0.1s;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+
+  .btn-red {
+    background: var(--red);
+    color: #fff;
+    font-size: 0.875rem;
+    padding: 9px 20px;
+  }
+  .btn-red:hover { background: var(--red-dark); }
+
+  .btn-red-lg {
+    background: var(--red);
+    color: #fff;
+    font-size: 1rem;
+    padding: 15px 32px;
+    letter-spacing: 0.01em;
+  }
+  .btn-red-lg:hover { background: var(--red-dark); transform: translateY(-1px); }
+  .btn-outline-lg {
+    background: transparent;
+    color: #fff;
+    font-size: 1rem;
+    padding: 15px 32px;
+    letter-spacing: 0.01em;
+    border: 2px solid rgba(255,255,255,0.5);
+  }
+  .btn-outline-lg:hover { border-color: #fff; transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--navy);
+    padding: 88px 56px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* diagonal line texture — right half only */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -52deg,
+      transparent,
+      transparent 38px,
+      rgba(255,255,255,0.022) 38px,
+      rgba(255,255,255,0.022) 39px
+    );
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+  }
+
+  .eyebrow {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 22px;
+  }
+
+  .hero-headline {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3.2rem, 6.5vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #fff;
+    text-wrap: balance;
+    margin-bottom: 32px;
+  }
+
+  .hero-headline .accent { color: var(--red); }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.55);
+    max-width: 500px;
+    line-height: 1.75;
+    margin-bottom: 44px;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .hero-note {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* ── CAPABILITY BAR ── */
+  .cap-bar {
+    background: var(--navy-mid);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 14px 56px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+
+  .cap-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    color: rgba(255,255,255,0.45);
+    white-space: nowrap;
+  }
+
+  .cap-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--red);
+    flex-shrink: 0;
+  }
+
+  /* ── FEATURES ── */
+  .features {
+    background: #fff;
+    padding: 96px 56px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .section-headline {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--navy);
+    text-wrap: balance;
+    max-width: 600px;
+    margin-bottom: 56px;
+  }
+
+  /* stat-sheet grid: cells separated by 2px ruled lines */
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    background: var(--ice);
+    border: 2px solid var(--ice);
+  }
+
+  .feat-card {
+    background: #fff;
+    padding: 40px 36px;
+  }
+
+  .feat-icon {
+    width: 36px;
+    height: 36px;
+    color: var(--red);
+    margin-bottom: 20px;
+  }
+
+  .feat-title {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--navy);
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+
+  .feat-desc {
+    font-size: 0.9375rem;
+    color: var(--steel);
+    line-height: 1.7;
+    max-width: 380px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how {
+    background: var(--chalk);
+    padding: 96px 56px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 56px;
+  }
+
+  .step {
+    padding-right: 48px;
+  }
+
+  .step + .step {
+    padding-left: 48px;
+    padding-right: 48px;
+    border-left: 1px solid var(--ice);
+  }
+
+  .step:last-child { padding-right: 0; }
+
+  .step-num {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 5rem;
+    line-height: 1;
+    color: var(--ice);
+    margin-bottom: 16px;
+    letter-spacing: -0.03em;
+    user-select: none;
+  }
+
+  .step-title {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--navy);
+    margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 0.9375rem;
+    color: var(--steel);
+    line-height: 1.7;
+  }
+
+  /* ── PRICING ── */
+  .pricing {
+    background: #fff;
+    padding: 96px 56px;
+  }
+
+  .pricing-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+    max-width: 900px;
+  }
+
+  .pricing-card {
+    border: 2px solid var(--navy);
+    padding: 44px 40px;
+    position: relative;
+  }
+
+  .pricing-badge {
+    position: absolute;
+    top: -14px;
+    left: 28px;
+    background: var(--red);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+  }
+
+  .pricing-amount {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 4rem;
+    color: var(--navy);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 4px;
+  }
+
+  .pricing-period {
+    font-size: 0.875rem;
+    color: var(--steel);
+    margin-bottom: 32px;
+  }
+
+  .pricing-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-bottom: 36px;
+  }
+
+  .pricing-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.9375rem;
+    color: var(--text-mid);
+    line-height: 1.4;
+  }
+
+  .check-icon {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    color: var(--red);
+    margin-top: 2px;
+  }
+
+  .pricing-aside {
+    padding-top: 16px;
+  }
+
+  .pricing-aside h3 {
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    font-weight: 900;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+
+  .pricing-aside p {
+    font-size: 0.9375rem;
+    color: var(--steel);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  /* ── FINAL CTA ── */
+  .final-cta {
+    background: var(--navy);
+    padding: 100px 56px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .final-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -52deg,
+      transparent,
+      transparent 38px,
+      rgba(255,255,255,0.018) 38px,
+      rgba(255,255,255,0.018) 39px
+    );
+    pointer-events: none;
+  }
+
+  .final-cta-inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .final-cta .hero-headline {
+    margin: 0 auto 24px;
+    font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  }
+
+  .final-cta .hero-sub {
+    margin: 0 auto 44px;
+  }
+
+  .final-cta .hero-actions {
+    justify-content: center;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 24px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-copy {
+    font-size: 0.8125rem;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-links a {
+    font-size: 0.8125rem;
+    color: rgba(255,255,255,0.3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer-links a:hover { color: rgba(255,255,255,0.7); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    nav, .hero, .cap-bar, .features, .how, .pricing, .final-cta, footer {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    .feat-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .steps {
+      grid-template-columns: 1fr;
+    }
+
+    .step + .step {
+      padding-left: 0;
+      border-left: none;
+      padding-top: 40px;
+      border-top: 1px solid var(--ice);
+    }
+
+    .pricing-layout {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-red-lg:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<!-- NAV -->
+<nav>
+  <a href="https://tryoutdesk.com" class="logo">Tryout<span class="logo-desk">Desk</span></a>
+  <div class="nav-right">
+    <a href="https://app.tryoutdesk.com" class="nav-signin">Sign In</a>
+    <a href="https://app.tryoutdesk.com/?signup=1" class="btn btn-red">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Volleyball Tryout Software</span>
+    <h1 class="hero-headline">
+      From check-in<br>
+      to final roster —<br>
+      <span class="accent">one platform.</span>
+    </h1>
+    <p class="hero-sub">
+      TryoutDesk gives volleyball clubs a structured, data-driven way to run tryouts. Players check in, coaches evaluate at every station, rankings update live, and you draft your roster — all without a single clipboard.
+    </p>
+    <div class="hero-actions">
+      <a href="https://app.tryoutdesk.com/?signup=1" class="btn btn-red-lg">Start your free 30-day trial →</a>
+      <a href="https://app.tryoutdesk.com" onclick="navigator.clipboard&&navigator.clipboard.writeText('demo@tryoutdesk.com')" class="btn btn-outline-lg">Try the demo →</a>
+    </div>
+    <span class="hero-note">Demo login: demo@tryoutdesk.com / demo1234 &nbsp;·&nbsp; No credit card required to sign up</span>
+  </div>
+</section>
+
+<!-- CAPABILITY BAR -->
+<div class="cap-bar">
+  <div class="cap-item"><span class="cap-dot"></span>Works on any device</div>
+  <div class="cap-item"><span class="cap-dot"></span>No app install required</div>
+  <div class="cap-item"><span class="cap-dot"></span>Real-time sync across all coaches</div>
+  <div class="cap-item"><span class="cap-dot"></span>QR code player check-in</div>
+  <div class="cap-item"><span class="cap-dot"></span>CSV import &amp; export</div>
+</div>
+
+<!-- FEATURES -->
+<section class="features">
+  <span class="section-label">What it does</span>
+  <h2 class="section-headline">Every piece of a tryout, handled.</h2>
+
+  <div class="feat-grid">
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        <path d="M14 17h3v3"/><path d="M17 14h3"/>
+      </svg>
+      <h3 class="feat-title">QR Code Check-In</h3>
+      <p class="feat-desc">Players scan a QR code on arrival — no sign-in sheets, no missing names. Or use bulk check-in to mark an entire group at once. Everyone is accounted for before the first drill starts.</p>
+    </div>
+
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+      <h3 class="feat-title">Multi-Station Evaluation</h3>
+      <p class="feat-desc">Set up evaluation stations — serving, passing, defense — and assign coaches to each. Every coach scores on their own device simultaneously. All scores aggregate and rank players in real time.</p>
+    </div>
+
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+      </svg>
+      <h3 class="feat-title">Live Rankings</h3>
+      <p class="feat-desc">Overall and position-specific rankings update the moment a score is entered. Sort by overall, by position, or by individual drill. Every coach sees the same numbers — no version confusion at the end of the day.</p>
+    </div>
+
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+        <path d="M16 11h6"/><path d="M19 8v6"/>
+      </svg>
+      <h3 class="feat-title">Roster Draft</h3>
+      <p class="feat-desc">When evaluations close, open the draft tool and build your rosters directly from the ranked list. Drag players onto teams, check coverage by position, and export the final roster when you're done.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <span class="section-label">The workflow</span>
+  <h2 class="section-headline">Three phases. One organized tryout day.</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3 class="step-title">Load your players</h3>
+      <p class="step-desc">Upload your registration CSV or share the player entry link so athletes self-register. Assign jersey numbers and set your evaluation scoring criteria before the day starts.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3 class="step-title">Evaluate at stations</h3>
+      <p class="step-desc">Coaches open TryoutDesk on any phone or tablet — no install required. They score each player at their station. You watch the rankings page fill in live as scores come through.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3 class="step-title">Build your roster</h3>
+      <p class="step-desc">When the dust settles, open the draft tool. Rankings are already sorted. Pick your players, check position coverage, and export the final list. Done before you've left the gym.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing">
+  <span class="section-label">Pricing</span>
+  <h2 class="section-headline">One price. No surprises.</h2>
+
+  <div class="pricing-layout">
+    <div class="pricing-card">
+      <span class="pricing-badge">30-day free trial</span>
+      <div class="pricing-amount">$799</div>
+      <div class="pricing-period">per year &nbsp;·&nbsp; one club account</div>
+
+      <ul class="pricing-list">
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Unlimited players per tryout
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          All evaluation stations &amp; scoring tools
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Live rankings &amp; roster draft
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          QR code check-in &amp; bulk check-in
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Staff accounts with role-based access
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          CSV import &amp; export
+        </li>
+        <li>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Email support
+        </li>
+      </ul>
+
+      <a href="https://app.tryoutdesk.com/?signup=1" class="btn btn-red-lg">Start free trial →</a>
+    </div>
+
+    <div class="pricing-aside">
+      <h3>Everything you need to run tryouts the right way.</h3>
+      <p>TryoutDesk is purpose-built for club volleyball. There's one plan because one plan covers everything — no tiers, no add-ons, no per-coach seats.</p>
+      <p>Your trial is fully functional for 30 days. Cancel any time before it ends and you won't be charged.</p>
+      <p>Questions? Email <a href="mailto:support@tryoutdesk.com" style="color:var(--red);font-weight:600;text-decoration:none;">support@tryoutdesk.com</a> and you'll hear back the same day.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="final-cta-inner">
+    <span class="eyebrow">Get started today</span>
+    <h2 class="hero-headline">Run your next tryout<br>on <span class="accent">solid ground.</span></h2>
+    <p class="hero-sub">30 days free. No clipboard required.</p>
+    <div class="hero-actions">
+      <a href="https://app.tryoutdesk.com/?signup=1" class="btn btn-red-lg">Start your free trial →</a>
+      <span class="hero-note">$799/year after trial · Cancel anytime</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-copy">© 2026 TryoutDesk. All rights reserved.</span>
+  <nav class="footer-links" aria-label="Footer">
+    <a href="mailto:support@tryoutdesk.com">Contact</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="https://app.tryoutdesk.com">Sign In</a>
+  </nav>
+</footer>
+</body>
+</html>

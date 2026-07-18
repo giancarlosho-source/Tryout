@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.ncrusav.org)",
+      "Bash(python3 -c ' *)",
+      "WebFetch(domain:srvaonline.org)",
+      "Bash(python3 -c \"import selenium; import bs4; print\\('ready'\\)\")",
+      "Bash(which chromedriver *)",
+      "Read(//usr/local/bin/**)",
+      "Bash(python3 /private/tmp/scrape_srva.py)",
+      "Bash(grep -v '^[[:space:]]*$')",
+      "Bash(open /private/tmp/clubs_with_emails.csv)",
+      "WebFetch(domain:app.tango.us)",
+      "Bash(curl -s -L \"https://app.tango.us/app/workflow/Import-Players-and-Coaches-in-TryoutDesk-8ae103fcfde94ca0ac4795675141a652\")",
+      "Bash(curl -s -L -A \"Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36\" \"https://app.tango.us/app/workflow/Import-Players-and-Coaches-in-TryoutDesk-8ae103fcfde94ca0ac4795675141a652\")",
+      "Bash(npx playwright *)",
+      "Bash(npm init *)",
+      "Bash(mkdir -p ~/Desktop/tryoutdesk-tutorials)",
+      "Bash(node record-import-tutorial.js)",
+      "Bash(mv ~/Desktop/tryoutdesk-tutorials/page@ee18a43118ac0b2b442c0b5bb3d7957b.webm ~/Desktop/tryoutdesk-tutorials/import-players-coaches.webm)",
+      "WebFetch(domain:tryoutdesk-help.replit.app)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(curl -s \"https://efficient-amazement-production-864a.up.railway.app/api/staff/public/tribe\")",
+      "Bash(curl -s \"https://efficient-amazement-production-864a.up.railway.app/api/health\")",
+      "Bash(curl -s \"https://efficient-amazement-production-864a.up.railway.app/api/auth/status\")",
+      "Bash(curl -s \"https://efficient-amazement-production-864a.up.railway.app/api/players/public/tribe\")",
+      "Bash(git commit *)",
+      "Bash(curl -s \"https://api.tryoutdesk.com/api/players/public/tribe\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(f'Total: {len\\(data\\)}'\\); checked=[p for p in data if p.get\\('checkedIn'\\)]; print\\(f'CheckedIn=true: {len\\(checked\\)}'\\); print\\('Sample:', json.dumps\\(data[0], indent=2\\) if data else 'empty'\\)\")",
+      "Bash(curl -sv \"https://api.tryoutdesk.com/api/players/public/tribe\")",
+      "Bash(bash deploy-api.sh)",
+      "Bash(curl -s https://efficient-amazement-production-864a.up.railway.app/api/health)",
+      "Bash(curl -sf \"https://efficient-amazement-production-864a.up.railway.app/api/players/public/tribe\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(set\\(p.get\\('position'\\) for p in d[:5]\\)\\)\")",
+      "Bash(awk '{print $1}')",
+      "Bash(git check-ignore *)"
+    ],
+    "additionalDirectories": [
+      "/Users/gian/Desktop/tryoutdesk-tutorials"
+    ]
+  }
+}
