@@ -80,11 +80,30 @@ railway login --browserless
 
 ```bash
 cd /Users/gian/Downloads/tribe-tryouts-export-new/artifacts/tryout-app
-npm run build
-vercel deploy --prebuilt
+vercel build --prod
+vercel deploy --prebuilt --prod
 # Copy the deployment URL it gives you, then run:
 vercel alias set [paste-url-here] app.tryoutdesk.com
 ```
+
+**Important — `vercel build --prod`, not `npm run build`:** `vercel deploy
+--prebuilt` reads from `.vercel/output/`, NOT from `dist/public/`. `npm run
+build` (i.e. `vite build`) only updates `dist/public/` — it does not touch
+`.vercel/output/` at all. If you run `npm run build` and then `vercel deploy
+--prebuilt`, Vercel will silently deploy whatever stale build happened to be
+sitting in `.vercel/output/` from the last time `vercel build` ran — no
+error, no warning, it just ships old code. This happened for real: several
+frontend fixes went out as no-op deploys before this was caught. Always use
+`vercel build --prod` (which runs the real build *and* regenerates
+`.vercel/output/` correctly) before `vercel deploy --prebuilt --prod`.
+
+**To sanity-check a deploy actually shipped new code:**
+```bash
+curl -s https://app.tryoutdesk.com/ | grep -o 'assets/index-[^"]*\.js'
+```
+Compare the hash in that URL against the hash `vercel build --prod` just
+printed in `dist/public/assets/`. If they don't match, the deploy didn't
+take — check `.vercel/output/` was actually rebuilt.
 
 **Important:** The `vercel alias set` step is required every time. Without it, the domain still points to the old version.
 
