@@ -3,6 +3,13 @@
 A practical troubleshooting guide for when things break in production.
 Keep this file. You don't need Claude to fix most of these.
 
+**Keep this current.** You're running this solo — there's no teammate who
+absorbs tacit knowledge by osmosis. Every time you track down something
+non-obvious (a weird bug, a gotcha in a deploy step, a "why does this work
+this way"), add a few lines here before you move on. A runbook that's a
+year stale is worse than useless — it actively misleads whoever reads it
+next, including future-you.
+
 ---
 
 ## Table of Contents
