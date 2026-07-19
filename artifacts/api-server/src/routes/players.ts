@@ -68,6 +68,32 @@ router.get("/players/public/:slug", async (req, res): Promise<void> => {
   res.json(players);
 });
 
+// Public: single player detail + evaluations by club slug (no auth — used by evaluation station's compare view)
+router.get("/players/public/:slug/:id", async (req, res): Promise<void> => {
+  const [club] = await db.select({ id: clubsTable.id }).from(clubsTable).where(eq(clubsTable.slug, req.params.slug));
+  if (!club) { res.status(404).json({ error: "Club not found." }); return; }
+
+  const playerId = parseInt(req.params.id);
+  if (isNaN(playerId)) { res.status(400).json({ error: "Invalid player id." }); return; }
+
+  const [player] = await db
+    .select()
+    .from(playersTable)
+    .where(and(eq(playersTable.id, playerId), eq(playersTable.clubId, club.id)));
+
+  if (!player) {
+    res.status(404).json({ error: "Player not found" });
+    return;
+  }
+
+  const evaluations = await db
+    .select()
+    .from(evaluationsTable)
+    .where(and(eq(evaluationsTable.playerId, playerId), eq(evaluationsTable.clubId, club.id)));
+
+  res.json({ ...player, evaluations });
+});
+
 router.get("/players", async (req, res): Promise<void> => {
   const params = ListPlayersQueryParams.safeParse(req.query);
   if (!params.success) {

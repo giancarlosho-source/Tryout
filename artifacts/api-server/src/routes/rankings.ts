@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, playersTable, evaluationsTable } from "@workspace/db";
+import { db, playersTable, evaluationsTable, clubsTable } from "@workspace/db";
 import {
   ListRankingsQueryParams,
   OverrideRankingParams,
@@ -9,6 +9,39 @@ import {
 
 const router: IRouter = Router();
 
+// Public: rankings by club slug (no auth — used by evaluation station's read-only rankings/compare view)
+router.get("/rankings/public/:slug", async (req, res): Promise<void> => {
+  const [club] = await db.select({ id: clubsTable.id }).from(clubsTable).where(eq(clubsTable.slug, req.params.slug));
+  if (!club) { res.status(404).json({ error: "Club not found." }); return; }
+
+  const clubId = club.id;
+  const players = await db.select({
+    id: playersTable.id,
+    name: playersTable.name,
+    jerseyNumber: playersTable.jerseyNumber,
+    position: playersTable.position,
+    checkedIn: playersTable.checkedIn,
+    overallScore: playersTable.overallScore,
+    positionScore: playersTable.positionScore,
+    potentialScore: playersTable.potentialScore,
+    physicalScore: playersTable.physicalScore,
+  }).from(playersTable).where(eq(playersTable.clubId, clubId));
+
+  const evalCounts = await db.select().from(evaluationsTable).where(eq(evaluationsTable.clubId, clubId));
+  const countByPlayer: Record<number, number> = {};
+  evalCounts.forEach((e) => {
+    countByPlayer[e.playerId] = (countByPlayer[e.playerId] || 0) + 1;
+  });
+
+  const sorted = [...players].sort((a, b) => (b.overallScore ?? -1) - (a.overallScore ?? -1));
+  const result = sorted.map((p, idx) => ({
+    ...p,
+    rankOverall: idx + 1,
+    evaluationCount: countByPlayer[p.id] || 0,
+  }));
+
+  res.json(result);
+});
 
 router.get("/rankings", async (req, res): Promise<void> => {
   const params = ListRankingsQueryParams.safeParse(req.query);

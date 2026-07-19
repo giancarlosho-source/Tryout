@@ -3,8 +3,9 @@ import { useListPlayers, useListCoaches, useUpsertEvaluation, getListRankingsQue
 import { useActiveSession } from "@/hooks/use-active-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { StationShell } from "@/components/station-shell";
-import { Mic, MicOff, CheckCircle2, User, ChevronDown, Search, AlertTriangle } from "lucide-react";
+import { Mic, MicOff, CheckCircle2, User, ChevronDown, Search, AlertTriangle, ListOrdered } from "lucide-react";
 import { positionLabel } from "@/lib/positions";
+import { StationRankings } from "@/components/station-rankings";
 
 // ── Skills ─────────────────────────────────────────────────────────────────────
 const SKILLS: { label: string; skill: string; category: "universal" | "position"; mandatory?: boolean }[] = [
@@ -128,6 +129,7 @@ export default function EvaluationStation() {
   const [search, setSearch] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: number; name: string; jerseyNumber?: string | null } | null>(null);
   const [flash, setFlash] = useState<{ score: number; name: string } | null>(null);
+  const [showRankings, setShowRankings] = useState(false);
 
   // Voice
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -196,7 +198,15 @@ export default function EvaluationStation() {
 
   return (
     <StationShell title="Evaluation" color="bg-purple-600">
+      {showRankings && <StationRankings onClose={() => setShowRankings(false)} />}
       <div className="max-w-lg mx-auto p-4 space-y-4">
+
+        <button
+          onClick={() => setShowRankings(true)}
+          className="w-full flex items-center gap-2 bg-white border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-purple-700 hover:border-purple-400 transition-colors"
+        >
+          <ListOrdered className="h-4 w-4" /> View Rankings &amp; Compare Players
+        </button>
 
         {playersLoadFailed && (
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 font-bold">
