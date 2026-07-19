@@ -11,7 +11,7 @@ const HELP = {
     { step: 5, text: "Must-Haves (star) are your highest priority picks — they show at the top of your wishlist." },
   ],
   tips: [
-    "Once a player is drafted by any team, they are removed from the pool for all other teams.",
+    "Once a player is locked to a team, other coaches still see them in the pool marked \"Locked by [Team]\" — they can no longer be claimed.",
     "Coaches can view rankings and build wishlists before the draft starts — encourage this.",
     "The draft order is not enforced by the app — you manage the turn order in the room.",
     "Locked players (from Rankings) cannot be drafted until unlocked by an admin.",
@@ -277,10 +277,10 @@ export default function Draft() {
     );
   };
 
-  // Build claimed map: playerId -> { teamName, coachName, coachId }
-  const claimedMap = new Map<number, { teamName: string; coachName: string; coachId: number }>();
+  // Build claimed map: playerId -> { teamName, coachName, coachId, locked }
+  const claimedMap = new Map<number, { teamName: string; coachName: string; coachId: number; locked: boolean }>();
   for (const pick of allPicks) {
-    claimedMap.set(pick.playerId, { teamName: pick.teamName, coachName: pick.coachName, coachId: pick.coachId });
+    claimedMap.set(pick.playerId, { teamName: pick.teamName, coachName: pick.coachName, coachId: pick.coachId, locked: pick.locked ?? false });
   }
 
   // Build wishlist conflict map: playerId -> how many coaches want this player
@@ -308,8 +308,16 @@ export default function Draft() {
     All: "All", Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
   };
 
-  // Available = not claimed by ANY coach
-  const availablePlayers = useMemo(() => allPlayers.filter((p) => !claimedMap.has(p.id)), [allPlayers, claimedMap]);
+  // Available = not claimed by any coach, or locked by ANOTHER coach (shown with a "Locked by" badge instead of hidden).
+  // Own claimed/locked picks stay off the pool — they're already on this coach's roster.
+  const availablePlayers = useMemo(
+    () => allPlayers.filter((p) => {
+      const claim = claimedMap.get(p.id);
+      if (!claim) return true;
+      return claim.locked && claim.coachId !== selectedCoachId;
+    }),
+    [allPlayers, claimedMap, selectedCoachId]
+  );
 
   // Filtered + searched player list (only available)
   const filteredPlayers = useMemo(() => {
@@ -676,6 +684,7 @@ export default function Draft() {
                         const otherTeamsWant = conflictCount - (isWished ? 1 : 0);
                         const mustHaveClaims = mustHaveClaimMap.get(player.id) ?? [];
                         const otherMustHave = mustHaveClaims.filter((m) => m.coachName !== coaches.find((c) => c.id === selectedCoachId)?.name);
+                        const lockedByOther = claimedMap.get(player.id);
 
                         return (
                           <div
@@ -713,6 +722,11 @@ export default function Draft() {
                                   {otherMustHave.length > 0 && (
                                     <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
                                       ★ {otherMustHave.map((m) => m.teamName).join(", ")} must-have
+                                    </span>
+                                  )}
+                                  {lockedByOther && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded-full">
+                                      🔒 Locked by {lockedByOther.teamName}
                                     </span>
                                   )}
                                 </div>
@@ -757,17 +771,26 @@ export default function Draft() {
                                 >
                                   {isWished ? <HeartOff className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5" />}
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleClaim(player.id, player.position)}
-                                  className={`text-xs flex items-center gap-1 whitespace-nowrap border border-dashed px-2 py-1 rounded-md transition-colors ${
-                                    isPriority
-                                      ? "border-amber-400 text-amber-700 hover:bg-amber-200"
-                                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
-                                  }`}
-                                >
-                                  <Plus className="h-3.5 w-3.5" /> Claim
-                                </button>
+                                {lockedByOther ? (
+                                  <span
+                                    title={`Locked by ${lockedByOther.teamName}`}
+                                    className="text-xs flex items-center gap-1 whitespace-nowrap border border-dashed border-slate-200 text-slate-400 px-2 py-1 rounded-md cursor-not-allowed"
+                                  >
+                                    <Lock className="h-3.5 w-3.5" /> Locked
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClaim(player.id, player.position)}
+                                    className={`text-xs flex items-center gap-1 whitespace-nowrap border border-dashed px-2 py-1 rounded-md transition-colors ${
+                                      isPriority
+                                        ? "border-amber-400 text-amber-700 hover:bg-amber-200"
+                                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
+                                    }`}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" /> Claim
+                                  </button>
+                                )}
                               </div>
                             </div>
 
