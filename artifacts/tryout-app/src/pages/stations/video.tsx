@@ -393,47 +393,48 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
           </div>
         </div>
       ) : (
-        /* Translucent overlay so the recording stays visible underneath */
-        <div className="absolute bottom-0 left-0 right-0 bg-black/45 backdrop-blur-md p-3 z-10">
+        /* Fully translucent overlay — no dark panel or blur, just bold
+           shadowed text/borders so the recording stays clearly visible */
+        <div className="absolute bottom-0 left-0 right-0 p-3 z-10 pointer-events-none">
           {/* Readout */}
-          <div className="h-14 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-center relative mb-2">
-            <span className="text-4xl font-black text-white tabular-nums tracking-widest drop-shadow-lg">{jerseySearch || "#"}</span>
+          <div className="h-14 rounded-2xl bg-black/15 border border-white/40 flex items-center justify-center relative mb-2 pointer-events-auto">
+            <span className="text-4xl font-black text-white tabular-nums tracking-widest [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">{jerseySearch || "#"}</span>
             {jerseySearch && (
               <button
                 onClick={() => setJerseySearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-gray-200 flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 border border-white/40 text-white flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
                 aria-label="Clear"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
           </div>
-          {/* Dial pad — translucent so the video shows through */}
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          {/* Dial pad — near-invisible fill, bold shadowed digits carry legibility */}
+          <div className="grid grid-cols-3 gap-2 mb-2 pointer-events-auto">
             {["1","2","3","4","5","6","7","8","9"].map((d) => (
               <button
                 key={d}
                 onClick={() => setJerseySearch((prev) => (prev + d).slice(0, 3))}
-                className="h-20 rounded-2xl bg-white/10 border border-white/15 text-white font-bold text-4xl drop-shadow-lg active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none"
+                className="h-20 rounded-2xl bg-black/10 border-2 border-white/50 text-white font-bold text-4xl [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] active:bg-primary/70 active:border-primary transition-colors touch-manipulation select-none"
               >
                 {d}
               </button>
             ))}
             <button
               onClick={() => setJerseySearch("")}
-              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-gray-200 font-bold text-lg drop-shadow active:bg-red-600/80 active:text-white transition-colors touch-manipulation select-none"
+              className="h-20 rounded-2xl bg-black/10 border-2 border-white/50 text-white font-bold text-lg [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] active:bg-red-600/70 active:border-red-400 transition-colors touch-manipulation select-none"
             >
               Clear
             </button>
             <button
               onClick={() => setJerseySearch((prev) => (prev + "0").slice(0, 3))}
-              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-white font-bold text-4xl drop-shadow-lg active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none"
+              className="h-20 rounded-2xl bg-black/10 border-2 border-white/50 text-white font-bold text-4xl [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] active:bg-primary/70 active:border-primary transition-colors touch-manipulation select-none"
             >
               0
             </button>
             <button
               onClick={() => setJerseySearch((prev) => prev.slice(0, -1))}
-              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-gray-200 font-bold text-3xl drop-shadow active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
+              className="h-20 rounded-2xl bg-black/10 border-2 border-white/50 text-white font-bold text-3xl [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] active:bg-primary/70 active:border-primary transition-colors touch-manipulation select-none flex items-center justify-center"
               aria-label="Backspace"
             >
               ⌫
@@ -441,23 +442,23 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
           </div>
 
           {jerseySearch.trim() && (
-            <div className="grid grid-cols-3 gap-1.5 max-h-24 overflow-y-auto">
+            <div className="grid grid-cols-3 gap-1.5 max-h-24 overflow-y-auto pointer-events-auto">
               {jerseyMatches.map((p) => {
                 const isOut = subbedOut.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={() => { tagPlayer(p); setJerseySearch(""); }}
-                    className={`px-2 py-2 rounded-xl font-semibold text-xs text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none truncate border border-white/10 ${isOut ? "bg-black/20 text-gray-500" : "bg-white/10 text-white"}`}
+                    className={`px-2 py-2 rounded-xl font-semibold text-xs text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none truncate border border-white/40 [text-shadow:0_1px_4px_rgba(0,0,0,0.9)] ${isOut ? "bg-black/15 text-gray-300" : "bg-black/10 text-white"}`}
                   >
-                    {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-300"}`}>#{p.jerseyNumber} </span>}
+                    {p.jerseyNumber && <span className="font-normal">#{p.jerseyNumber} </span>}
                     {p.name}
-                    {isOut && <span className="block text-[9px] text-gray-600 font-normal">subbed out</span>}
+                    {isOut && <span className="block text-[9px] font-normal">subbed out</span>}
                   </button>
                 );
               })}
               {jerseyMatches.length === 0 && (
-                <p className="col-span-3 text-gray-300 text-sm py-2 text-center">No players found</p>
+                <p className="col-span-3 text-gray-200 text-sm py-2 text-center [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">No players found</p>
               )}
             </div>
           )}
