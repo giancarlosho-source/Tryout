@@ -145,6 +145,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
   const [saving, setSaving] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [jerseySearch, setJerseySearch] = useState("");
 
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
@@ -199,17 +200,39 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
     onDone();
   };
 
+  // Tapping to tag always lags the actual rep by a beat of reaction time —
+  // back the timestamp up so it lands on the rep instead of on whoever
+  // rotated into that spot next.
+  const TAG_LOOKBACK_MS = 3500;
+
   const tagPlayer = useCallback((player: Player) => {
     if (!recording) return;
     setTags((prev) => [...prev, {
       playerId: player.id,
       playerName: player.name,
       jerseyNumber: player.jerseyNumber,
-      timestampMs: Date.now() - startTimeRef.current,
+      timestampMs: Math.max(0, Date.now() - startTimeRef.current - TAG_LOOKBACK_MS),
     }]);
     setRecentTag(player.name);
     setTimeout(() => setRecentTag(null), 1800);
   }, [recording]);
+
+  const activeCourt = liveRoster.filter((p) => !subbedOut.has(p.id));
+  const jerseyMatches = jerseySearch.trim()
+    ? activeCourt.filter((p) =>
+        (p.jerseyNumber ?? "").includes(jerseySearch.trim()) ||
+        p.name.toLowerCase().includes(jerseySearch.trim().toLowerCase())
+      )
+    : [];
+  const exactJerseyMatch = activeCourt.find((p) => p.jerseyNumber === jerseySearch.trim());
+
+  // As soon as the typed digits uniquely match a jersey number, tag immediately —
+  // no extra tap needed once the number is fully entered.
+  useEffect(() => {
+    if (!exactJerseyMatch) return;
+    tagPlayer(exactJerseyMatch);
+    setJerseySearch("");
+  }, [exactJerseyMatch, tagPlayer]);
 
   const subIn = (player: Player) => {
     setLiveRoster((prev) => prev.some((p) => p.id === player.id) ? prev : [...prev, player]);
@@ -284,13 +307,60 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
           </div>
         ) : (
           <>
+            <div className="flex items-stretch gap-3 mb-3">
+              {/* Readout */}
+              <div className="w-20 shrink-0 rounded-2xl bg-gray-800 flex items-center justify-center relative">
+                <span className="text-3xl font-black text-white tabular-nums">{jerseySearch || "#"}</span>
+                {jerseySearch && (
+                  <button
+                    onClick={() => setJerseySearch("")}
+                    className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center"
+                    aria-label="Clear"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              {/* Dial pad */}
+              <div className="grid grid-cols-3 gap-1.5 flex-1">
+                {["1","2","3","4","5","6","7","8","9"].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setJerseySearch((prev) => (prev + d).slice(0, 3))}
+                    className="rounded-xl bg-gray-800 text-white font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
+                  >
+                    {d}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setJerseySearch("")}
+                  className="rounded-xl bg-gray-800 text-gray-400 font-bold text-xs active:bg-red-600 active:text-white transition-colors touch-manipulation select-none"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setJerseySearch((prev) => (prev + "0").slice(0, 3))}
+                  className="rounded-xl bg-gray-800 text-white font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
+                >
+                  0
+                </button>
+                <button
+                  onClick={() => setJerseySearch((prev) => prev.slice(0, -1))}
+                  className="rounded-xl bg-gray-800 text-gray-400 font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
+                  aria-label="Backspace"
+                >
+                  ⌫
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 mb-3">
-              {liveRoster.map((p) => {
+              {(jerseySearch.trim() ? jerseyMatches : liveRoster).map((p) => {
                 const isOut = subbedOut.has(p.id);
                 return (
                   <button
                     key={p.id}
-                    onClick={() => tagPlayer(p)}
+                    onClick={() => { tagPlayer(p); setJerseySearch(""); }}
                     className={`px-3 py-4 rounded-2xl font-bold text-base text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none ${isOut ? "bg-gray-800/50 text-gray-500" : "bg-gray-800 text-white"}`}
                   >
                     {p.jerseyNumber && <span className={`text-sm font-normal ${isOut ? "text-gray-600" : "text-gray-400"}`}>#{p.jerseyNumber} </span>}
@@ -299,6 +369,9 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
                   </button>
                 );
               })}
+              {jerseySearch.trim() && jerseyMatches.length === 0 && (
+                <p className="col-span-2 text-gray-500 text-sm py-4 text-center">No players found</p>
+              )}
             </div>
             <button
               onClick={stopAndSave}
