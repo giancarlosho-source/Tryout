@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageSquare, X } from "lucide-react";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
-const AUTO_DISMISS_MS = 15_000;
 
 interface BroadcastMessage {
   id: string;
@@ -12,7 +11,6 @@ interface BroadcastMessage {
 
 export function StationBroadcastBanner() {
   const [message, setMessage] = useState<BroadcastMessage | null>(null);
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const slug = localStorage.getItem("tryoutdesk_club_slug");
@@ -29,13 +27,6 @@ export function StationBroadcastBanner() {
 
     return () => es.close();
   }, []);
-
-  useEffect(() => {
-    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-    if (!message) return;
-    dismissTimerRef.current = setTimeout(() => setMessage(null), AUTO_DISMISS_MS);
-    return () => { if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current); };
-  }, [message]);
 
   if (!message) return null;
 

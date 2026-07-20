@@ -249,7 +249,7 @@ export default function ClubSettings() {
           <MessageSquare className="h-4 w-4" /> Message Stations
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
-          Sends a pop-up banner to every station device currently open for your club (check-in, measurements, photo, evaluation, video). Dismisses on its own after 15 seconds, or the coach can tap it away.
+          Sends a pop-up banner to every station device currently open for your club (check-in, measurements, photo, evaluation, video). Stays on screen until the coach taps it away, so it won't get missed.
         </p>
         {broadcastOk && (
           <div className="mb-3 px-4 py-3 rounded-lg bg-green-50 text-green-700 text-sm font-medium flex items-center gap-2">
