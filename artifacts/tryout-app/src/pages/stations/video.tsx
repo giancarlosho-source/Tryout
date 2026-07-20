@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Video, Square, Play, ArrowLeft, Trash2, ChevronRight, UserPlus, CheckCircle2, X } from "lucide-react";
+import { Video, Square, Play, Pause, ArrowLeft, Trash2, ChevronRight, UserPlus, CheckCircle2, X } from "lucide-react";
 import { saveRecording, listRecordings, getRecording, deleteRecording, type Recording, type PlayerTag } from "@/lib/video-db";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
@@ -136,8 +136,10 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
+  const pauseStartRef = useRef<number>(0);
 
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [tags, setTags] = useState<PlayerTag[]>([]);
   const [liveRoster, setLiveRoster] = useState<Player[]>(courtPlayers);
@@ -156,15 +158,15 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   }, [stream]);
 
   useEffect(() => {
-    if (!recording) return;
+    if (!recording || paused) return;
     const interval = setInterval(() => setElapsed(Date.now() - startTimeRef.current), 500);
     return () => clearInterval(interval);
-  }, [recording]);
+  }, [recording, paused]);
 
   // Physical keyboard support — same dial pad target, but for laptop/desktop
   // setups where typing digits is faster than tapping the on-screen pad.
   useEffect(() => {
-    if (!recording || showSubIn) return;
+    if (!recording || paused || showSubIn) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (/^[0-9]$/.test(e.key)) {
@@ -179,7 +181,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [recording, showSubIn]);
+  }, [recording, paused, showSubIn]);
 
   const startRecording = () => {
     if (!stream) return;
@@ -191,8 +193,26 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
     mediaRecorderRef.current = mr;
     startTimeRef.current = Date.now();
     setRecording(true);
+    setPaused(false);
     setElapsed(0);
     setTags([]);
+  };
+
+  const togglePause = () => {
+    const mr = mediaRecorderRef.current;
+    if (!mr || !recording) return;
+    if (paused) {
+      mr.resume();
+      // Shift the clock forward by however long we were paused so elapsed
+      // time (and tag timestamps) stay in sync with the actual recorded
+      // video, which also excludes the paused span.
+      startTimeRef.current += Date.now() - pauseStartRef.current;
+      setPaused(false);
+    } else {
+      mr.pause();
+      pauseStartRef.current = Date.now();
+      setPaused(true);
+    }
   };
 
   const stopAndSave = async () => {
@@ -213,6 +233,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
     };
     await saveRecording(rec);
     setRecording(false);
+    setPaused(false);
     setSaving(false);
     onDone();
   };
@@ -223,7 +244,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   const TAG_LOOKBACK_MS = 3500;
 
   const tagPlayer = useCallback((player: Player) => {
-    if (!recording) return;
+    if (!recording || paused) return;
     setTags((prev) => [...prev, {
       playerId: player.id,
       playerName: player.name,
@@ -232,7 +253,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
     }]);
     setRecentTag(player.name);
     setTimeout(() => setRecentTag(null), 1800);
-  }, [recording]);
+  }, [recording, paused]);
 
   const activeCourt = liveRoster.filter((p) => !subbedOut.has(p.id));
   const jerseyMatches = jerseySearch.trim()
@@ -276,9 +297,10 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
         <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-black" />
         {recording && (
           <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 rounded-full px-3 py-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            <span className={`h-2.5 w-2.5 rounded-full ${paused ? "bg-amber-400" : "bg-red-500 animate-pulse"}`} />
             <span className="text-white font-mono font-bold text-sm">{formatDuration(elapsed)}</span>
             <span className="text-gray-400 text-xs ml-1">· {tags.length} tagged</span>
+            {paused && <span className="text-amber-400 text-xs font-bold ml-1">· Paused</span>}
           </div>
         )}
         {recentTag && (
@@ -287,16 +309,33 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
             {recentTag}
           </div>
         )}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-          <p className="text-white/80 text-xs font-semibold bg-black/50 rounded-full px-3 py-1">{label}</p>
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+          <p className="text-white/80 text-xs font-semibold bg-black/50 rounded-full px-3 py-1 truncate">{label}</p>
           {recording && (
-            <button
-              onClick={() => setShowSubIn(true)}
-              className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-xs font-bold shadow-lg active:scale-95 transition-all"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              Sub in
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setShowSubIn(true)}
+                aria-label="Sub in"
+                className="h-11 w-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-all"
+              >
+                <UserPlus className="h-5 w-5" />
+              </button>
+              <button
+                onClick={togglePause}
+                aria-label={paused ? "Resume recording" : "Pause recording"}
+                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${paused ? "bg-green-500 text-white" : "bg-amber-500 text-white"}`}
+              >
+                {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+              </button>
+              <button
+                onClick={stopAndSave}
+                disabled={saving}
+                aria-label="Stop and save"
+                className="h-11 w-11 rounded-full bg-white text-gray-900 flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-50"
+              >
+                <Square className="h-5 w-5 fill-gray-900" />
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -324,46 +363,46 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
           </div>
         ) : (
           <>
-            <div className="flex items-stretch gap-3 mb-3">
+            <div className="mb-3">
               {/* Readout */}
-              <div className="w-20 shrink-0 rounded-2xl bg-gray-800 flex items-center justify-center relative">
-                <span className="text-3xl font-black text-white tabular-nums">{jerseySearch || "#"}</span>
+              <div className="h-16 rounded-2xl bg-gray-800 flex items-center justify-center relative mb-2">
+                <span className="text-4xl font-black text-white tabular-nums tracking-widest">{jerseySearch || "#"}</span>
                 {jerseySearch && (
                   <button
                     onClick={() => setJerseySearch("")}
-                    className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
                     aria-label="Clear"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
               {/* Dial pad */}
-              <div className="grid grid-cols-3 gap-1.5 flex-1">
+              <div className="grid grid-cols-3 gap-2">
                 {["1","2","3","4","5","6","7","8","9"].map((d) => (
                   <button
                     key={d}
                     onClick={() => setJerseySearch((prev) => (prev + d).slice(0, 3))}
-                    className="rounded-xl bg-gray-800 text-white font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
+                    className="h-24 rounded-2xl bg-gray-800 text-white font-bold text-4xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
                   >
                     {d}
                   </button>
                 ))}
                 <button
                   onClick={() => setJerseySearch("")}
-                  className="rounded-xl bg-gray-800 text-gray-400 font-bold text-xs active:bg-red-600 active:text-white transition-colors touch-manipulation select-none"
+                  className="h-24 rounded-2xl bg-gray-800 text-gray-400 font-bold text-lg active:bg-red-600 active:text-white transition-colors touch-manipulation select-none"
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => setJerseySearch((prev) => (prev + "0").slice(0, 3))}
-                  className="rounded-xl bg-gray-800 text-white font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
+                  className="h-24 rounded-2xl bg-gray-800 text-white font-bold text-4xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
                 >
                   0
                 </button>
                 <button
                   onClick={() => setJerseySearch((prev) => prev.slice(0, -1))}
-                  className="rounded-xl bg-gray-800 text-gray-400 font-bold text-lg active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
+                  className="h-24 rounded-2xl bg-gray-800 text-gray-400 font-bold text-3xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
                   aria-label="Backspace"
                 >
                   ⌫
@@ -371,32 +410,28 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-3 gap-1.5">
               {(jerseySearch.trim() ? jerseyMatches : liveRoster).map((p) => {
                 const isOut = subbedOut.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={() => { tagPlayer(p); setJerseySearch(""); }}
-                    className={`px-3 py-4 rounded-2xl font-bold text-base text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none ${isOut ? "bg-gray-800/50 text-gray-500" : "bg-gray-800 text-white"}`}
+                    className={`px-2 py-2 rounded-xl font-semibold text-xs text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none truncate ${isOut ? "bg-gray-800/50 text-gray-500" : "bg-gray-800 text-white"}`}
                   >
-                    {p.jerseyNumber && <span className={`text-sm font-normal ${isOut ? "text-gray-600" : "text-gray-400"}`}>#{p.jerseyNumber} </span>}
+                    {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-400"}`}>#{p.jerseyNumber} </span>}
                     {p.name}
-                    {isOut && <span className="block text-[10px] text-gray-600 font-normal mt-0.5">subbed out</span>}
+                    {isOut && <span className="block text-[9px] text-gray-600 font-normal">subbed out</span>}
                   </button>
                 );
               })}
               {jerseySearch.trim() && jerseyMatches.length === 0 && (
-                <p className="col-span-2 text-gray-500 text-sm py-4 text-center">No players found</p>
+                <p className="col-span-3 text-gray-500 text-sm py-4 text-center">No players found</p>
               )}
             </div>
-            <button
-              onClick={stopAndSave}
-              disabled={saving}
-              className="w-full h-14 rounded-2xl bg-white text-gray-900 font-bold text-base flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60"
-            >
-              {saving ? "Saving…" : (<><Square className="h-5 w-5 fill-gray-900" /> Stop & Save</>)}
-            </button>
+            {saving && (
+              <p className="text-center text-gray-400 text-sm py-3">Saving…</p>
+            )}
           </>
         )}
       </div>
