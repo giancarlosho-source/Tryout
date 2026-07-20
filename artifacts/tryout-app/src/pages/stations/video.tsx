@@ -123,11 +123,13 @@ function SubInOverlay({ allPlayers, courtPlayers, onAdd, onRemove, onClose }: {
 
 // ── Active recording screen ──────────────────────────────────────────────────
 
-function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
+function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraError, onDone }: {
   slug: string;
   courtPlayers: Player[];
   allPlayers: Player[];
   label: string;
+  stream: MediaStream | null;
+  cameraError: string | null;
   onDone: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -143,14 +145,9 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
   const [recentTag, setRecentTag] = useState<string | null>(null);
   const [showSubIn, setShowSubIn] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [jerseySearch, setJerseySearch] = useState("");
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
-      .then((s) => { setStream(s); if (videoRef.current) videoRef.current.srcObject = s; })
-      .catch(() => setCameraError("Camera access denied. Allow camera in Safari Settings → tryoutdesk.com → Camera."));
     return () => { mediaRecorderRef.current?.stop(); };
   }, []);
 
@@ -428,6 +425,7 @@ function SetupScreen({ allPlayers: initialPlayers, onStart }: {
   const [mode, setMode] = useState<SetupMode>("position");
   const [position, setPosition] = useState("");
   const [courtLabel, setCourtLabel] = useState("");
+  const [showLabelInput, setShowLabelInput] = useState(false);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [allPlayers, setAllPlayers] = useState<Player[]>(initialPlayers);
@@ -511,18 +509,6 @@ function SetupScreen({ allPlayers: initialPlayers, onStart }: {
           ))}
         </div>
 
-        {/* Court label */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Court label</label>
-          <input
-            type="text"
-            placeholder="e.g. Court 1, Main Gym"
-            value={courtLabel}
-            onChange={(e) => setCourtLabel(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-primary bg-white"
-          />
-        </div>
-
         {mode === "position" ? (
           <>
             <div>
@@ -598,6 +584,25 @@ function SetupScreen({ allPlayers: initialPlayers, onStart }: {
               </div>
             </div>
           </>
+        )}
+
+        {/* Court label — optional, collapsed by default so it doesn't slow down setup */}
+        {showLabelInput ? (
+          <input
+            type="text"
+            autoFocus
+            placeholder="e.g. Court 1, Main Gym"
+            value={courtLabel}
+            onChange={(e) => setCourtLabel(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-primary bg-white"
+          />
+        ) : (
+          <button
+            onClick={() => setShowLabelInput(true)}
+            className="text-xs font-semibold text-gray-400 underline"
+          >
+            + Add court label (optional)
+          </button>
         )}
       </div>
 
@@ -722,6 +727,20 @@ export default function VideoStation() {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const slug = localStorage.getItem("tryoutdesk_club_slug") ?? "";
 
+  // Camera is requested once when the station opens and kept alive across
+  // every recording — re-requesting getUserMedia per-recording was the
+  // biggest hidden delay between "Start Recording" taps.
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true })
+      .then((s) => { streamRef.current = s; setStream(s); })
+      .catch(() => setCameraError("Camera access denied. Allow camera in Safari Settings → tryoutdesk.com → Camera."));
+    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
+  }, []);
+
   const loadRecordings = useCallback(() => {
     if (slug) listRecordings(slug).then(setRecordings);
   }, [slug]);
@@ -753,6 +772,8 @@ export default function VideoStation() {
         courtPlayers={courtPlayers}
         allPlayers={allPlayers}
         label={courtLabel}
+        stream={stream}
+        cameraError={cameraError}
         onDone={() => { setScreen("home"); loadRecordings(); }}
       />
     );
@@ -772,7 +793,16 @@ export default function VideoStation() {
         <button onClick={() => navigate("/station")} className="text-xs text-gray-400 hover:text-white transition-colors">Switch role</button>
       </div>
 
-      <div className="p-5">
+      <div className="p-5 space-y-2.5">
+        {courtPlayers.length > 0 && (
+          <button
+            onClick={() => setScreen("record")}
+            className="w-full h-14 rounded-2xl bg-gray-900 text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+          >
+            <Video className="h-5 w-5" />
+            Record Again — {courtLabel} ({courtPlayers.length})
+          </button>
+        )}
         <button
           onClick={() => setScreen("setup")}
           className="w-full h-20 rounded-3xl bg-red-600 text-white font-bold text-xl flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all"
@@ -780,7 +810,7 @@ export default function VideoStation() {
           <Video className="h-7 w-7" />
           New Recording
         </button>
-        <p className="text-center text-xs text-gray-400 mt-3">Select court & players, then record and tag moments</p>
+        <p className="text-center text-xs text-gray-400 mt-1">Select court & players, then record and tag moments</p>
       </div>
 
       <div className="flex-1 px-5 space-y-3">
