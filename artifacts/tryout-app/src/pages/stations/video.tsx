@@ -346,10 +346,10 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
 
       {/* Player list — slide-in translucent side panel, off by default */}
       {recording && showRoster && (
-        <div className="absolute top-0 right-0 bottom-0 w-64 max-w-[80vw] bg-black/55 backdrop-blur-md border-l border-white/10 z-10 flex flex-col pt-16 pb-3 px-3">
+        <div className="absolute top-0 right-0 bottom-0 w-64 max-w-[80vw] border-l-2 border-white/50 z-10 flex flex-col pt-16 pb-3 px-3">
           <div className="flex items-center justify-between mb-2 shrink-0">
-            <p className="text-white text-xs font-bold uppercase tracking-wider">On Court</p>
-            <button onClick={() => setShowRoster(false)} aria-label="Close player list" className="text-gray-300">
+            <p className="text-white text-xs font-bold uppercase tracking-wider [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">On Court</p>
+            <button onClick={() => setShowRoster(false)} aria-label="Close player list" className="text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -360,11 +360,11 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
                 <button
                   key={p.id}
                   onClick={() => tagPlayer(p)}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold text-sm text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none border border-white/10 ${isOut ? "bg-black/20 text-gray-500" : "bg-white/10 text-white"}`}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold text-sm text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none border-2 border-white/50 [text-shadow:0_1px_4px_rgba(0,0,0,0.9)] ${isOut ? "bg-black/15 text-gray-300" : "bg-black/10 text-white"}`}
                 >
-                  {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-300"}`}>#{p.jerseyNumber}</span>}
+                  {p.jerseyNumber && <span className="font-normal">#{p.jerseyNumber}</span>}
                   <span className="truncate">{p.name}</span>
-                  {isOut && <span className="ml-auto text-[9px] text-gray-600 font-normal shrink-0">out</span>}
+                  {isOut && <span className="ml-auto text-[9px] font-normal shrink-0">out</span>}
                 </button>
               );
             })}
