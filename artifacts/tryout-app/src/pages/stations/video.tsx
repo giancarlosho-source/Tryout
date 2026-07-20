@@ -164,6 +164,26 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, onDone }: {
     return () => clearInterval(interval);
   }, [recording]);
 
+  // Physical keyboard support — same dial pad target, but for laptop/desktop
+  // setups where typing digits is faster than tapping the on-screen pad.
+  useEffect(() => {
+    if (!recording || showSubIn) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        setJerseySearch((prev) => (prev + e.key).slice(0, 3));
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        setJerseySearch((prev) => prev.slice(0, -1));
+      } else if (e.key === "Escape") {
+        setJerseySearch("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [recording, showSubIn]);
+
   const startRecording = () => {
     if (!stream) return;
     const mimeType = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "video/webm";
