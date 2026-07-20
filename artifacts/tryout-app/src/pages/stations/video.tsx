@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Video, Square, Play, Pause, ArrowLeft, Trash2, ChevronRight, UserPlus, CheckCircle2, X } from "lucide-react";
+import { Video, Square, Play, Pause, ArrowLeft, Trash2, ChevronRight, UserPlus, Users, CheckCircle2, X } from "lucide-react";
 import { saveRecording, listRecordings, getRecording, deleteRecording, type Recording, type PlayerTag } from "@/lib/video-db";
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
@@ -146,6 +146,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   const [subbedOut, setSubbedOut] = useState<Set<number>>(new Set());
   const [recentTag, setRecentTag] = useState<string | null>(null);
   const [showSubIn, setShowSubIn] = useState(false);
+  const [showRoster, setShowRoster] = useState(false);
   const [saving, setSaving] = useState(false);
   const [jerseySearch, setJerseySearch] = useState("");
 
@@ -291,150 +292,181 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col relative">
-      {/* Camera preview */}
-      <div className="relative" style={{ height: "38vh" }}>
-        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-black" />
-        {recording && (
-          <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 rounded-full px-3 py-1.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${paused ? "bg-amber-400" : "bg-red-500 animate-pulse"}`} />
-            <span className="text-white font-mono font-bold text-sm">{formatDuration(elapsed)}</span>
-            <span className="text-gray-400 text-xs ml-1">· {tags.length} tagged</span>
-            {paused && <span className="text-amber-400 text-xs font-bold ml-1">· Paused</span>}
-          </div>
-        )}
-        {recentTag && (
-          <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full px-3 py-1.5 font-bold text-sm flex items-center gap-1.5 shadow-lg">
-            <CheckCircle2 className="h-4 w-4" />
-            {recentTag}
-          </div>
-        )}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-          <p className="text-white/80 text-xs font-semibold bg-black/50 rounded-full px-3 py-1 truncate">{label}</p>
-          {recording && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setShowSubIn(true)}
-                aria-label="Sub in"
-                className="h-11 w-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-all"
-              >
-                <UserPlus className="h-5 w-5" />
-              </button>
-              <button
-                onClick={togglePause}
-                aria-label={paused ? "Resume recording" : "Pause recording"}
-                className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${paused ? "bg-green-500 text-white" : "bg-amber-500 text-white"}`}
-              >
-                {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
-              </button>
-              <button
-                onClick={stopAndSave}
-                disabled={saving}
-                aria-label="Stop and save"
-                className="h-11 w-11 rounded-full bg-white text-gray-900 flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-50"
-              >
-                <Square className="h-5 w-5 fill-gray-900" />
-              </button>
-            </div>
-          )}
+    <div className="h-screen w-screen bg-gray-950 relative overflow-hidden">
+      {/* Camera fills the whole screen so it stays visible behind the overlay controls */}
+      <video ref={videoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
+
+      {recording && (
+        <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 rounded-full px-3 py-1.5 z-10">
+          <span className={`h-2.5 w-2.5 rounded-full ${paused ? "bg-amber-400" : "bg-red-500 animate-pulse"}`} />
+          <span className="text-white font-mono font-bold text-sm">{formatDuration(elapsed)}</span>
+          <span className="text-gray-400 text-xs ml-1">· {tags.length} tagged</span>
+          {paused && <span className="text-amber-400 text-xs font-bold ml-1">· Paused</span>}
         </div>
-      </div>
+      )}
+      {recentTag && (
+        <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full px-3 py-1.5 font-bold text-sm flex items-center gap-1.5 shadow-lg z-10">
+          <CheckCircle2 className="h-4 w-4" />
+          {recentTag}
+        </div>
+      )}
+      {recording && (
+        <div className="absolute top-14 right-3 flex items-center gap-2 z-10">
+          <button
+            onClick={() => setShowRoster((v) => !v)}
+            aria-label="Toggle player list"
+            className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${showRoster ? "bg-white text-gray-900" : "bg-black/50 text-white border border-white/20"}`}
+          >
+            <Users className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setShowSubIn(true)}
+            aria-label="Sub in"
+            className="h-11 w-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-all"
+          >
+            <UserPlus className="h-5 w-5" />
+          </button>
+          <button
+            onClick={togglePause}
+            aria-label={paused ? "Resume recording" : "Pause recording"}
+            className={`h-11 w-11 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${paused ? "bg-green-500 text-white" : "bg-amber-500 text-white"}`}
+          >
+            {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+          </button>
+          <button
+            onClick={stopAndSave}
+            disabled={saving}
+            aria-label="Stop and save"
+            className="h-11 w-11 rounded-full bg-white text-gray-900 flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-50"
+          >
+            <Square className="h-5 w-5 fill-gray-900" />
+          </button>
+        </div>
+      )}
 
-      {/* Player tap grid */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {!recording ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center space-y-4">
-              <p className="text-gray-400 text-sm">{liveRoster.length} player{liveRoster.length !== 1 ? "s" : ""} on court</p>
-              <div className="flex gap-3">
-                <button onClick={onDone} className="h-12 px-5 rounded-2xl bg-gray-800 text-white font-bold flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
+      {/* Player list — slide-in translucent side panel, off by default */}
+      {recording && showRoster && (
+        <div className="absolute top-0 right-0 bottom-0 w-64 max-w-[80vw] bg-black/55 backdrop-blur-md border-l border-white/10 z-10 flex flex-col pt-16 pb-3 px-3">
+          <div className="flex items-center justify-between mb-2 shrink-0">
+            <p className="text-white text-xs font-bold uppercase tracking-wider">On Court</p>
+            <button onClick={() => setShowRoster(false)} aria-label="Close player list" className="text-gray-300">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-1.5">
+            {liveRoster.map((p) => {
+              const isOut = subbedOut.has(p.id);
+              return (
                 <button
-                  onClick={startRecording}
-                  disabled={!stream}
-                  className="h-12 px-8 rounded-2xl bg-red-600 text-white font-bold text-base flex items-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                  key={p.id}
+                  onClick={() => tagPlayer(p)}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold text-sm text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none border border-white/10 ${isOut ? "bg-black/20 text-gray-500" : "bg-white/10 text-white"}`}
                 >
-                  <Video className="h-5 w-5" />
-                  Start Recording
+                  {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-300"}`}>#{p.jerseyNumber}</span>}
+                  <span className="truncate">{p.name}</span>
+                  {isOut && <span className="ml-auto text-[9px] text-gray-600 font-normal shrink-0">out</span>}
                 </button>
-              </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!recording ? (
+        <div className="absolute inset-0 flex items-end justify-center bg-black/30 z-10 pb-10">
+          <div className="text-center space-y-4">
+            <p className="text-white/90 text-sm font-semibold drop-shadow">{label}</p>
+            <p className="text-gray-300 text-xs drop-shadow">{liveRoster.length} player{liveRoster.length !== 1 ? "s" : ""} on court</p>
+            <div className="flex gap-3">
+              <button onClick={onDone} className="h-12 px-5 rounded-2xl bg-gray-900/80 text-white font-bold flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={startRecording}
+                disabled={!stream}
+                className="h-12 px-8 rounded-2xl bg-red-600 text-white font-bold text-base flex items-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+              >
+                <Video className="h-5 w-5" />
+                Start Recording
+              </button>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="mb-3">
-              {/* Readout */}
-              <div className="h-16 rounded-2xl bg-gray-800 flex items-center justify-center relative mb-2">
-                <span className="text-4xl font-black text-white tabular-nums tracking-widest">{jerseySearch || "#"}</span>
-                {jerseySearch && (
-                  <button
-                    onClick={() => setJerseySearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
-                    aria-label="Clear"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {/* Dial pad */}
-              <div className="grid grid-cols-3 gap-2">
-                {["1","2","3","4","5","6","7","8","9"].map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setJerseySearch((prev) => (prev + d).slice(0, 3))}
-                    className="h-24 rounded-2xl bg-gray-800 text-white font-bold text-4xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
-                  >
-                    {d}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setJerseySearch("")}
-                  className="h-24 rounded-2xl bg-gray-800 text-gray-400 font-bold text-lg active:bg-red-600 active:text-white transition-colors touch-manipulation select-none"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={() => setJerseySearch((prev) => (prev + "0").slice(0, 3))}
-                  className="h-24 rounded-2xl bg-gray-800 text-white font-bold text-4xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none"
-                >
-                  0
-                </button>
-                <button
-                  onClick={() => setJerseySearch((prev) => prev.slice(0, -1))}
-                  className="h-24 rounded-2xl bg-gray-800 text-gray-400 font-bold text-3xl active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
-                  aria-label="Backspace"
-                >
-                  ⌫
-                </button>
-              </div>
-            </div>
+        </div>
+      ) : (
+        /* Translucent overlay so the recording stays visible underneath */
+        <div className="absolute bottom-0 left-0 right-0 bg-black/45 backdrop-blur-md p-3 z-10">
+          {/* Readout */}
+          <div className="h-14 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-center relative mb-2">
+            <span className="text-4xl font-black text-white tabular-nums tracking-widest drop-shadow-lg">{jerseySearch || "#"}</span>
+            {jerseySearch && (
+              <button
+                onClick={() => setJerseySearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/40 text-gray-200 flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
+                aria-label="Clear"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {/* Dial pad — translucent so the video shows through */}
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            {["1","2","3","4","5","6","7","8","9"].map((d) => (
+              <button
+                key={d}
+                onClick={() => setJerseySearch((prev) => (prev + d).slice(0, 3))}
+                className="h-20 rounded-2xl bg-white/10 border border-white/15 text-white font-bold text-4xl drop-shadow-lg active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none"
+              >
+                {d}
+              </button>
+            ))}
+            <button
+              onClick={() => setJerseySearch("")}
+              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-gray-200 font-bold text-lg drop-shadow active:bg-red-600/80 active:text-white transition-colors touch-manipulation select-none"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setJerseySearch((prev) => (prev + "0").slice(0, 3))}
+              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-white font-bold text-4xl drop-shadow-lg active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none"
+            >
+              0
+            </button>
+            <button
+              onClick={() => setJerseySearch((prev) => prev.slice(0, -1))}
+              className="h-20 rounded-2xl bg-white/10 border border-white/15 text-gray-200 font-bold text-3xl drop-shadow active:bg-primary/80 active:text-primary-foreground transition-colors touch-manipulation select-none flex items-center justify-center"
+              aria-label="Backspace"
+            >
+              ⌫
+            </button>
+          </div>
 
-            <div className="grid grid-cols-3 gap-1.5">
-              {(jerseySearch.trim() ? jerseyMatches : liveRoster).map((p) => {
+          {jerseySearch.trim() && (
+            <div className="grid grid-cols-3 gap-1.5 max-h-24 overflow-y-auto">
+              {jerseyMatches.map((p) => {
                 const isOut = subbedOut.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={() => { tagPlayer(p); setJerseySearch(""); }}
-                    className={`px-2 py-2 rounded-xl font-semibold text-xs text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none truncate ${isOut ? "bg-gray-800/50 text-gray-500" : "bg-gray-800 text-white"}`}
+                    className={`px-2 py-2 rounded-xl font-semibold text-xs text-left active:bg-primary active:text-primary-foreground transition-colors touch-manipulation select-none truncate border border-white/10 ${isOut ? "bg-black/20 text-gray-500" : "bg-white/10 text-white"}`}
                   >
-                    {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-400"}`}>#{p.jerseyNumber} </span>}
+                    {p.jerseyNumber && <span className={`font-normal ${isOut ? "text-gray-600" : "text-gray-300"}`}>#{p.jerseyNumber} </span>}
                     {p.name}
                     {isOut && <span className="block text-[9px] text-gray-600 font-normal">subbed out</span>}
                   </button>
                 );
               })}
-              {jerseySearch.trim() && jerseyMatches.length === 0 && (
-                <p className="col-span-3 text-gray-500 text-sm py-4 text-center">No players found</p>
+              {jerseyMatches.length === 0 && (
+                <p className="col-span-3 text-gray-300 text-sm py-2 text-center">No players found</p>
               )}
             </div>
-            {saving && (
-              <p className="text-center text-gray-400 text-sm py-3">Saving…</p>
-            )}
-          </>
-        )}
-      </div>
+          )}
+
+          {saving && (
+            <p className="text-center text-gray-200 text-sm pt-2">Saving…</p>
+          )}
+        </div>
+      )}
 
       {showSubIn && (
         <SubInOverlay
