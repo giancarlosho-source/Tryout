@@ -79,7 +79,7 @@ router.post("/evaluations", async (req, res): Promise<void> => {
   }
 
   await recomputeAllScores();
-  broadcast("scores:changed");
+  broadcast("scores:changed", req.clubId);
 
   res.json(evalResult);
 });
@@ -111,7 +111,7 @@ router.patch("/evaluations/:id", async (req, res): Promise<void> => {
     .returning();
 
   await recomputeAllScores();
-  broadcast("scores:changed");
+  broadcast("scores:changed", req.clubId);
 
   res.json(updated);
 });
@@ -131,7 +131,7 @@ router.delete("/evaluations/coach/:playerId/:coachName", async (req, res): Promi
     and(eq(evaluationsTable.clubId, clubId), eq(evaluationsTable.playerId, playerId), coachFilter)
   );
   await recomputeAllScores();
-  broadcast("scores:changed");
+  broadcast("scores:changed", req.clubId);
   res.status(204).send();
 });
 
@@ -145,7 +145,7 @@ router.delete("/evaluations/:id", async (req, res): Promise<void> => {
 
   await db.delete(evaluationsTable).where(and(eq(evaluationsTable.id, id), eq(evaluationsTable.clubId, clubId)));
   await recomputeAllScores();
-  broadcast("scores:changed");
+  broadcast("scores:changed", req.clubId);
   res.status(204).send();
 });
 

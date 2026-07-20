@@ -12,6 +12,7 @@ import { RosterProvider } from "@/contexts/roster-context";
 import { SessionProvider, useSession } from "@/contexts/session-context";
 import { PasswordGate, useAdminAuth } from "@/components/password-gate";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { StationBroadcastBanner } from "@/components/station-broadcast-banner";
 
 import Dashboard from "./pages/dashboard";
 import Players from "./pages/players";
@@ -314,13 +315,13 @@ function App() {
             <Route path="/player" component={PlayerEntry} />
             <Route path="/admin/login" component={AdminLogin} />
             <Route path="/admin" component={Admin} />
-            <Route path="/station/checkin"><ErrorBoundary label="Check-In"><CheckInStation /></ErrorBoundary></Route>
-            <Route path="/station/photo" component={PhotoStation} />
-            <Route path="/station/measurements" component={MeasurementsStation} />
-            <Route path="/station/evaluation" component={EvaluationStation} />
-            <Route path="/station/video" component={VideoStation} />
-            <Route path="/station/:slug" component={StationSelect} />
-            <Route path="/station" component={StationSelect} />
+            <Route path="/station/checkin"><StationBroadcastBanner /><ErrorBoundary label="Check-In"><CheckInStation /></ErrorBoundary></Route>
+            <Route path="/station/photo"><StationBroadcastBanner /><PhotoStation /></Route>
+            <Route path="/station/measurements"><StationBroadcastBanner /><MeasurementsStation /></Route>
+            <Route path="/station/evaluation"><StationBroadcastBanner /><EvaluationStation /></Route>
+            <Route path="/station/video"><StationBroadcastBanner /><VideoStation /></Route>
+            <Route path="/station/:slug"><StationBroadcastBanner /><StationSelect /></Route>
+            <Route path="/station"><StationBroadcastBanner /><StationSelect /></Route>
             <Route path="/server" component={ServerView} />
             <Route>
               {/* Everything else requires admin password */}

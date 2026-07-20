@@ -76,7 +76,7 @@ router.post("/rosters", async (req, res): Promise<void> => {
   }
   const clubId = req.clubId;
   const [roster] = await db.insert(rostersTable).values({ ...parsed.data, clubId }).returning();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json(roster);
 });
 
@@ -180,7 +180,7 @@ router.patch("/rosters/:id", async (req, res): Promise<void> => {
   const clubId = req.clubId;
   const [roster] = await db.update(rostersTable).set(parsed.data).where(and(eq(rostersTable.id, params.data.id), eq(rostersTable.clubId, clubId))).returning();
   if (!roster) { res.status(404).json({ error: "Roster not found" }); return; }
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json(roster);
 });
 
@@ -203,7 +203,7 @@ router.post("/rosters/:id/players", async (req, res): Promise<void> => {
   });
 
   const detail = await getRosterDetail(params.data.id, clubId);
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json(detail);
 });
 
@@ -219,7 +219,7 @@ router.delete("/rosters/:id/players/:playerId", async (req, res): Promise<void> 
     and(eq(rosterPlayersTable.rosterId, params.data.id), eq(rosterPlayersTable.playerId, params.data.playerId))
   );
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.sendStatus(204);
 });
 

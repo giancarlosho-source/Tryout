@@ -70,7 +70,7 @@ router.patch("/staff/:id/pin", async (req, res): Promise<void> => {
     .set({ pin: pin ? String(pin) : null, stationRole: stationRole ?? null })
     .where(and(eq(coachesTable.id, id), eq(coachesTable.clubId, clubId)));
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ ok: true });
 });
 

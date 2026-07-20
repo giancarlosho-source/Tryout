@@ -15,6 +15,7 @@ import staffRouter from "./staff";
 import photosRouter from "./photos";
 import registerRouter from "./register";
 import eventsRouter from "../events";
+import messagesRouter from "./messages";
 import adminRouter from "./admin";
 import billingRouter from "./billing";
 import cronRouter from "./cron";
@@ -22,6 +23,7 @@ import cronRouter from "./cron";
 const router: IRouter = Router();
 
 router.use(eventsRouter);
+router.use(messagesRouter);
 router.use(authRouter);
 router.use(healthRouter);
 router.use(playersRouter);

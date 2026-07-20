@@ -149,7 +149,7 @@ router.post("/players/bulk-checkin", async (req, res): Promise<void> => {
   const found = new Set(updated.map((p) => p.jerseyNumber));
   const notFound = nums.filter((n) => !found.has(n));
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ checked: updated, notFound });
 });
 
@@ -162,7 +162,7 @@ router.post("/players", async (req, res): Promise<void> => {
 
   const clubId = req.clubId;
   const [player] = await db.insert(playersTable).values({ ...parsed.data, age: normalizeAge(parsed.data.age), clubId }).returning();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json(player);
 });
 
@@ -261,7 +261,7 @@ router.post("/players/import-csv", async (req, res): Promise<void> => {
 
   if (imported > 0 || updated > 0) {
     await recomputeAllScores();
-    broadcast("players:changed");
+    broadcast("players:changed", req.clubId);
   }
 
   res.json({ imported, updated, errors });
@@ -355,7 +355,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json(player);
 });
 
@@ -366,7 +366,7 @@ router.delete("/players/all", async (req, res): Promise<void> => {
   await db.delete(coachNotesTable).where(eq(coachNotesTable.clubId, clubId));
   await db.delete(playersTable).where(eq(playersTable.clubId, clubId));
   req.log.info("All players deleted");
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.sendStatus(204);
 });
 
@@ -388,7 +388,7 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.sendStatus(204);
 });
 

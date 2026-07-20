@@ -406,13 +406,18 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
         /* Fully translucent overlay — no dark panel or blur, just bold
            shadowed text/borders so the recording stays clearly visible */
         <div className="absolute bottom-0 left-0 right-0 p-3 z-10 pointer-events-none">
-          {/* Readout */}
-          <div className="h-14 rounded-2xl bg-black/15 border border-white/40 flex items-center justify-center relative mb-2 pointer-events-auto">
-            <span className="text-4xl font-black text-white tabular-nums tracking-widest [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">{jerseySearch || "#"}</span>
+          {/* Readout — plain text display, not a button, showing what's been typed */}
+          <div className="h-14 flex items-center justify-center relative mb-2 pointer-events-none">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 absolute top-0 [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
+              {jerseySearch ? "Jersey #" : "Type jersey #"}
+            </p>
+            <span className="text-4xl font-black text-white tabular-nums tracking-widest [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] mt-2">
+              {jerseySearch || "—"}
+            </span>
             {jerseySearch && (
               <button
                 onClick={() => setJerseySearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 border border-white/40 text-white flex items-center justify-center active:bg-red-600 active:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/30 border border-white/40 text-white flex items-center justify-center active:bg-red-600 active:text-white transition-colors pointer-events-auto"
                 aria-label="Clear"
               >
                 <X className="h-4 w-4" />

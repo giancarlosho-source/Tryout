@@ -152,6 +152,22 @@ export interface PlayerUpdate {
 export interface CsvImport {
     csvData: string;
 }
+export interface BroadcastMessageInput {
+    /**
+       * @minLength 1
+       * @maxLength 500
+       */
+    text: string;
+}
+export type BroadcastMessageResultMessage = {
+    id: string;
+    text: string;
+    createdAt: string;
+};
+export interface BroadcastMessageResult {
+    status: string;
+    message: BroadcastMessageResultMessage;
+}
 export interface ImportResult {
     imported: number;
     updated: number;

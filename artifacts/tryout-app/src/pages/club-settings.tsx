@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Building2, Palette, ImagePlus, Check, Loader2, KeyRound } from "lucide-react";
+import { Building2, Palette, ImagePlus, Check, Loader2, KeyRound, MessageSquare } from "lucide-react";
 import { useAdminAuth, applyColor, getToken } from "@/components/password-gate";
+import { useBroadcastMessage } from "@workspace/api-client-react";
 
 const API_BASE = (import.meta as { env: { VITE_API_URL?: string } }).env.VITE_API_URL ?? "";
 
@@ -27,6 +28,25 @@ export default function ClubSettings() {
 
   const [tempPwBanner, setTempPwBanner] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastOk, setBroadcastOk] = useState(false);
+  const broadcastMessage = useBroadcastMessage();
+
+  async function sendBroadcast(e: React.FormEvent) {
+    e.preventDefault();
+    if (!broadcastText.trim()) return;
+    broadcastMessage.mutate(
+      { data: { text: broadcastText.trim() } },
+      {
+        onSuccess: () => {
+          setBroadcastOk(true);
+          setBroadcastText("");
+          setTimeout(() => setBroadcastOk(false), 2500);
+        },
+      }
+    );
+  }
 
   useEffect(() => {
     if (localStorage.getItem("tryoutdesk_change_pw")) {
@@ -223,6 +243,41 @@ export default function ClubSettings() {
           </button>
         </div>
       </section>
+      {/* Broadcast message */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" /> Message Stations
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Sends a pop-up banner to every station device currently open for your club (check-in, measurements, photo, evaluation, video). Dismisses on its own after 15 seconds, or the coach can tap it away.
+        </p>
+        {broadcastOk && (
+          <div className="mb-3 px-4 py-3 rounded-lg bg-green-50 text-green-700 text-sm font-medium flex items-center gap-2">
+            <Check className="h-4 w-4" /> Message sent to all stations.
+          </div>
+        )}
+        {broadcastMessage.isError && (
+          <div className="mb-3 px-4 py-3 rounded-lg bg-destructive/10 text-destructive text-sm">Failed to send message. Please try again.</div>
+        )}
+        <form onSubmit={sendBroadcast} className="flex gap-2">
+          <input
+            type="text"
+            value={broadcastText}
+            onChange={(e) => setBroadcastText(e.target.value)}
+            placeholder="e.g. Rotate to Court 2 in 5 minutes"
+            maxLength={500}
+            className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="submit"
+            disabled={broadcastMessage.isPending || !broadcastText.trim()}
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center gap-2 min-w-[80px] justify-center"
+          >
+            {broadcastMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+          </button>
+        </form>
+      </section>
+
       {/* Change password */}
       <section className="mb-8">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">

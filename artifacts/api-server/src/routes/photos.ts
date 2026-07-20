@@ -26,7 +26,7 @@ router.post("/players/:id/photo", upload.single("photo"), async (req, res): Prom
   const photoUrl = `data:image/jpeg;base64,${req.file.buffer.toString("base64")}`;
 
   await db.update(playersTable).set({ photoUrl }).where(and(eq(playersTable.id, id), eq(playersTable.clubId, clubId)));
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ ok: true, photoUrl });
 });
 
@@ -36,7 +36,7 @@ router.delete("/players/:id/photo", async (req, res): Promise<void> => {
 
   const clubId = req.clubId;
   await db.update(playersTable).set({ photoUrl: null }).where(and(eq(playersTable.id, id), eq(playersTable.clubId, clubId)));
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(204).send();
 });
 

@@ -41,7 +41,7 @@ router.post("/coaches", async (req, res): Promise<void> => {
   const clubId = req.clubId;
   const priorityJson = JSON.stringify(Array.isArray(draftPriority) ? draftPriority : []);
   const [coach] = await db.insert(coachesTable).values({ clubId, name: name.trim(), teamName: teamName.trim(), draftPriority: priorityJson }).returning();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json({ ...coach, draftPriority: JSON.parse(coach.draftPriority) });
 });
 
@@ -89,7 +89,7 @@ router.post("/coaches/import", async (req, res): Promise<void> => {
     }
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ imported, updated, errors });
 });
 
@@ -119,7 +119,7 @@ router.delete("/coaches/:id", async (req, res): Promise<void> => {
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const clubId = req.clubId;
   await db.delete(coachesTable).where(and(eq(coachesTable.id, id), eq(coachesTable.clubId, clubId)));
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(204).send();
 });
 
@@ -182,7 +182,7 @@ router.post("/coaches/:id/draft/players", async (req, res): Promise<void> => {
   }
 
   await db.insert(rosterPlayersTable).values({ rosterId, playerId, position });
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json({ ok: true });
 });
 
@@ -199,7 +199,7 @@ router.delete("/coaches/:id/draft/players/:playerId", async (req, res): Promise<
   await db.delete(rosterPlayersTable)
     .where(and(eq(rosterPlayersTable.rosterId, rosters[0].id), eq(rosterPlayersTable.playerId, playerId)));
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(204).send();
 });
 
@@ -228,7 +228,7 @@ router.patch("/coaches/:id/draft/players/:playerId", async (req, res): Promise<v
     }
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ ok: true });
 });
 
@@ -252,7 +252,7 @@ router.post("/coaches/:id/draft/players/:playerId/commit", async (req, res): Pro
     await db.delete(coachMustHaveTable).where(and(eq(coachMustHaveTable.playerId, playerId), inArray(coachMustHaveTable.coachId, clubCoachIds)));
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json({ ok: true });
 });
 
@@ -296,7 +296,7 @@ router.post("/coaches/:id/wishlist", async (req, res): Promise<void> => {
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
 
   await db.insert(coachWishlistTable).values({ coachId, playerId: body.data.playerId }).onConflictDoNothing();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json({ ok: true });
 });
 
@@ -312,7 +312,7 @@ router.delete("/coaches/:id/wishlist/:playerId", async (req, res): Promise<void>
   await db.delete(coachWishlistTable)
     .where(and(eq(coachWishlistTable.coachId, coachId), eq(coachWishlistTable.playerId, playerId)));
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(204).send();
 });
 
@@ -352,7 +352,7 @@ router.post("/coaches/:id/musthave", async (req, res): Promise<void> => {
   const clubId = req.clubId;
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   await db.insert(coachMustHaveTable).values({ coachId, playerId: body.data.playerId }).onConflictDoNothing();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json({ ok: true });
 });
 
@@ -365,7 +365,7 @@ router.delete("/coaches/:id/musthave/:playerId", async (req, res): Promise<void>
   if (!(await verifyCoachInClub(coachId, clubId))) { res.status(404).json({ error: "Coach not found" }); return; }
   await db.delete(coachMustHaveTable)
     .where(and(eq(coachMustHaveTable.coachId, coachId), eq(coachMustHaveTable.playerId, playerId)));
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(204).send();
 });
 

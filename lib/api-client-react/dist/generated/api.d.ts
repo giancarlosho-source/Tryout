@@ -1,5 +1,5 @@
 import type { QueryKey, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AiPlayerSummary, AiRosterExplanation, Coach, CoachDraft, CoachNote, CsvImport, DraftPick, DraftPlayerBody, Evaluation, EvaluationInput, EvaluationUpdate, HealthStatus, ImportResult, ListEvaluationsParams, ListNotesParams, ListPlayersParams, ListRankingsParams, MustHaveInput, MustHavePick, NewCoachBody, NoteInput, NoteUpdate, Player, PlayerDetail, PlayerInput, PlayerLockInput, PlayerUpdate, RankedPlayer, RankingOverride, Roster, RosterDetail, RosterInput, RosterPlayerInput, RosterSuggestion, RosterUpdate, SheetsSyncRequest, SyncStatus, SyncTrigger, TryoutStats, WishlistInput, WishlistPick } from './api.schemas';
+import type { AiPlayerSummary, AiRosterExplanation, BroadcastMessageInput, BroadcastMessageResult, Coach, CoachDraft, CoachNote, CsvImport, DraftPick, DraftPlayerBody, Evaluation, EvaluationInput, EvaluationUpdate, HealthStatus, ImportResult, ListEvaluationsParams, ListNotesParams, ListPlayersParams, ListRankingsParams, MustHaveInput, MustHavePick, NewCoachBody, NoteInput, NoteUpdate, Player, PlayerDetail, PlayerInput, PlayerLockInput, PlayerUpdate, RankedPlayer, RankingOverride, Roster, RosterDetail, RosterInput, RosterPlayerInput, RosterSuggestion, RosterUpdate, SheetsSyncRequest, SyncStatus, SyncTrigger, TryoutStats, WishlistInput, WishlistPick } from './api.schemas';
 import { customFetch } from '../custom-fetch';
 import type { ErrorType, BodyType } from '../custom-fetch';
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -288,6 +288,33 @@ export declare const useUpdateEvaluation: <TError = ErrorType<void>, TContext = 
 }) => UseMutationResult<Awaited<ReturnType<typeof updateEvaluation>>, TError, {
     id: number;
     data: BodyType<EvaluationUpdate>;
+}, TContext>;
+export declare const getBroadcastMessageUrl: () => string;
+/**
+ * @summary Broadcast a message to every station in the club
+ */
+export declare const broadcastMessage: (broadcastMessageInput: BroadcastMessageInput, options?: RequestInit) => Promise<BroadcastMessageResult>;
+export declare const getBroadcastMessageMutationOptions: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError, {
+        data: BodyType<BroadcastMessageInput>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError, {
+    data: BodyType<BroadcastMessageInput>;
+}, TContext>;
+export type BroadcastMessageMutationResult = NonNullable<Awaited<ReturnType<typeof broadcastMessage>>>;
+export type BroadcastMessageMutationBody = BodyType<BroadcastMessageInput>;
+export type BroadcastMessageMutationError = ErrorType<unknown>;
+/**
+* @summary Broadcast a message to every station in the club
+*/
+export declare const useBroadcastMessage: <TError = ErrorType<unknown>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError, {
+        data: BodyType<BroadcastMessageInput>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof broadcastMessage>>, TError, {
+    data: BodyType<BroadcastMessageInput>;
 }, TContext>;
 export declare const getListRankingsUrl: (params?: ListRankingsParams) => string;
 /**

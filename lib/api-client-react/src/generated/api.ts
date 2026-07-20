@@ -22,6 +22,8 @@ import type {
 import type {
   AiPlayerSummary,
   AiRosterExplanation,
+  BroadcastMessageInput,
+  BroadcastMessageResult,
   Coach,
   CoachDraft,
   CoachNote,
@@ -899,6 +901,77 @@ export const useUpdateEvaluation = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateEvaluationMutationOptions(options));
+    }
+
+export const getBroadcastMessageUrl = () => {
+
+
+
+
+  return `/api/messages/broadcast`
+}
+
+/**
+ * @summary Broadcast a message to every station in the club
+ */
+export const broadcastMessage = async (broadcastMessageInput: BroadcastMessageInput, options?: RequestInit): Promise<BroadcastMessageResult> => {
+
+  return customFetch<BroadcastMessageResult>(getBroadcastMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      broadcastMessageInput,)
+  }
+);}
+
+
+
+
+export const getBroadcastMessageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError,{data: BodyType<BroadcastMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError,{data: BodyType<BroadcastMessageInput>}, TContext> => {
+
+const mutationKey = ['broadcastMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof broadcastMessage>>, {data: BodyType<BroadcastMessageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  broadcastMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BroadcastMessageMutationResult = NonNullable<Awaited<ReturnType<typeof broadcastMessage>>>
+    export type BroadcastMessageMutationBody = BodyType<BroadcastMessageInput>
+    export type BroadcastMessageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Broadcast a message to every station in the club
+ */
+export const useBroadcastMessage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof broadcastMessage>>, TError,{data: BodyType<BroadcastMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof broadcastMessage>>,
+        TError,
+        {data: BodyType<BroadcastMessageInput>},
+        TContext
+      > => {
+      return useMutation(getBroadcastMessageMutationOptions(options));
     }
 
 export const getListRankingsUrl = (params?: ListRankingsParams,) => {

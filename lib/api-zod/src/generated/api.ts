@@ -291,6 +291,27 @@ export const UpdateEvaluationResponse = zod.object({
 
 
 /**
+ * @summary Broadcast a message to every station in the club
+ */
+export const broadcastMessageBodyTextMax = 500;
+
+
+
+export const BroadcastMessageBody = zod.object({
+  "text": zod.string().min(1).max(broadcastMessageBodyTextMax)
+})
+
+export const BroadcastMessageResponse = zod.object({
+  "status": zod.string(),
+  "message": zod.object({
+  "id": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
  * @summary Get all player rankings
  */
 export const ListRankingsQueryParams = zod.object({

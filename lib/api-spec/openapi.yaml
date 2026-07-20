@@ -245,6 +245,26 @@ paths:
         "404":
           description: Not found
 
+  # Messages
+  /messages/broadcast:
+    post:
+      operationId: broadcastMessage
+      tags: [messages]
+      summary: Broadcast a message to every station in the club
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BroadcastMessageInput"
+      responses:
+        "200":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BroadcastMessageResult"
+
   # Rankings
   /rankings:
     get:
@@ -1087,6 +1107,32 @@ components:
       properties:
         csvData:
           type: string
+
+    BroadcastMessageInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+
+    BroadcastMessageResult:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+        message:
+          type: object
+          required: [id, text, createdAt]
+          properties:
+            id:
+              type: string
+            text:
+              type: string
+            createdAt:
+              type: string
 
     ImportResult:
       type: object

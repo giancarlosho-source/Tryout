@@ -715,6 +715,47 @@ export declare const UpdateEvaluationResponse: zod.ZodObject<{
     coachName?: string | null | undefined;
 }>;
 /**
+ * @summary Broadcast a message to every station in the club
+ */
+export declare const broadcastMessageBodyTextMax = 500;
+export declare const BroadcastMessageBody: zod.ZodObject<{
+    text: zod.ZodString;
+}, "strip", zod.ZodTypeAny, {
+    text: string;
+}, {
+    text: string;
+}>;
+export declare const BroadcastMessageResponse: zod.ZodObject<{
+    status: zod.ZodString;
+    message: zod.ZodObject<{
+        id: zod.ZodString;
+        text: zod.ZodString;
+        createdAt: zod.ZodString;
+    }, "strip", zod.ZodTypeAny, {
+        id: string;
+        createdAt: string;
+        text: string;
+    }, {
+        id: string;
+        createdAt: string;
+        text: string;
+    }>;
+}, "strip", zod.ZodTypeAny, {
+    status: string;
+    message: {
+        id: string;
+        createdAt: string;
+        text: string;
+    };
+}, {
+    status: string;
+    message: {
+        id: string;
+        createdAt: string;
+        text: string;
+    };
+}>;
+/**
  * @summary Get all player rankings
  */
 export declare const ListRankingsQueryParams: zod.ZodObject<{

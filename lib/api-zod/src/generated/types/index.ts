@@ -8,6 +8,9 @@
 
 export * from './aiPlayerSummary';
 export * from './aiRosterExplanation';
+export * from './broadcastMessageInput';
+export * from './broadcastMessageResult';
+export * from './broadcastMessageResultMessage';
 export * from './coach';
 export * from './coachDraft';
 export * from './coachDraftRoster';

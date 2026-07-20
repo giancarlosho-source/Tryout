@@ -44,7 +44,7 @@ router.post("/notes", async (req, res): Promise<void> => {
 
   const clubId = req.clubId;
   const [note] = await db.insert(coachNotesTable).values({ ...parsed.data, clubId }).returning();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.status(201).json(note);
 });
 
@@ -73,7 +73,7 @@ router.patch("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.json(note);
 });
 
@@ -95,7 +95,7 @@ router.delete("/notes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
   res.sendStatus(204);
 });
 

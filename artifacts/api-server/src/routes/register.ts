@@ -255,7 +255,7 @@ router.post("/register", async (req, res): Promise<void> => {
   });
 
   await recomputeAllScores();
-  broadcast("players:changed");
+  broadcast("players:changed", req.clubId);
 
   res.json({ ok: true, name, jerseyNumber: jerseyNumber || null });
 });
