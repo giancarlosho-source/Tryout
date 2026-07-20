@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
-import { ArrowLeftRight, ChevronLeft, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeftRight, ChevronLeft, Search, X } from "lucide-react";
 import { positionColor, positionLabel } from "@/lib/positions";
+
+const POSITIONS = ["All", "Setter", "OutsideHitter", "MiddleBlocker", "Opposite", "Libero", "Undecided"];
+const POSITION_TAB_LABELS: Record<string, string> = {
+  All: "All", Setter: "S", OutsideHitter: "OH", MiddleBlocker: "MB", Opposite: "OPP", Libero: "L", Undecided: "?",
+};
 
 interface RankedPlayer {
   id: number;
@@ -126,6 +131,8 @@ export function StationRankings({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [details, setDetails] = useState<Record<number, PlayerDetail>>({});
+  const [search, setSearch] = useState("");
+  const [position, setPosition] = useState("All");
 
   useEffect(() => {
     if (!slug) return;
@@ -134,6 +141,22 @@ export function StationRankings({ onClose }: { onClose: () => void }) {
       .then((data) => { if (Array.isArray(data)) setRankings(data); else setError(true); })
       .catch(() => setError(true));
   }, [API_BASE, slug]);
+
+  const filteredRankings = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (rankings ?? [])
+      .filter((p) => position === "All" || p.position === position)
+      .filter((p) => !q || p.name.toLowerCase().includes(q) || (p.jerseyNumber ?? "").includes(q));
+  }, [rankings, search, position]);
+
+  const positionCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: (rankings ?? []).length };
+    for (const pos of POSITIONS) {
+      if (pos === "All") continue;
+      counts[pos] = (rankings ?? []).filter((p) => p.position === pos).length;
+    }
+    return counts;
+  }, [rankings]);
 
   const toggleSelect = (id: number) => {
     setSelected((prev) => {
@@ -207,6 +230,46 @@ export function StationRankings({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      <div className="flex-none max-w-lg mx-auto w-full px-3 pt-3 space-y-2.5">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by name or #..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-2 rounded-lg border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
+          />
+          {search && (
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setSearch("")}>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {POSITIONS.map((pos) => {
+            const active = position === pos;
+            const count = positionCounts[pos] ?? 0;
+            return (
+              <button
+                key={pos}
+                onClick={() => setPosition(pos)}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                  active
+                    ? pos === "All"
+                      ? "bg-foreground text-background border-foreground"
+                      : `${positionColor(pos)} border-current`
+                    : "bg-transparent text-muted-foreground border-border hover:border-muted-foreground"
+                }`}
+              >
+                {POSITION_TAB_LABELS[pos]}
+                <span className={`tabular-nums ${active ? "opacity-80" : "opacity-60"}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-auto p-3 max-w-lg mx-auto w-full">
         {error && (
           <div className="text-center text-sm text-red-600 py-8">Couldn't load rankings.</div>
@@ -214,11 +277,14 @@ export function StationRankings({ onClose }: { onClose: () => void }) {
         {!error && rankings === null && (
           <div className="text-center text-sm text-muted-foreground py-8">Loading...</div>
         )}
+        {rankings !== null && rankings.length > 0 && filteredRankings.length === 0 && (
+          <div className="text-center text-sm text-muted-foreground py-8">No players match your search.</div>
+        )}
         {rankings !== null && rankings.length === 0 && (
           <div className="text-center text-sm text-muted-foreground py-8">No ranked players yet.</div>
         )}
         <div className="space-y-1.5">
-          {(rankings ?? []).map((p) => {
+          {filteredRankings.map((p) => {
             const isSelected = selected.includes(p.id);
             return (
               <button
