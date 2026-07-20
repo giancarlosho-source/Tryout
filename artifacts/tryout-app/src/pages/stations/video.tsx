@@ -292,7 +292,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
   }
 
   return (
-    <div className="h-screen w-screen bg-gray-950 relative overflow-hidden">
+    <div className="h-dvh w-full bg-gray-950 relative overflow-hidden">
       {/* Camera fills the whole screen so it stays visible behind the overlay controls */}
       <video ref={videoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover bg-black" />
 
@@ -311,7 +311,7 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
         </div>
       )}
       {recording && (
-        <div className="absolute top-14 right-3 flex items-center gap-2 z-10">
+        <div className="absolute top-14 right-3 flex items-center gap-2 z-20">
           <button
             onClick={() => setShowRoster((v) => !v)}
             aria-label="Toggle player list"
@@ -344,16 +344,26 @@ function RecordScreen({ slug, courtPlayers, allPlayers, label, stream, cameraErr
         </div>
       )}
 
+      {/* Tap anywhere outside the roster panel to close it */}
+      {recording && showRoster && (
+        <div
+          className="absolute inset-0 z-[15] cursor-pointer"
+          onClick={() => setShowRoster(false)}
+          onTouchEnd={() => setShowRoster(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Player list — slide-in translucent side panel, off by default */}
       {recording && showRoster && (
-        <div className="absolute top-0 right-0 bottom-0 w-64 max-w-[80vw] border-l-2 border-white/50 z-10 flex flex-col pt-16 pb-3 px-3">
+        <div className="absolute top-0 right-0 bottom-0 w-64 max-w-[80vw] border-l-2 border-white/50 z-20 flex flex-col pt-16 pb-3 px-3">
           <div className="flex items-center justify-between mb-2 shrink-0">
             <p className="text-white text-xs font-bold uppercase tracking-wider [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">On Court</p>
             <button onClick={() => setShowRoster(false)} aria-label="Close player list" className="text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-1.5">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 [-webkit-overflow-scrolling:touch]">
             {liveRoster.map((p) => {
               const isOut = subbedOut.has(p.id);
               return (
